@@ -1,0 +1,557 @@
+.faculty-section {
+    padding: 0;
+}
+
+.section-header {
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 1rem;
+}
+
+.section-header h2 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.section-header p {
+    color: #5d6d7e;
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.content-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #e1e8ed;
+}
+
+.profile-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+
+.profile-card, .stats-sidebar {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #e1e8ed;
+}
+
+.profile-card h3, .stats-sidebar h4 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 0.5rem;
+}
+
+.stats-sidebar h4 {
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #34495e;
+    font-size: 0.95rem;
+}
+
+.form-group input, .form-group textarea, .form-group select {
+    padding: 0.75rem;
+    border: 2px solid #bdc3c7;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #2c3e50;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-group input::placeholder, .form-group textarea::placeholder {
+    color: #95a5a6;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.save-button, .add-button, .upload-button {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.save-button:hover, .add-button:hover, .upload-button:hover {
+    background: linear-gradient(135deg, #2980b9, #2471a3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stats-sidebar {
+    align-self: start;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #ecf0f1;
+    transition: background-color 0.3s ease;
+}
+
+.stat-item:hover {
+    background-color: #f8f9fa;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-radius: 6px;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #5d6d7e;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.add-form, .upload-section {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border-left: 4px solid #3498db;
+}
+
+.add-form h4, .upload-section h4 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.items-list, .materials-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.item-card, .material-card {
+    background: white;
+    padding: 1.5rem;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.item-card:hover, .material-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: #3498db;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.item-header h4 {
+    color: #2c3e50;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.section-badge {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.item-actions, .material-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.action-btn.view {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.action-btn.view:hover {
+    background: #bbdefb;
+    transform: translateY(-1px);
+}
+
+.action-btn.edit {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.action-btn.edit:hover {
+    background: #ffe0b2;
+    transform: translateY(-1px);
+}
+
+.action-btn.delete {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.action-btn.delete:hover {
+    background: #ffcdd2;
+    transform: translateY(-1px);
+}
+
+.materials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.material-card {
+    text-align: center;
+    transition: transform 0.2s;
+    padding: 1.5rem;
+}
+
+.material-card:hover {
+    transform: translateY(-5px);
+}
+
+.material-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.material-card h4 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.material-subject {
+    color: #5d6d7e;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.material-type {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.3rem 1rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+    margin: 0.5rem 0;
+}
+
+.material-date {
+    color: #7f8c8d;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.material-description {
+    color: #5d6d7e;
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
+/* Status and Access Badges */
+.status-badge, .access-badge {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.published {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    color: white;
+}
+
+.status-badge.submitted {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.status-badge.in-progress {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+
+.access-badge.private {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+
+.access-badge.department {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.access-badge.public {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    color: white;
+}
+
+/* Links */
+a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+/* File upload styling */
+input[type="file"] {
+    padding: 0.5rem;
+    border: 2px dashed #bdc3c7;
+    border-radius: 6px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+input[type="file"]:hover {
+    border-color: #3498db;
+    background: #ecf0f1;
+}
+
+/* Select dropdown styling */
+select {
+    background: white;
+    cursor: pointer;
+}
+
+/* Text emphasis */
+strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Card headers */
+.content-card h3 {
+    color: #2c3e50;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 0.5rem;
+}
+.file-management {
+    margin: 10px 0;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+}
+
+.file-management .action-btn {
+    margin-right: 10px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}
+
+.action-btn.upload {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.action-btn.folder {
+    background-color: #2196F3;
+    color: white;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 400px;
+}
+
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+.file-management {
+    margin: 10px 0;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+}
+
+.file-management .action-btn {
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.action-btn.upload {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.action-btn.folder {
+    background-color: #2196F3;
+    color: white;
+}
+
+.action-btn.view {
+    background-color: #ff9800;
+    color: white;
+}
+
+.action-btn.edit {
+    background-color: #9c27b0;
+    color: white;
+}
+
+.action-btn.delete {
+    background-color: #f44336;
+    color: white;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.file-input-container {
+    margin: 15px 0;
+}
+
+.file-input {
+    margin: 10px 0;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.subject-stats {
+    display: flex;
+    gap: 15px;
+    margin: 8px 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.subject-stats span {
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+}

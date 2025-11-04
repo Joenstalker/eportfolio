@@ -1,0 +1,421 @@
+/* Reset and base styles */
+.admin-dashboard * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Design tokens */
+:root {
+  --admin-bg: #ffffff;
+  --admin-surface: #ffffff;
+  --admin-surface-2: #f8f9fa;
+  --admin-border: #e5e7eb;
+  --admin-text: #0f172a;
+  --admin-muted: #475569;
+  --admin-primary: #111827;
+  --admin-primary-600: #0b1220;
+  --admin-accent: #111827;
+  --admin-success-bg: #ecfdf5;
+  --admin-success: #065f46;
+  --admin-danger-bg: #fef2f2;
+  --admin-danger: #b91c1c;
+  --admin-radius: 12px;
+  --admin-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.admin-dashboard {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--admin-bg) !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--admin-text) !important;
+}
+
+/* Force black text everywhere */
+.admin-dashboard,
+.admin-dashboard * {
+  color: var(--admin-text) !important;
+}
+
+/* Sidebar Styles */
+.admin-dashboard .sidebar {
+  width: 280px;
+  background: var(--admin-surface-2) !important;
+  color: var(--admin-text) !important;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--admin-border) !important;
+}
+
+.admin-dashboard .sidebar.closed {
+  width: 80px;
+}
+
+.admin-dashboard .sidebar-header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+.admin-dashboard .sidebar-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--admin-text) !important;
+}
+
+.admin-dashboard .sidebar-toggle {
+  background: none;
+  border: none;
+  color: var(--admin-muted) !important;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.admin-dashboard .sidebar-nav {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.admin-dashboard .nav-item {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #000000 !important;
+  padding: 15px 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.admin-dashboard .nav-item:hover {
+  background-color: #eef2f7 !important;
+}
+
+.admin-dashboard .nav-item.active {
+  background-color: #e7ebf2 !important;
+  border-right: 4px solid var(--admin-primary) !important;
+}
+
+.admin-dashboard .nav-icon {
+  font-size: 1.2rem;
+  min-width: 20px;
+  color: #000000 !important;
+}
+
+.admin-dashboard .nav-label {
+  font-weight: 500;
+  white-space: nowrap;
+  color: #000000 !important;
+}
+
+.admin-dashboard .sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid #dee2e6 !important;
+}
+
+.admin-dashboard .logout-btn {
+  width: 100%;
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.admin-dashboard .logout-btn:hover {
+  background: var(--admin-primary-600) !important;
+}
+
+/* Main Content Styles */
+.admin-dashboard .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--admin-surface) !important;
+}
+
+.admin-dashboard .content-header {
+  background: var(--admin-surface) !important;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+.admin-dashboard .content-header h1 {
+  color: #000000 !important;
+  font-size: 2rem;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.admin-dashboard .user-menu {
+  text-align: right;
+}
+
+.admin-dashboard .user-menu span {
+  display: block;
+  font-weight: 600;
+  color: #000000 !important;
+}
+
+.admin-dashboard .user-role {
+  color: #000000 !important;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.admin-dashboard .content-main {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  background: var(--admin-surface) !important;
+}
+
+/* Dashboard Content */
+.admin-dashboard .dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-dashboard .welcome-banner {
+  background: var(--admin-surface-2) !important;
+  color: var(--admin-text) !important;
+  padding: 30px;
+  border-radius: var(--admin-radius);
+  margin-bottom: 30px;
+  text-align: center;
+  border: 1px solid var(--admin-border) !important;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-dashboard .welcome-banner h2 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #000000 !important;
+  font-weight: 600;
+}
+
+.admin-dashboard .welcome-banner p {
+  opacity: 0.9;
+  font-size: 1.1rem;
+  color: #000000 !important;
+}
+
+/* Faculty Management Styles */
+.admin-dashboard .faculty-management {
+  padding: 20px 0;
+}
+
+.admin-dashboard .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.admin-dashboard .section-header h3 {
+  color: #000000 !important;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.admin-dashboard .add-faculty-btn {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .add-faculty-btn:hover {
+  background: #333333 !important;
+  transform: translateY(-2px);
+}
+
+.admin-dashboard .faculty-table-container {
+  background: var(--admin-surface) !important;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border) !important;
+  overflow: hidden;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-dashboard .faculty-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-dashboard .faculty-table th {
+  background: var(--admin-surface-2) !important;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--admin-text) !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+.admin-dashboard .faculty-table td {
+  padding: 15px;
+  border-bottom: 1px solid var(--admin-border) !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-dashboard .faculty-table tr:hover td {
+  background: #fafbfc !important;
+}
+
+.admin-dashboard .status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.admin-dashboard .status-badge.active {
+  background: var(--admin-success-bg);
+  color: var(--admin-success) !important;
+}
+
+.admin-dashboard .status-badge.inactive {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger) !important;
+}
+
+.admin-dashboard .action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-dashboard .edit-btn,
+.admin-dashboard .status-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: 6px;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .edit-btn:hover {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+}
+
+.admin-dashboard .status-btn:hover {
+  background: #6b7280 !important;
+  color: #ffffff !important;
+}
+
+/* Force remove any blue colors */
+.admin-dashboard a,
+.admin-dashboard button,
+.admin-dashboard input,
+.admin-dashboard select,
+.admin-dashboard textarea {
+  color: var(--admin-text) !important;
+}
+
+.admin-dashboard a:visited,
+.admin-dashboard a:active,
+.admin-dashboard a:link {
+  color: var(--admin-text) !important;
+  text-decoration: none;
+}
+
+/* Inputs & selects */
+.admin-dashboard input,
+.admin-dashboard select,
+.admin-dashboard textarea {
+  background: #ffffff !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* Modal styles */
+.admin-dashboard .modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.admin-dashboard .modal {
+  width: 100%;
+  max-width: 560px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-dashboard .modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--admin-border) !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-dashboard .modal-content {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.admin-dashboard .modal .form-group {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-dashboard .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--admin-border) !important;
+}
+
+.admin-dashboard .btn-primary {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.admin-dashboard .btn-secondary {
+  background: #ffffff !important;
+  color: var(--admin-text) !important;
+  border: 1px solid var(--admin-border) !important;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
