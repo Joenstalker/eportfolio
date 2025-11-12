@@ -7,17 +7,30 @@ const upload = require('../middleware/upload');
 // Get all materials
 router.get('/', auth, async (req, res) => {
     try {
-        const materials = await InstructionalMaterial.find({ facultyId: req.user.id });
+        console.log('GET /api/materials - auth user payload:', req.user);
+        const userId = req.user?.id || req.user?._id || null;
+        if (!userId) {
+            console.warn('GET /api/materials - no user id in token payload', req.user);
+            return res.status(400).json({ message: 'Invalid token payload: missing user id' });
+        }
+
+        const materials = await InstructionalMaterial.find({ facultyId: userId });
         res.json(materials);
     } catch (error) {
-        console.error('Error fetching materials:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error fetching materials:', error?.message || error, error?.stack || 'no-stack');
+        res.status(500).json({ message: 'Server error', error: error?.message || String(error) });
     }
 });
 
 // Upload new material with file
 router.post('/', auth, upload.single('file'), async (req, res) => {
     try {
+        console.log('POST /api/materials - auth user payload:', req.user);
+        const userId = req.user?.id || req.user?._id || null;
+        if (!userId) {
+            return res.status(400).json({ message: 'Invalid token payload: missing user id' });
+        }
+
         const { subjectCode, subjectName, title, description, type, section, topic, isPublic } = req.body;
         
         if (!req.file) {
@@ -25,7 +38,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
         }
 
         const material = new InstructionalMaterial({
-            facultyId: req.user.id,
+            facultyId: userId,
             subjectCode,
             subjectName,
             title,
@@ -44,39 +57,49 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
         });
 
         await material.save();
-        
-        console.log('Material uploaded successfully:', material);
+
+        console.log('Material uploaded successfully:', { id: material._id, facultyId: material.facultyId });
         res.json({ 
             message: 'Material uploaded successfully', 
             material 
         });
 
     } catch (error) {
-        console.error('Error uploading material:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Error uploading material:', error?.message || error, error?.stack || 'no-stack');
+        res.status(500).json({ message: 'Server error', error: error?.message || String(error) });
     }
 });
 
 // Get materials by subject
 router.get('/subject/:subjectCode', auth, async (req, res) => {
     try {
+        const userId = req.user?.id || req.user?._id || null;
+        if (!userId) {
+            return res.status(400).json({ message: 'Invalid token payload: missing user id' });
+        }
+
         const materials = await InstructionalMaterial.find({ 
-            facultyId: req.user.id,
+            facultyId: userId,
             subjectCode: req.params.subjectCode 
         });
         res.json(materials);
     } catch (error) {
-        console.error('Error fetching materials by subject:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error fetching materials by subject:', error?.message || error, error?.stack || 'no-stack');
+        res.status(500).json({ message: 'Server error', error: error?.message || String(error) });
     }
 });
 
 // Delete material
 router.delete('/:id', auth, async (req, res) => {
     try {
+        const userId = req.user?.id || req.user?._id || null;
+        if (!userId) {
+            return res.status(400).json({ message: 'Invalid token payload: missing user id' });
+        }
+
         const material = await InstructionalMaterial.findOne({ 
             _id: req.params.id, 
-            facultyId: req.user.id 
+            facultyId: userId 
         });
 
         if (!material) {

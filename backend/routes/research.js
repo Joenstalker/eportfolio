@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Research = require('../models/Research');
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 // Get all research
 router.get('/', auth, async (req, res) => {
@@ -14,23 +15,30 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// Add research
-router.post('/', auth, async (req, res) => {
+// Add research (supports file upload)
+router.post('/', auth, upload.single('researchFile'), async (req, res) => {
     try {
-        const { title, abstract, authors, publicationDate, journal, file } = req.body;
+        const { title, abstract, authors, publicationDate, journal } = req.body;
+
+        const filePayload = req.file ? {
+            fileName: req.file.originalname,
+            fileUrl: `/uploads/${req.file.filename}`,
+            fileType: req.file.mimetype,
+            uploadedAt: new Date()
+        } : undefined;
         
         const research = new Research({
             facultyId: req.user.id,
             title,
             abstract,
-            authors,
-            publicationDate,
+            authors: authors ? (Array.isArray(authors) ? authors : (typeof authors === 'string' ? authors.split(',').map(a => a.trim()) : [])) : [],
+            publicationDate: publicationDate || undefined,
             journal,
-            file
+            file: filePayload
         });
 
         await research.save();
-        res.json({ message: 'Research paper added successfully', research });
+        res.json({ message: 'Research paper added successfully', researchPaper: research });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ message: 'Server error' });

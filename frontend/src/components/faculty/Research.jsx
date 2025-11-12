@@ -30,7 +30,10 @@ const Research = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setResearchPapers(data.researchPapers || []);
+                const items = Array.isArray(data)
+                    ? data
+                    : (data.researchPapers || data.research || data.researches || []);
+                setResearchPapers(items);
             }
         } catch (error) {
             console.error('Error loading research papers:', error);
@@ -67,7 +70,8 @@ const Research = () => {
 
             if (response.ok) {
                 const result = await response.json();
-                setResearchPapers([...researchPapers, result.researchPaper]);
+                const added = result.researchPaper || result.research || result;
+                setResearchPapers(prev => [...prev, added]);
                 setNewPaper({
                     title: '', authors: '', journal: '', publicationDate: '', 
                     doi: '', abstract: '', status: 'published', file: null

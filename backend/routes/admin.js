@@ -4,6 +4,11 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
+const InstructionalMaterial = require('../models/InstructionalMaterial');
+const Syllabus = require('../models/Syllabus');
+const SeminarCertificate = require('../models/SeminarCertificate');
+const ClassPortfolio = require('../models/ClassPortfolio');
+const Research = require('../models/Research');
 
 // NEW: Get all users (admin only)
 router.get('/users', auth, async (req, res) => {
@@ -173,3 +178,127 @@ router.delete('/users/:id', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+// GET /api/admin/uploads - combined recent uploads across collections (admin only)
+router.get('/uploads', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        // Fetch records from multiple collections and normalize
+        const [materials, syllabi, seminars, classPortfolios, researches] = await Promise.all([
+            InstructionalMaterial.find({}).populate('facultyId', 'firstName lastName').lean(),
+            Syllabus.find({}).populate('facultyId', 'firstName lastName').lean(),
+            SeminarCertificate.find({}).populate('facultyId', 'firstName lastName').lean(),
+            ClassPortfolio.find({}).lean(),
+            Research.find({}).populate('facultyId', 'firstName lastName').lean()
+        ]);
+
+        const uploads = [];
+
+        materials.forEach(m => {
+            if (m.file && (m.file.fileUrl || m.file.filePath || m.file.fileName)) {
+                uploads.push({
+                    source: 'InstructionalMaterial',
+                    title: m.title || m.subjectName || m.file.fileName || 'Material',
+                    fileName: m.file.fileName || null,
+                    fileUrl: m.file.fileUrl || null,
+                    uploadedAt: m.file.uploadedAt || m.createdAt || m.updatedAt || null,
+                    faculty: m.facultyId ? `${m.facultyId.firstName || ''} ${m.facultyId.lastName || ''}`.trim() : null,
+                    raw: m
+                });
+            }
+        });
+
+        syllabi.forEach(s => {
+            if (s.syllabusFile && (s.syllabusFile.fileUrl || s.syllabusFile.filePath || s.syllabusFile.fileName)) {
+                uploads.push({
+                    source: 'Syllabus',
+                    title: `${s.subjectCode || ''} ${s.subjectName || ''}`.trim() || s.syllabusFile.fileName || 'Syllabus',
+                    fileName: s.syllabusFile.fileName || null,
+                    fileUrl: s.syllabusFile.fileUrl || null,
+                    uploadedAt: s.syllabusFile.uploadedAt || s.createdAt || s.updatedAt || null,
+                    faculty: s.facultyId ? `${s.facultyId.firstName || ''} ${s.facultyId.lastName || ''}`.trim() : null,
+                    raw: s
+                });
+            }
+        });
+
+        seminars.forEach(se => {
+            if (se.certificateFile && (se.certificateFile.fileUrl || se.certificateFile.fileName)) {
+                uploads.push({
+                    source: 'SeminarCertificate',
+                    title: se.title || se.certificateFile.fileName || 'Seminar',
+                    fileName: se.certificateFile.fileName || null,
+                    fileUrl: se.certificateFile.fileUrl || null,
+                    uploadedAt: se.certificateFile.uploadedAt || se.createdAt || se.updatedAt || null,
+                    faculty: se.facultyId ? `${se.facultyId.firstName || ''} ${se.facultyId.lastName || ''}`.trim() : null,
+                    raw: se
+                });
+            }
+        });
+
+        // ClassPortfolio may store a top-level file or an array of materials
+        classPortfolios.forEach(cp => {
+            // array of materials (route pushes `materials` with uploadDate)
+            if (Array.isArray(cp.materials) && cp.materials.length) {
+                cp.materials.forEach(mat => {
+                    if (mat.fileUrl || mat.filePath || mat.title) {
+                        uploads.push({
+                            source: 'ClassPortfolio',
+                            title: mat.title || mat.fileName || 'Class Material',
+                            fileName: mat.fileName || null,
+                            fileUrl: mat.fileUrl || null,
+                            uploadedAt: mat.uploadDate || mat.uploadedAt || cp.createdAt || null,
+                            faculty: cp.faculty ? (cp.faculty.toString ? cp.faculty.toString() : null) : null,
+                            raw: mat
+                        });
+                    }
+                });
+            }
+
+            // top-level file
+            if (cp.file && (cp.file.path || cp.file.filename || cp.file.originalName)) {
+                uploads.push({
+                    source: 'ClassPortfolio',
+                    title: cp.title || cp.file.originalName || 'Class Material',
+                    fileName: cp.file.originalName || cp.file.filename || null,
+                    fileUrl: cp.file.path || null,
+                    uploadedAt: cp.createdAt || null,
+                    faculty: cp.faculty ? (cp.faculty.toString ? cp.faculty.toString() : null) : null,
+                    raw: cp
+                });
+            }
+        });
+
+        researches.forEach(r => {
+            if (r.file && (r.file.fileUrl || r.file.fileName)) {
+                uploads.push({
+                    source: 'Research',
+                    title: r.title || r.file.fileName || 'Research Paper',
+                    fileName: r.file.fileName || null,
+                    fileUrl: r.file.fileUrl || null,
+                    uploadedAt: r.file.uploadedAt || r.createdAt || r.updatedAt || null,
+                    faculty: r.facultyId ? `${r.facultyId.firstName || ''} ${r.facultyId.lastName || ''}`.trim() : null,
+                    raw: r
+                });
+            }
+        });
+
+        // Sort by uploadedAt (drop nulls at end) and limit
+        const sorted = uploads
+            .filter(u => u.uploadedAt)
+            .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+        // if some items have null uploadedAt, append them afterwards
+        const withNulls = uploads.filter(u => !u.uploadedAt);
+
+        const combined = [...sorted, ...withNulls].slice(0, 50);
+
+        res.json({ uploads: combined });
+    } catch (error) {
+        console.error('Error fetching uploads:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
