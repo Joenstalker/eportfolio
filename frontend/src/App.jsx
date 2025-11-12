@@ -46,6 +46,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             {/* Google OAuth callback route */}
             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+            <Route path="/auth/choose" element={<GoogleChoose />} />
             
             {/* Protected application layout and routes */}
             <Route 
