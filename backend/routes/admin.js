@@ -10,6 +10,216 @@ const SeminarCertificate = require('../models/SeminarCertificate');
 const ClassPortfolio = require('../models/ClassPortfolio');
 const Research = require('../models/Research');
 
+const Course = require('../models/Course');
+const CourseAssignment = require('../models/CourseAssignment');
+
+
+// Get all courses
+router.get('/courses', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const courses = await Course.find().sort({ courseCode: 1 });
+        res.json(courses);
+    } catch (error) {
+        console.error('Error fetching courses:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Create new course
+router.post('/courses', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const {
+            courseCode,
+            courseName,
+            description,
+            credits,
+            department,
+            semester,
+            maxStudents,
+            prerequisites
+        } = req.body;
+
+        // Check if course already exists
+        const existingCourse = await Course.findOne({ courseCode });
+        if (existingCourse) {
+            return res.status(400).json({ message: 'Course code already exists' });
+        }
+
+        const course = new Course({
+            courseCode,
+            courseName,
+            description,
+            credits,
+            department,
+            semester,
+            maxStudents,
+            prerequisites: prerequisites || []
+        });
+
+        await course.save();
+        res.status(201).json({ course, message: 'Course created successfully' });
+    } catch (error) {
+        console.error('Error creating course:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update course
+router.put('/courses/:id', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const {
+            courseCode,
+            courseName,
+            description,
+            credits,
+            department,
+            semester,
+            maxStudents,
+            prerequisites,
+            status
+        } = req.body;
+
+        const course = await Course.findByIdAndUpdate(
+            req.params.id,
+            {
+                courseCode,
+                courseName,
+                description,
+                credits,
+                department,
+                semester,
+                maxStudents,
+                prerequisites,
+                status
+            },
+            { new: true }
+        );
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        res.json({ course, message: 'Course updated successfully' });
+    } catch (error) {
+        console.error('Error updating course:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Delete course
+router.delete('/courses/:id', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const course = await Course.findByIdAndDelete(req.params.id);
+        
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        // Also remove any course assignments
+        await CourseAssignment.deleteMany({ courseId: req.params.id });
+
+        res.json({ message: 'Course deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting course:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// Get all course assignments
+router.get('/course-assignments', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const assignments = await CourseAssignment.find()
+            .populate('facultyId', 'name email department')
+            .populate('courseId', 'courseCode courseName credits');
+        
+        res.json(assignments);
+    } catch (error) {
+        console.error('Error fetching course assignments:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Assign faculty to course
+router.post('/course-assignments', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const { facultyId, courseId, semester, section } = req.body;
+
+        // Check if assignment already exists
+        const existingAssignment = await CourseAssignment.findOne({
+            facultyId,
+            courseId,
+            semester
+        });
+
+        if (existingAssignment) {
+            return res.status(400).json({ message: 'Faculty already assigned to this course for the semester' });
+        }
+
+        const assignment = new CourseAssignment({
+            facultyId,
+            courseId,
+            semester,
+            section: section || 'A'
+        });
+
+        await assignment.save();
+        
+        // Populate the assignment with faculty and course details
+        await assignment.populate('facultyId', 'name email department');
+        await assignment.populate('courseId', 'courseCode courseName credits');
+
+        res.status(201).json({ assignment, message: 'Faculty assigned to course successfully' });
+    } catch (error) {
+        console.error('Error assigning faculty to course:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Remove faculty assignment
+router.delete('/course-assignments/:id', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const assignment = await CourseAssignment.findByIdAndDelete(req.params.id);
+        
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        res.json({ message: 'Assignment removed successfully' });
+    } catch (error) {
+        console.error('Error removing assignment:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // NEW: Get all users (admin only)
 router.get('/users', auth, async (req, res) => {
     try {

@@ -32,6 +32,37 @@ const AdminDashboard = () => {
   const [editFaculty, setEditFaculty] = useState({})
   const [statusFaculty, setStatusFaculty] = useState({})
 
+  // Course Management State
+  const [courses, setCourses] = useState([])
+  const [courseLoading, setCourseLoading] = useState(false)
+  const [showCourseModal, setShowCourseModal] = useState(false)
+  const [showEditCourseModal, setShowEditCourseModal] = useState(false)
+  const [selectedCourse, setSelectedCourse] = useState(null)
+  const [newCourse, setNewCourse] = useState({
+    courseCode: '',
+    courseName: '',
+    description: '',
+    credits: 3,
+    department: '',
+    semester: 'Fall 2024',
+    maxStudents: 30,
+    prerequisites: []
+  })
+  const [editCourse, setEditCourse] = useState({})
+  const [courseAssignments, setCourseAssignments] = useState([])
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [newAssignment, setNewAssignment] = useState({
+    facultyId: '',
+    courseId: '',
+    semester: 'Fall 2024',
+    section: 'A'
+  })
+
+  // 2PL Concurrency Control State
+  const [locks, setLocks] = useState(new Map())
+  const [transactionQueue, setTransactionQueue] = useState([])
+  const [activeTransactions, setActiveTransactions] = useState(new Map())
+
   // Handler functions must be defined BEFORE dashboardContent
   const handleUploadSchedule = () => {
     if (!selectedFile) return;
@@ -51,6 +82,344 @@ const AdminDashboard = () => {
     setSuccessMessage(`${reportType} report generated successfully!`)
     setTimeout(() => setSuccessMessage(''), 3000)
   }
+
+  // 2PL Concurrency Control Functions
+  const acquireLock = async (resourceId, transactionId, lockType = 'shared') => {
+    return new Promise((resolve) => {
+      const attemptAcquire = () => {
+        const currentLock = locks.get(resourceId);
+        
+        if (!currentLock || 
+            (lockType === 'shared' && currentLock.type === 'shared') ||
+            (currentLock.transactionId === transactionId)) {
+          // Grant lock
+          setLocks(prev => new Map(prev).set(resourceId, {
+            type: lockType,
+            transactionId: transactionId,
+            timestamp: Date.now()
+          }));
+          resolve(true);
+        } else {
+          // Lock conflict - retry after delay
+          setTimeout(attemptAcquire, 100);
+        }
+      };
+      
+      attemptAcquire();
+    });
+  };
+
+  const releaseLock = (resourceId, transactionId) => {
+    setLocks(prev => {
+      const newLocks = new Map(prev);
+      const lock = newLocks.get(resourceId);
+      if (lock && lock.transactionId === transactionId) {
+        newLocks.delete(resourceId);
+      }
+      return newLocks;
+    });
+  };
+
+  const startTransaction = (transactionId) => {
+    setActiveTransactions(prev => new Map(prev).set(transactionId, {
+      id: transactionId,
+      startTime: Date.now(),
+      locks: new Set()
+    }));
+  };
+
+  const commitTransaction = (transactionId) => {
+    const transaction = activeTransactions.get(transactionId);
+    if (transaction) {
+      // Release all locks held by this transaction
+      transaction.locks.forEach(resourceId => {
+        releaseLock(resourceId, transactionId);
+      });
+      setActiveTransactions(prev => {
+        const newTransactions = new Map(prev);
+        newTransactions.delete(transactionId);
+        return newTransactions;
+      });
+    }
+  };
+
+  const executeWith2PL = async (operation, resources, transactionId = `txn_${Date.now()}`) => {
+    startTransaction(transactionId);
+    
+    try {
+      // Growing phase - acquire all locks
+      for (const resource of resources) {
+        await acquireLock(resource, transactionId, 'exclusive');
+        const transaction = activeTransactions.get(transactionId);
+        if (transaction) {
+          transaction.locks.add(resource);
+        }
+      }
+      
+      // Execute operation
+      const result = await operation();
+      
+      // Shrinking phase - release locks (happens in commit)
+      commitTransaction(transactionId);
+      
+      return result;
+    } catch (error) {
+      // On error, release all locks
+      commitTransaction(transactionId);
+      throw error;
+    }
+  };
+
+  // Course Management API Functions with 2PL
+  const fetchCourses = async () => {
+    setCourseLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/admin/courses', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCourses(data);
+      } else {
+        throw new Error('Failed to fetch courses');
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      // Fallback to demo data
+      setCourses([
+        {
+          _id: '1',
+          courseCode: 'CS101',
+          courseName: 'Introduction to Computer Science',
+          description: 'Fundamental concepts of computer science and programming',
+          credits: 3,
+          department: 'Computer Science',
+          semester: 'Fall 2024',
+          maxStudents: 30,
+          prerequisites: [],
+          status: 'active'
+        },
+        {
+          _id: '2',
+          courseCode: 'MATH201',
+          courseName: 'Calculus I',
+          description: 'Differential and integral calculus',
+          credits: 4,
+          department: 'Mathematics',
+          semester: 'Fall 2024',
+          maxStudents: 25,
+          prerequisites: [],
+          status: 'active'
+        }
+      ]);
+    } finally {
+      setCourseLoading(false);
+    }
+  };
+
+  const fetchCourseAssignments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCourseAssignments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching course assignments:', error);
+    }
+  };
+
+  const handleAddCourse = async () => {
+    if (!newCourse.courseCode || !newCourse.courseName || !newCourse.department) {
+      setErrorMessage('Please fill all required fields');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch('http://localhost:5000/api/admin/courses', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newCourse)
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            setCourses(prev => [...prev, result.course]);
+            setShowCourseModal(false);
+            setNewCourse({
+              courseCode: '',
+              courseName: '',
+              description: '',
+              credits: 3,
+              department: '',
+              semester: 'Fall 2024',
+              maxStudents: 30,
+              prerequisites: []
+            });
+            setSuccessMessage('Course added successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error adding course');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      ['courses'],
+      `add_course_${Date.now()}`
+    );
+  };
+
+  const handleEditCourse = async () => {
+    if (!selectedCourse) return;
+
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/admin/courses/${selectedCourse._id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(editCourse)
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            setCourses(prev => 
+              prev.map(c => c._id === selectedCourse._id ? result.course : c)
+            );
+            setShowEditCourseModal(false);
+            setSelectedCourse(null);
+            setEditCourse({});
+            setSuccessMessage('Course updated successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error updating course');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      [`course_${selectedCourse._id}`],
+      `edit_course_${Date.now()}`
+    );
+  };
+
+  const handleDeleteCourse = async (course) => {
+    if (!window.confirm(`Are you sure you want to delete ${course.courseCode} - ${course.courseName}?`)) return;
+
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/admin/courses/${course._id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            setCourses(prev => prev.filter(c => c._id !== course._id));
+            setSuccessMessage('Course deleted successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error deleting course');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      [`course_${course._id}`],
+      `delete_course_${Date.now()}`
+    );
+  };
+
+  const handleAssignFaculty = async () => {
+    if (!newAssignment.facultyId || !newAssignment.courseId) {
+      setErrorMessage('Please select both faculty and course');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newAssignment)
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            setCourseAssignments(prev => [...prev, result.assignment]);
+            setShowAssignmentModal(false);
+            setNewAssignment({
+              facultyId: '',
+              courseId: '',
+              semester: 'Fall 2024',
+              section: 'A'
+            });
+            setSuccessMessage('Faculty assigned to course successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error assigning faculty');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      ['course_assignments', `course_${newAssignment.courseId}`, `faculty_${newAssignment.facultyId}`],
+      `assign_faculty_${Date.now()}`
+    );
+  };
+
+  const handleEditCourseClick = (course) => {
+    setSelectedCourse(course);
+    setEditCourse({ ...course });
+    setShowEditCourseModal(true);
+  };
+
+  const handleAssignFacultyClick = () => {
+    setShowAssignmentModal(true);
+  };
 
   // Mock data for dashboard content
   const dashboardContent = {
@@ -106,12 +475,12 @@ const AdminDashboard = () => {
                   <p>Different departments</p>
                 </div>
               </div>
-              <div className="stat-card admin-stat actions">
-                <div className="stat-icon">⚡</div>
+              <div className="stat-card admin-stat courses-count">
+                <div className="stat-icon">📚</div>
                 <div className="stat-content">
-                  <h4>System Ready</h4>
-                  <div className="stat-number">✓</div>
-                  <p>All systems nominal</p>
+                  <h4>Total Courses</h4>
+                  <div className="stat-number">{courses.length}</div>
+                  <p>Available courses</p>
                 </div>
               </div>
             </div>
@@ -125,6 +494,10 @@ const AdminDashboard = () => {
                   <span className="btn-icon">➕</span>
                   <span>Add Faculty</span>
                 </button>
+                <button className="quick-action-btn" onClick={() => { setActiveSection('courses'); setShowCourseModal(true) }}>
+                  <span className="btn-icon">📚</span>
+                  <span>Add Course</span>
+                </button>
                 <button className="quick-action-btn" onClick={() => setActiveSection('assignments')}>
                   <span className="btn-icon">📅</span>
                   <span>Class Schedule</span>
@@ -133,16 +506,147 @@ const AdminDashboard = () => {
                   <span className="btn-icon">📊</span>
                   <span>Generate Report</span>
                 </button>
-                <button className="quick-action-btn" onClick={() => setActiveSection('settings')}>
-                  <span className="btn-icon">⚙️</span>
-                  <span>Settings</span>
-                </button>
               </div>
             </div>
           </div>
         </div>
       )
     },
+
+    courses: {
+      title: 'Course Management',
+      content: (
+        <div className="course-management">
+          <div className="section-header">
+            <h3>Course Catalog</h3>
+            <div className="header-actions">
+              <button 
+                className="btn-primary"
+                onClick={() => setShowCourseModal(true)}
+              >
+                + Add Course
+              </button>
+              <button 
+                className="btn-secondary"
+                onClick={handleAssignFacultyClick}
+              >
+                📋 Assign Faculty
+              </button>
+            </div>
+          </div>
+
+          {courseLoading ? (
+            <div className="loading-state">Loading courses...</div>
+          ) : (
+            <div className="courses-container">
+              <div className="courses-grid">
+                {courses.map((course) => (
+                  <div key={course._id} className="course-card">
+                    <div className="course-header">
+                      <h4>{course.courseCode}</h4>
+                      <span className={`course-status ${course.status || 'active'}`}>
+                        {course.status || 'active'}
+                      </span>
+                    </div>
+                    <div className="course-body">
+                      <h5>{course.courseName}</h5>
+                      <p className="course-description">{course.description}</p>
+                      <div className="course-details">
+                        <div className="course-detail">
+                          <span className="detail-label">Department:</span>
+                          <span className="detail-value">{course.department}</span>
+                        </div>
+                        <div className="course-detail">
+                          <span className="detail-label">Credits:</span>
+                          <span className="detail-value">{course.credits}</span>
+                        </div>
+                        <div className="course-detail">
+                          <span className="detail-label">Semester:</span>
+                          <span className="detail-value">{course.semester}</span>
+                        </div>
+                        <div className="course-detail">
+                          <span className="detail-label">Max Students:</span>
+                          <span className="detail-value">{course.maxStudents}</span>
+                        </div>
+                      </div>
+                      {course.prerequisites && course.prerequisites.length > 0 && (
+                        <div className="prerequisites">
+                          <strong>Prerequisites:</strong> {course.prerequisites.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="course-actions">
+                      <button 
+                        className="btn-action edit"
+                        onClick={() => handleEditCourseClick(course)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn-action delete"
+                        onClick={() => handleDeleteCourse(course)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {courses.length === 0 && (
+                <div className="empty-state">
+                  No courses found. Click "Add Course" to create the first one.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Course Assignments Section */}
+          <div className="assignments-section">
+            <h4>Current Course Assignments</h4>
+            <div className="assignments-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Course</th>
+                    <th>Faculty</th>
+                    <th>Semester</th>
+                    <th>Section</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {courseAssignments.map((assignment) => {
+                    const course = courses.find(c => c._id === assignment.courseId);
+                    const faculty = facultyData.find(f => f._id === assignment.facultyId);
+                    return (
+                      <tr key={assignment._id}>
+                        <td>{course ? `${course.courseCode} - ${course.courseName}` : 'Unknown Course'}</td>
+                        <td>{faculty ? faculty.name : 'Unknown Faculty'}</td>
+                        <td>{assignment.semester}</td>
+                        <td>{assignment.section}</td>
+                        <td>
+                          <button className="btn-action delete">
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              
+              {courseAssignments.length === 0 && (
+                <div className="empty-state">
+                  No course assignments found. Assign faculty to courses to get started.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    },
+
     faculty: {
       title: 'Faculty Management',
       content: (
@@ -322,6 +826,7 @@ const AdminDashboard = () => {
                     <option value="detailed">Detailed Faculty Report</option>
                     <option value="department">Department Statistics</option>
                     <option value="activity">Activity Log Report</option>
+                    <option value="courses">Course Catalog Report</option>
                   </select>
                 </div>
 
@@ -351,8 +856,8 @@ const AdminDashboard = () => {
                 {[
                   { id: 1, name: 'Faculty Portfolio Summary - Nov 2024', type: 'PDF', date: '2024-11-10', size: '2.4 MB' },
                   { id: 2, name: 'Department Statistics - Oct 2024', type: 'Excel', date: '2024-10-28', size: '1.8 MB' },
-                  { id: 3, name: 'Activity Log Report - Sep 2024', type: 'CSV', date: '2024-09-15', size: '512 KB' },
-                  { id: 4, name: 'Faculty Portfolio Summary - Aug 2024', type: 'PDF', date: '2024-08-30', size: '2.1 MB' },
+                  { id: 3, name: 'Course Catalog Report - Nov 2024', type: 'PDF', date: '2024-11-05', size: '1.2 MB' },
+                  { id: 4, name: 'Activity Log Report - Sep 2024', type: 'CSV', date: '2024-09-15', size: '512 KB' },
                 ].map(report => (
                   <div key={report.id} className="report-item">
                     <div className="report-icon">
@@ -381,12 +886,12 @@ const AdminDashboard = () => {
                   <span className="stat-value">{facultyData.length}</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">Completion Rate</span>
-                  <span className="stat-value">92%</span>
+                  <span className="stat-label">Total Courses</span>
+                  <span className="stat-value">{courses.length}</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">Last Updated</span>
-                  <span className="stat-value">{new Date().toLocaleDateString()}</span>
+                  <span className="stat-label">Completion Rate</span>
+                  <span className="stat-value">92%</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Reports Generated</span>
@@ -403,14 +908,14 @@ const AdminDashboard = () => {
   const adminMenuItems = [
     { id: 'dashboard', label: 'DASHBOARD', icon: '📊' },
     { id: 'faculty', label: 'FACULTY MANAGEMENT', icon: '👨‍🏫' },
+    { id: 'courses', label: 'COURSE MANAGEMENT', icon: '📚' },
     { id: 'assignments', label: 'CLASS ASSIGNMENTS', icon: '📅' },
     { id: 'reports', label: 'REPORTS', icon: '📋' },
-    { id: 'courses', label: 'COURSE MANAGEMENT', icon: '📚' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS', icon: '📈' },
     { id: 'settings', label: 'SYSTEM SETTINGS', icon: '⚙️' }
   ]
 
-  // NEW: Fetch faculty data from API
+  // Fetch faculty data from API
   const fetchFacultyData = async () => {
     setLoading(true)
     try {
@@ -492,9 +997,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchFacultyData()
     fetchUploads()
+    fetchCourses()
+    fetchCourseAssignments()
   }, [])
 
-  // NEW: Add faculty with API call
+  // Add faculty with API call
   const handleAddFaculty = async () => {
     if (!newFaculty.firstName || !newFaculty.email || !newFaculty.password || !newFaculty.department) {
       setErrorMessage('Please fill all required fields');
@@ -502,43 +1009,48 @@ const AdminDashboard = () => {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
-      const payload = {
-        firstName: newFaculty.firstName,
-        lastName: newFaculty.lastName,
-        email: newFaculty.email,
-        password: newFaculty.password,
-        department: newFaculty.department,
-        role: newFaculty.role
-      };
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const payload = {
+            firstName: newFaculty.firstName,
+            lastName: newFaculty.lastName,
+            email: newFaculty.email,
+            password: newFaculty.password,
+            department: newFaculty.department,
+            role: newFaculty.role
+          };
 
-      const response = await fetch('http://localhost:5000/api/admin/users', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+          const response = await fetch('http://localhost:5000/api/admin/users', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
 
-      if (response.ok) {
-        const result = await response.json();
-        setFacultyData(prev => [...prev, result.user]);
-        setShowAddModal(false);
-        setNewFaculty({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'faculty' });
-        setSuccessMessage('Faculty added successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        const error = await response.json();
-        setErrorMessage(error.message || 'Error adding faculty member');
-        setTimeout(() => setErrorMessage(''), 3000);
-      }
-    } catch (error) {
-      console.error('Error adding faculty:', error);
-      setErrorMessage('Error adding faculty member');
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
+          if (response.ok) {
+            const result = await response.json();
+            setFacultyData(prev => [...prev, result.user]);
+            setShowAddModal(false);
+            setNewFaculty({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'faculty' });
+            setSuccessMessage('Faculty added successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error adding faculty member');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      ['faculty'],
+      `add_faculty_${Date.now()}`
+    );
   }
 
   const hasNewFacultyInput = () => {
@@ -552,47 +1064,55 @@ const AdminDashboard = () => {
     setShowEditModal(true)
   }
 
-  // NEW: Edit faculty with API call
+  // Edit faculty with API call
   const handleEditSave = async () => {
     if (!hasEditChanges()) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      const [fn, ...lnParts] = (editFaculty.name || '').trim().split(' ');
-      const payload = {
-        firstName: fn || undefined,
-        lastName: lnParts.join(' ') || undefined,
-        email: editFaculty.email,
-        department: editFaculty.department,
-        role: (editFaculty.role || '').toLowerCase() === 'admin' ? 'admin' : 'faculty'
-      };
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const [fn, ...lnParts] = (editFaculty.name || '').trim().split(' ');
+          const payload = {
+            firstName: fn || undefined,
+            lastName: lnParts.join(' ') || undefined,
+            email: editFaculty.email,
+            department: editFaculty.department,
+            role: (editFaculty.role || '').toLowerCase() === 'admin' ? 'admin' : 'faculty'
+          };
 
-      const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+          const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
 
-      if (response.ok) {
-        const result = await response.json();
-        setFacultyData(prev => 
-          prev.map(f => f._id === selectedFaculty._id ? result.user : f)
-        );
-        setShowEditModal(false);
-        setSelectedFaculty(null);
-        setEditFaculty({});
-        alert('Faculty member updated successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error updating faculty member');
-      }
-    } catch (error) {
-      console.error('Error updating faculty:', error);
-      alert('Error updating faculty member');
-    }
+          if (response.ok) {
+            const result = await response.json();
+            setFacultyData(prev => 
+              prev.map(f => f._id === selectedFaculty._id ? result.user : f)
+            );
+            setShowEditModal(false);
+            setSelectedFaculty(null);
+            setEditFaculty({});
+            setSuccessMessage('Faculty member updated successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error updating faculty member');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      [`faculty_${selectedFaculty._id}`],
+      `edit_faculty_${Date.now()}`
+    );
   }
 
   const hasEditChanges = () => {
@@ -606,38 +1126,46 @@ const AdminDashboard = () => {
     setShowStatusModal(true)
   }
 
-  // NEW: Update status with API call
+  // Update status with API call
   const handleStatusSave = async () => {
     if (!hasStatusChanges()) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: statusFaculty.status })
-      });
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: statusFaculty.status })
+          });
 
-      if (response.ok) {
-        const result = await response.json();
-        setFacultyData(prev => 
-          prev.map(f => f._id === selectedFaculty._id ? result.user : f)
-        );
-        setShowStatusModal(false);
-        setSelectedFaculty(null);
-        setStatusFaculty({});
-        alert('Status updated successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error updating status');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Error updating status');
-    }
+          if (response.ok) {
+            const result = await response.json();
+            setFacultyData(prev => 
+              prev.map(f => f._id === selectedFaculty._id ? result.user : f)
+            );
+            setShowStatusModal(false);
+            setSelectedFaculty(null);
+            setStatusFaculty({});
+            setSuccessMessage('Status updated successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error updating status');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      [`faculty_${selectedFaculty._id}`],
+      `status_faculty_${Date.now()}`
+    );
   }
 
   const hasStatusChanges = () => {
@@ -654,29 +1182,34 @@ const AdminDashboard = () => {
   const handleDeleteClick = async (faculty) => {
     if (!window.confirm(`Are you sure you want to delete ${faculty.name}?`)) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+    await executeWith2PL(
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
 
-      if (response.ok) {
-        setFacultyData(prev => prev.filter(f => f._id !== faculty._id));
-        setSuccessMessage('Faculty deleted successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        const error = await response.json();
-        setErrorMessage(error.message || 'Error deleting faculty');
-        setTimeout(() => setErrorMessage(''), 3000);
-      }
-    } catch (error) {
-      console.error('Error deleting faculty:', error);
-      setErrorMessage('Error deleting faculty member');
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
+          if (response.ok) {
+            setFacultyData(prev => prev.filter(f => f._id !== faculty._id));
+            setSuccessMessage('Faculty deleted successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Error deleting faculty');
+          }
+        } catch (error) {
+          setErrorMessage(error.message);
+          setTimeout(() => setErrorMessage(''), 3000);
+          throw error;
+        }
+      },
+      [`faculty_${faculty._id}`],
+      `delete_faculty_${Date.now()}`
+    );
   }
 
   return (
@@ -945,6 +1478,259 @@ const AdminDashboard = () => {
                 disabled={!hasStatusChanges()}
               >
                 Save Status
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Course Modal */}
+      {showCourseModal && (
+        <div className="modal-overlay" onClick={() => setShowCourseModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add New Course</h3>
+              <button className="close-btn" onClick={() => setShowCourseModal(false)}>×</button>
+            </div>
+            <div className="modal-content">
+              <div className="form-group">
+                <label>Course Code *</label>
+                <input
+                  type="text"
+                  value={newCourse.courseCode}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, courseCode: e.target.value }))}
+                  placeholder="e.g., CS101"
+                />
+              </div>
+              <div className="form-group">
+                <label>Course Name *</label>
+                <input
+                  type="text"
+                  value={newCourse.courseName}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, courseName: e.target.value }))}
+                  placeholder="e.g., Introduction to Computer Science"
+                />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={newCourse.description}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Course description"
+                  rows="3"
+                />
+              </div>
+              <div className="form-group">
+                <label>Credits</label>
+                <input
+                  type="number"
+                  value={newCourse.credits}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, credits: parseInt(e.target.value) || 3 }))}
+                  min="1"
+                  max="6"
+                />
+              </div>
+              <div className="form-group">
+                <label>Department *</label>
+                <input
+                  type="text"
+                  value={newCourse.department}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, department: e.target.value }))}
+                  placeholder="e.g., Computer Science"
+                />
+              </div>
+              <div className="form-group">
+                <label>Semester</label>
+                <select
+                  value={newCourse.semester}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, semester: e.target.value }))}
+                >
+                  <option value="Fall 2024">Fall 2024</option>
+                  <option value="Spring 2025">Spring 2025</option>
+                  <option value="Summer 2025">Summer 2025</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Maximum Students</label>
+                <input
+                  type="number"
+                  value={newCourse.maxStudents}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, maxStudents: parseInt(e.target.value) || 30 }))}
+                  min="1"
+                  max="100"
+                />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowCourseModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleAddCourse}
+              >
+                Add Course
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Course Modal */}
+      {showEditCourseModal && selectedCourse && (
+        <div className="modal-overlay" onClick={() => setShowEditCourseModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Course</h3>
+              <button className="close-btn" onClick={() => setShowEditCourseModal(false)}>×</button>
+            </div>
+            <div className="modal-content">
+              <div className="form-group">
+                <label>Course Code</label>
+                <input
+                  type="text"
+                  value={editCourse.courseCode || ''}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, courseCode: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label>Course Name</label>
+                <input
+                  type="text"
+                  value={editCourse.courseName || ''}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, courseName: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={editCourse.description || ''}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, description: e.target.value }))}
+                  rows="3"
+                />
+              </div>
+              <div className="form-group">
+                <label>Credits</label>
+                <input
+                  type="number"
+                  value={editCourse.credits || 3}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, credits: parseInt(e.target.value) || 3 }))}
+                  min="1"
+                  max="6"
+                />
+              </div>
+              <div className="form-group">
+                <label>Department</label>
+                <input
+                  type="text"
+                  value={editCourse.department || ''}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, department: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label>Semester</label>
+                <select
+                  value={editCourse.semester || 'Fall 2024'}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, semester: e.target.value }))}
+                >
+                  <option value="Fall 2024">Fall 2024</option>
+                  <option value="Spring 2025">Spring 2025</option>
+                  <option value="Summer 2025">Summer 2025</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Maximum Students</label>
+                <input
+                  type="number"
+                  value={editCourse.maxStudents || 30}
+                  onChange={(e) => setEditCourse(prev => ({ ...prev, maxStudents: parseInt(e.target.value) || 30 }))}
+                  min="1"
+                  max="100"
+                />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowEditCourseModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleEditCourse}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Faculty Modal */}
+      {showAssignmentModal && (
+        <div className="modal-overlay" onClick={() => setShowAssignmentModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Assign Faculty to Course</h3>
+              <button className="close-btn" onClick={() => setShowAssignmentModal(false)}>×</button>
+            </div>
+            <div className="modal-content">
+              <div className="form-group">
+                <label>Select Faculty *</label>
+                <select
+                  value={newAssignment.facultyId}
+                  onChange={(e) => setNewAssignment(prev => ({ ...prev, facultyId: e.target.value }))}
+                >
+                  <option value="">Select Faculty Member</option>
+                  {facultyData.filter(f => f.status === 'active').map(faculty => (
+                    <option key={faculty._id} value={faculty._id}>
+                      {faculty.name} - {faculty.department}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Select Course *</label>
+                <select
+                  value={newAssignment.courseId}
+                  onChange={(e) => setNewAssignment(prev => ({ ...prev, courseId: e.target.value }))}
+                >
+                  <option value="">Select Course</option>
+                  {courses.filter(c => c.status === 'active').map(course => (
+                    <option key={course._id} value={course._id}>
+                      {course.courseCode} - {course.courseName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Semester</label>
+                <select
+                  value={newAssignment.semester}
+                  onChange={(e) => setNewAssignment(prev => ({ ...prev, semester: e.target.value }))}
+                >
+                  <option value="Fall 2024">Fall 2024</option>
+                  <option value="Spring 2025">Spring 2025</option>
+                  <option value="Summer 2025">Summer 2025</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Section</label>
+                <input
+                  type="text"
+                  value={newAssignment.section}
+                  onChange={(e) => setNewAssignment(prev => ({ ...prev, section: e.target.value }))}
+                  placeholder="e.g., A, B, C"
+                />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowAssignmentModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleAssignFaculty}
+              >
+                Assign Faculty
               </button>
             </div>
           </div>

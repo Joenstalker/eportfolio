@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import  AuthContext  from '../../contexts/AuthContext';
+import { AuthContext } from '../../contexts/AuthContext';
 import './Login.css';
 
 const Login = () => {
@@ -31,7 +31,8 @@ const Login = () => {
     const [showCodeVerification, setShowCodeVerification] = useState(false);
     const [isAdminMode, setIsAdminMode] = useState(false);
     
-    const { login, user } = useContext(AuthContext);
+    // FIX: Changed from 'login' to 'loginUser'
+    const { loginUser, user } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -88,7 +89,8 @@ const Login = () => {
         setSuccess('');
 
         try {
-            const response = await login(formData.email, formData.password);
+            // FIX: Changed from 'login' to 'loginUser'
+            const response = await loginUser(formData.email, formData.password);
             
             // Redirect based on user role
             if (response.user.role === 'admin') {
@@ -104,6 +106,8 @@ const Login = () => {
             setLoading(false);
         }
     };
+
+    // 
 
     const handleCreateAccount = async (e) => {
         e.preventDefault();

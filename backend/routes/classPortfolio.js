@@ -1,20 +1,23 @@
-import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import ClassPortfolio from '../models/ClassPortfolio.js';
-import { auth } from '../middleware/auth.js';
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const ClassPortfolio = require('../models/ClassPortfolio.js');
+const auth = require('../middleware/auth.js');
 
 const router = express.Router();
 
-// ES module fix for __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads/class-materials/');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('✅ Created uploads directory:', uploadsDir);
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '../uploads/class-materials/'));
+        cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
         const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
@@ -66,6 +69,12 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
         console.log('📤 Received material upload request');
         console.log('📝 Form data:', req.body);
         console.log('📁 File:', req.file);
+        console.log('👤 User:', req.user);
+
+        // Check if user is authenticated
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
 
         const { title, subject, type, description, section, topic, isPublic } = req.body;
         
@@ -84,10 +93,11 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
         });
 
         if (!classPortfolio) {
+            console.log('📝 Creating new class portfolio for subject:', subject);
             classPortfolio = new ClassPortfolio({
                 facultyId: req.user._id,
                 subjectCode: subject,
-                subjectName: subject, // Using subject as name for now
+                subjectName: subject,
                 materials: []
             });
         }
@@ -103,6 +113,7 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
             uploadDate: new Date()
         };
 
+        console.log('💾 Saving material:', newMaterial.title);
         classPortfolio.materials.push(newMaterial);
         await classPortfolio.save();
 
@@ -116,7 +127,11 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
 
     } catch (error) {
         console.error('❌ Error adding material:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('❌ Error stack:', error.stack);
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message
+        });
     }
 });
 
@@ -142,4 +157,4 @@ router.delete('/materials/:materialId', auth, async (req, res) => {
     }
 });
 
-export default router;
+module.exports = router;

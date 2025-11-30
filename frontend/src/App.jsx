@@ -5,6 +5,8 @@ import Login from './components/Login/Login';
 import Dashboard from './components/faculty/Dashboard';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import GoogleAuthCallback from './components/googleAuthCallback';
+// FIXED: Use correct relative path
+import GoogleChoose from './components/googleChoose';
 import Layout from './components/Layout/Layout';
 import TeachingPortfolio from './components/faculty/TeachingPortfolio';
 import ClassPortfolio from './components/faculty/ClassPortfolio';
@@ -22,18 +24,15 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
-// NEW: Protected route for admin only
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
   if (loading) return <div>Loading...</div>;
   
-  // Check if user exists AND is admin
   if (user && user.role === 'admin') {
     return children;
   }
   
-  // Redirect to login if not authenticated, or to dashboard if not admin
   return user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
 };
 
@@ -44,11 +43,9 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/login" element={<Login />} />
-            {/* Google OAuth callback route */}
             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
             <Route path="/auth/choose" element={<GoogleChoose />} />
             
-            {/* Protected application layout and routes */}
             <Route 
               element={
                 <ProtectedRoute>
@@ -65,7 +62,6 @@ function App() {
               <Route path="/seminars-certificates" element={<SeminarsCertificates />} />
             </Route>
             
-            {/* Admin Dashboard Route */}
             <Route 
               path="/admin-dashboard" 
               element={

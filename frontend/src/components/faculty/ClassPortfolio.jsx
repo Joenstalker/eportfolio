@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect } from 'react';
-import  AuthContext  from '../../contexts/AuthContext';
+import AuthContext from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const ClassPortfolio = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [materials, setMaterials] = useState([]);
     const [newMaterial, setNewMaterial] = useState({ 
         title: '', 
@@ -21,29 +21,47 @@ const ClassPortfolio = () => {
         loadMaterials();
     }, []);
 
+    // Always ensure we have a token
+    const getToken = () => {
+        const token = ensureToken();
+        console.log('🔐 Using token:', token ? 'Token available' : 'No token');
+        return token;
+    };
+
     const loadMaterials = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getToken();
+            
+            console.log('📦 Loading materials with token...');
             const response = await fetch('http://localhost:5000/api/class-portfolio', {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
             
+            console.log('📡 Load response status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
+                console.log('✅ Materials loaded:', data);
+                
                 // Flatten materials from all class portfolios
-                const allMaterials = data.flatMap(portfolio => portfolio.materials);
+                const allMaterials = data.flatMap(portfolio => portfolio.materials || []);
                 setMaterials(allMaterials);
+            } else {
+                console.log('⚠️ Could not load materials, but continuing...');
             }
+            
         } catch (error) {
-            console.error('Error loading materials:', error);
+            console.error('❌ Error loading materials:', error);
         }
     };
 
     const addMaterial = async () => {
-        console.log('Starting upload process...');
-        console.log('Form data:', newMaterial);
+        console.log('🚀 Starting upload process...');
+        console.log('📝 Form data:', newMaterial);
+        console.log('📁 Selected file:', selectedFile);
         
         if (!newMaterial.title || !newMaterial.subject) {
             alert('Please fill in title and subject');
@@ -55,11 +73,10 @@ const ClassPortfolio = () => {
             return;
         }
 
-        console.log('Selected file:', selectedFile);
-
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getToken();
+            
             const formData = new FormData();
             
             // Append all form data
@@ -72,7 +89,7 @@ const ClassPortfolio = () => {
             formData.append('isPublic', newMaterial.isPublic.toString());
             formData.append('materialFile', selectedFile);
 
-            console.log('Sending request to server...');
+            console.log('📤 Sending request to server...');
 
             const response = await fetch('http://localhost:5000/api/class-portfolio/materials', {
                 method: 'POST',
@@ -82,29 +99,44 @@ const ClassPortfolio = () => {
                 body: formData
             });
 
-            console.log('Response status:', response.status);
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response ok:', response.ok);
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Server error occurred' }));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Upload successful:', result);
+                
+                // Add the new material to the list
+                setMaterials(prev => [...prev, result.material]);
+                
+                // Reset form
+                setNewMaterial({ 
+                    title: '', 
+                    subject: '', 
+                    type: 'Lecture', 
+                    description: '', 
+                    section: '', 
+                    topic: '', 
+                    isPublic: false 
+                });
+                setSelectedFile(null);
+                document.getElementById('material-file').value = '';
+                
+                alert('Material added successfully!');
+            } else {
+                const errorText = await response.text();
+                console.error('❌ Upload failed:', errorText);
+                
+                // Even if upload fails, we still have a token for next time
+                if (response.status === 401) {
+                    alert('Upload requires proper authentication. Please ensure you are logged in with a valid account.');
+                } else {
+                    alert(`Upload failed: ${errorText}`);
+                }
             }
-
-            const result = await response.json();
-            console.log('Upload successful:', result);
-            
-            setMaterials([...materials, result.material]);
-            
-            // Reset form
-            setNewMaterial({ 
-                title: '', subject: '', type: 'Lecture', description: '', 
-                section: '', topic: '', isPublic: false 
-            });
-            setSelectedFile(null);
-            document.getElementById('material-file').value = '';
-            alert('Material added successfully!');
             
         } catch (error) {
-            console.error('Error adding material:', error);
+            console.error('❌ Error adding material:', error);
             alert(`Upload failed: ${error.message}`);
         } finally {
             setLoading(false);
@@ -115,21 +147,31 @@ const ClassPortfolio = () => {
         if (!window.confirm('Are you sure you want to delete this material?')) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getToken();
+            
+            console.log('🗑️ Deleting material:', materialId);
             const response = await fetch(`http://localhost:5000/api/class-portfolio/materials/${materialId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
+            console.log('📡 Delete response status:', response.status);
+
             if (response.ok) {
+                // Remove from local state
                 setMaterials(materials.filter(material => material._id !== materialId));
                 alert('Material deleted successfully!');
+            } else {
+                console.error('❌ Delete failed with status:', response.status);
+                alert('Error deleting material. Please try again.');
             }
+            
         } catch (error) {
-            console.error('Error deleting material:', error);
-            alert('Error deleting material');
+            console.error('❌ Error deleting material:', error);
+            alert('Error deleting material: ' + error.message);
         }
     };
 
@@ -138,6 +180,10 @@ const ClassPortfolio = () => {
             <div className="section-header">
                 <h2>Class Portfolio</h2>
                 <p>Upload and manage class materials</p>
+                <div style={{fontSize: '12px', color: '#666', marginTop: '5px'}}>
+                    Status: {localStorage.getItem('token') ? '✅ Token Available' : '❌ No Token'} |
+                    User: {user ? user.email : 'Not logged in'}
+                </div>
             </div>
 
             <div className="content-card">
@@ -210,9 +256,14 @@ const ClassPortfolio = () => {
                             <input
                                 id="material-file"
                                 type="file"
-                                accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.jpg,.jpeg,.png"
+                                accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.txt"
                                 onChange={(e) => setSelectedFile(e.target.files[0])}
                             />
+                            {selectedFile && (
+                                <div style={{fontSize: '12px', color: '#666', marginTop: '5px'}}>
+                                    Selected: {selectedFile.name}
+                                </div>
+                            )}
                         </div>
                         <div className="form-group">
                             <label>
@@ -230,50 +281,56 @@ const ClassPortfolio = () => {
                         onClick={addMaterial}
                         disabled={loading}
                     >
-                        {loading ? 'Uploading...' : 'Upload Material'}
+                        {loading ? '📤 Uploading...' : '📁 Upload Material'}
                     </button>
                 </div>
 
                 {/* Materials List */}
                 <div className="materials-grid">
                     <h4>Your Materials ({materials.length})</h4>
-                    {materials.map(material => (
-                        <div key={material._id} className="material-card">
-                            <div className="material-icon">
-                                {material.type === 'Lecture' ? '📚' : 
-                                 material.type === 'Assignment' ? '📝' : 
-                                 material.type === 'Presentation' ? '📊' : 
-                                 material.type === 'Video' ? '🎥' : '📄'}
-                            </div>
-                            <h4>{material.title}</h4>
-                            <p className="material-subject">{material.subject}</p>
-                            <p className="material-type">{material.type}</p>
-                            {material.description && (
-                                <p className="material-description">{material.description}</p>
-                            )}
-                            <p className="material-date">
-                                Uploaded: {new Date(material.uploadDate).toLocaleDateString()}
-                            </p>
-                            <div className="material-actions">
-                                {material.fileUrl && (
-                                    <a 
-                                        href={`http://localhost:5000/${material.fileUrl}`} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="action-btn view"
-                                    >
-                                        Download
-                                    </a>
+                    {materials.length === 0 ? (
+                        <p style={{textAlign: 'center', color: '#666', padding: '20px'}}>
+                            No materials uploaded yet.
+                        </p>
+                    ) : (
+                        materials.map(material => (
+                            <div key={material._id} className="material-card">
+                                <div className="material-icon">
+                                    {material.type === 'Lecture' ? '📚' : 
+                                     material.type === 'Assignment' ? '📝' : 
+                                     material.type === 'Presentation' ? '📊' : 
+                                     material.type === 'Video' ? '🎥' : '📄'}
+                                </div>
+                                <h4>{material.title}</h4>
+                                <p className="material-subject">{material.subject}</p>
+                                <p className="material-type">{material.type}</p>
+                                {material.description && (
+                                    <p className="material-description">{material.description}</p>
                                 )}
-                                <button 
-                                    className="action-btn delete"
-                                    onClick={() => deleteMaterial(material._id)}
-                                >
-                                    Delete
-                                </button>
+                                <p className="material-date">
+                                    Uploaded: {new Date(material.uploadDate).toLocaleDateString()}
+                                </p>
+                                <div className="material-actions">
+                                    {material.fileUrl && (
+                                        <a 
+                                            href={`http://localhost:5000${material.fileUrl}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="action-btn view"
+                                        >
+                                            📥 Download
+                                        </a>
+                                    )}
+                                    <button 
+                                        className="action-btn delete"
+                                        onClick={() => deleteMaterial(material._id)}
+                                    >
+                                        🗑️ Delete
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
         </div>

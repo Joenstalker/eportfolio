@@ -1,108 +1,78 @@
+// contexts/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { login, verifyToken } from '../services/authService';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-};
-
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
-    const [loading, setLoading] = useState(true);
+    const [token, setToken] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        const initializeAuth = async () => {
-            const storedToken = localStorage.getItem('token');
-            const storedUser = localStorage.getItem('user');
-
-            if (storedToken && storedUser) {
-                try {
-                    // Verify token with backend
-                    const userData = await verifyToken(storedToken);
-                    setUser(userData.user);
-                    setToken(storedToken);
-                } catch (error) {
-                    console.error('Token verification failed:', error);
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                }
-            }
-            setLoading(false);
-        };
-
-        initializeAuth();
-    }, []);
-
-    const setAuthFromToken = async (jwtToken) => {
-        try {
-            const data = await verifyToken(jwtToken);
-            localStorage.setItem('token', jwtToken);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            setUser(data.user);
-            setToken(jwtToken);
-            return data.user;
-        } catch (error) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            throw error;
-        }
-    };
-
+    // Proper login function implementation
     const loginUser = async (email, password) => {
+        setLoading(true);
         try {
             console.log('🔐 Attempting login for:', email);
             
-            const response = await login(email, password);
+            const response = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password })
+            });
 
-            console.log('✅ Login response:', response);
+            console.log('📡 Login response status:', response.status);
 
-            if (response.token && response.user) {
-                localStorage.setItem('token', response.token);
-                localStorage.setItem('user', JSON.stringify(response.user));
-                
-                setUser(response.user);
-                setToken(response.token);
-                
-                return response;
-            } else {
-                throw new Error('Invalid response from server');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Login failed');
             }
+
+            const data = await response.json();
+            console.log('✅ Login successful:', data);
+
+            // Store user data and token
+            if (data.token && data.user) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setUser(data.user);
+                setToken(data.token);
+            }
+
+            return data;
         } catch (error) {
-            console.error('❌ Login failed:', error);
-            
-            // More specific error messages
-            if (error.response?.status === 400) {
-                throw new Error('Invalid email or password');
-            } else if (error.response?.status === 404) {
-                throw new Error('User not found');
-            } else if (error.response?.status === 500) {
-                throw new Error('Server error. Please try again later.');
-            } else {
-                throw new Error(error.response?.data?.message || 'Login failed');
-            }
+            console.error('❌ Login error:', error);
+            throw error; // Re-throw to handle in component
+        } finally {
+            setLoading(false);
         }
     };
 
-    const logout = () => {
+    const logoutUser = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
         setToken(null);
     };
 
+    // Check if user is logged in on app start
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
+        
+        if (storedUser && storedToken) {
+            setUser(JSON.parse(storedUser));
+            setToken(storedToken);
+        }
+    }, []);
+
     const value = {
         user,
         token,
-        login: loginUser,
-        setAuthFromToken,
-        logout,
-        loading
+        loading,
+        loginUser, // Make sure this is included
+        logoutUser,
     };
 
     return (
@@ -112,4 +82,15 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export default AuthContext;
+// Export the context
+export { AuthContext };
+
+// Custom hook for easier usage
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+export default AuthContext

@@ -1,42 +1,45 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const classPortfolioSchema = new mongoose.Schema({
-  faculty: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    default: ''
-  },
-  file: {
-    filename: String,
-    originalName: String,
-    path: String,
-    size: Number,
-    mimetype: String
-  },
-  courseCode: {
-    type: String,
-    required: true
-  },
-  semester: {
-    type: String,
-    required: true
-  },
-  academicYear: {
-    type: String,
-    required: true
-  }
-}, {
-  timestamps: true
+const materialSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true
+    },
+    description: String,
+    fileUrl: {
+        type: String,
+        required: true
+    },
+    fileType: String,
+    section: String,
+    topic: String,
+    isPublic: {
+        type: Boolean,
+        default: false
+    },
+    uploadDate: {
+        type: Date,
+        default: Date.now
+    }
 });
 
-const ClassPortfolio = mongoose.model('ClassPortfolio', classPortfolioSchema);
+const classPortfolioSchema = new mongoose.Schema({
+    facultyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    subjectCode: {
+        type: String,
+        required: true
+    },
+    subjectName: {
+        type: String,
+        required: true
+    },
+    materials: [materialSchema]
+}, {
+    timestamps: true
+});
 
-export default ClassPortfolio;
+module.exports = mongoose.model('ClassPortfolio', classPortfolioSchema);
