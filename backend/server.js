@@ -27,6 +27,7 @@ app.use('/api/syllabus', require('./routes/syllabus'));
 app.use('/api/materials', require('./routes/instructionalMaterials'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/class-portfolio', require('./routes/classPortfolio'));
+app.use('/api/courses', require('./routes/course'));
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ 
@@ -56,6 +57,13 @@ app.use((error, req, res, next) => {
 // 404 handler
 app.use('*', (req, res) => {
     res.status(404).json({ message: 'Route not found' });
+});
+
+// In server.js, add this before routes
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
+  next();
 });
 
 const PORT = process.env.PORT || 5000;

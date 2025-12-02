@@ -58,12 +58,10 @@ const AdminDashboard = () => {
     section: 'A'
   })
 
-  // 2PL Concurrency Control State
-  const [locks, setLocks] = useState(new Map())
-  const [transactionQueue, setTransactionQueue] = useState([])
-  const [activeTransactions, setActiveTransactions] = useState(new Map())
+  // Lock state - tracks which courses are locked in the UI
+  const [courseLocks, setCourseLocks] = useState({})
 
-  // Handler functions must be defined BEFORE dashboardContent
+  // Handler functions
   const handleUploadSchedule = () => {
     if (!selectedFile) return;
     
@@ -83,143 +81,156 @@ const AdminDashboard = () => {
     setTimeout(() => setSuccessMessage(''), 3000)
   }
 
-  // 2PL Concurrency Control Functions
-  const acquireLock = async (resourceId, transactionId, lockType = 'shared') => {
-    return new Promise((resolve) => {
-      const attemptAcquire = () => {
-        const currentLock = locks.get(resourceId);
-        
-        if (!currentLock || 
-            (lockType === 'shared' && currentLock.type === 'shared') ||
-            (currentLock.transactionId === transactionId)) {
-          // Grant lock
-          setLocks(prev => new Map(prev).set(resourceId, {
-            type: lockType,
-            transactionId: transactionId,
-            timestamp: Date.now()
-          }));
-          resolve(true);
-        } else {
-          // Lock conflict - retry after delay
-          setTimeout(attemptAcquire, 100);
-        }
-      };
-      
-      attemptAcquire();
-    });
-  };
-
-  const releaseLock = (resourceId, transactionId) => {
-    setLocks(prev => {
-      const newLocks = new Map(prev);
-      const lock = newLocks.get(resourceId);
-      if (lock && lock.transactionId === transactionId) {
-        newLocks.delete(resourceId);
-      }
-      return newLocks;
-    });
-  };
-
-  const startTransaction = (transactionId) => {
-    setActiveTransactions(prev => new Map(prev).set(transactionId, {
-      id: transactionId,
-      startTime: Date.now(),
-      locks: new Set()
-    }));
-  };
-
-  const commitTransaction = (transactionId) => {
-    const transaction = activeTransactions.get(transactionId);
-    if (transaction) {
-      // Release all locks held by this transaction
-      transaction.locks.forEach(resourceId => {
-        releaseLock(resourceId, transactionId);
-      });
-      setActiveTransactions(prev => {
-        const newTransactions = new Map(prev);
-        newTransactions.delete(transactionId);
-        return newTransactions;
-      });
-    }
-  };
-
-  const executeWith2PL = async (operation, resources, transactionId = `txn_${Date.now()}`) => {
-    startTransaction(transactionId);
-    
-    try {
-      // Growing phase - acquire all locks
-      for (const resource of resources) {
-        await acquireLock(resource, transactionId, 'exclusive');
-        const transaction = activeTransactions.get(transactionId);
-        if (transaction) {
-          transaction.locks.add(resource);
-        }
-      }
-      
-      // Execute operation
-      const result = await operation();
-      
-      // Shrinking phase - release locks (happens in commit)
-      commitTransaction(transactionId);
-      
-      return result;
-    } catch (error) {
-      // On error, release all locks
-      commitTransaction(transactionId);
-      throw error;
-    }
-  };
-
-  // Course Management API Functions with 2PL
-  const fetchCourses = async () => {
-    setCourseLoading(true);
+  // ==================== BACKEND 2PL API FUNCTIONS ====================
+  
+  const lockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/courses', {
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ durationMinutes: 15 })
+      });
+
+      if (response.status === 423) {
+        // 423 = Locked
+        const errorData = await response.json();
+        throw new Error(`Locked by ${errorData.lockedBy?.name || 'another admin'}`);
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to acquire lock');
+      }
+
+      const data = await response.json();
+      
+      // Update local lock state
+      setCourseLocks(prev => ({
+        ...prev,
+        [courseId]: {
+          isLocked: true,
+          lockedByMe: true,
+          lockedBy: user?.name || user?.firstName || 'You',
+          expiresAt: data.lock?.expiresAt || new Date(Date.now() + 15 * 60 * 1000)
+        }
+      }));
+      
+      return { success: true, lock: data.lock };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  };
+
+  const unlockCourseOnBackend = async (courseId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/unlock`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCourses(data);
-      } else {
-        throw new Error('Failed to fetch courses');
+
+      if (!response.ok) {
+        throw new Error('Failed to release lock');
       }
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      // Fallback to demo data
-      setCourses([
-        {
-          _id: '1',
-          courseCode: 'CS101',
-          courseName: 'Introduction to Computer Science',
-          description: 'Fundamental concepts of computer science and programming',
-          credits: 3,
-          department: 'Computer Science',
-          semester: 'Fall 2024',
-          maxStudents: 30,
-          prerequisites: [],
-          status: 'active'
-        },
-        {
-          _id: '2',
-          courseCode: 'MATH201',
-          courseName: 'Calculus I',
-          description: 'Differential and integral calculus',
-          credits: 4,
-          department: 'Mathematics',
-          semester: 'Fall 2024',
-          maxStudents: 25,
-          prerequisites: [],
-          status: 'active'
+
+      // Update local lock state
+      setCourseLocks(prev => ({
+        ...prev,
+        [courseId]: {
+          isLocked: false,
+          lockedByMe: false,
+          lockedBy: null
         }
-      ]);
-    } finally {
-      setCourseLoading(false);
+      }));
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message };
     }
   };
+
+  const checkCourseLockStatus = async (courseId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update local lock state
+        if (data.isLocked) {
+          setCourseLocks(prev => ({
+            ...prev,
+            [courseId]: {
+              isLocked: true,
+              lockedByMe: data.lock?.isLockedByMe || false,
+              lockedBy: data.lock?.lockedBy || 'Another admin',
+              expiresAt: data.lock?.expiresAt
+            }
+          }));
+        } else {
+          setCourseLocks(prev => ({
+            ...prev,
+            [courseId]: {
+              isLocked: false,
+              lockedByMe: false,
+              lockedBy: null
+            }
+          }));
+        }
+        
+        return data;
+      }
+      return { isLocked: false };
+    } catch (error) {
+      console.error('Error checking lock status:', error);
+      return { isLocked: false };
+    }
+  };
+
+  // ==================== COURSE MANAGEMENT API FUNCTIONS ====================
+  
+  const fetchCourses = async () => {
+  setCourseLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    console.log('Token from localStorage:', token); // Add this line
+    
+    if (!token) {
+      console.error('No token found in localStorage');
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch('http://localhost:5000/api/courses', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    console.log('Response status:', response.status); // Add this line
+    
+    if (response.ok) {
+      const data = await response.json();
+      setCourses(data);
+    } else {
+      throw new Error('Failed to fetch courses');
+    }
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    setCourses([]);
+  } finally {
+    setCourseLoading(false);
+  }
+};
 
   const fetchCourseAssignments = async () => {
     try {
@@ -236,6 +247,7 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching course assignments:', error);
+      setCourseAssignments([]);
     }
   };
 
@@ -246,122 +258,181 @@ const AdminDashboard = () => {
       return;
     }
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:5000/api/admin/courses', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newCourse)
-          });
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/courses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newCourse)
+      });
 
-          if (response.ok) {
-            const result = await response.json();
-            setCourses(prev => [...prev, result.course]);
-            setShowCourseModal(false);
-            setNewCourse({
-              courseCode: '',
-              courseName: '',
-              description: '',
-              credits: 3,
-              department: '',
-              semester: 'Fall 2024',
-              maxStudents: 30,
-              prerequisites: []
-            });
-            setSuccessMessage('Course added successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error adding course');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
-        }
-      },
-      ['courses'],
-      `add_course_${Date.now()}`
-    );
+      if (response.ok) {
+        const result = await response.json();
+        setCourses(prev => [...prev, result]);
+        setShowCourseModal(false);
+        setNewCourse({
+          courseCode: '',
+          courseName: '',
+          description: '',
+          credits: 3,
+          department: '',
+          semester: 'Fall 2024',
+          maxStudents: 30,
+          prerequisites: []
+        });
+        setSuccessMessage('Course added successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error adding course');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error adding course:', error);
+      setErrorMessage('Error adding course');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const handleEditCourseClick = async (course) => {
+    // First check lock status
+    const lockStatus = await checkCourseLockStatus(course._id);
+    
+    if (lockStatus.isLocked) {
+      if (lockStatus.lock?.isLockedByMe) {
+        // Already locked by me, proceed to edit
+        setSelectedCourse(course);
+        setEditCourse({ ...course });
+        setShowEditCourseModal(true);
+        setSuccessMessage(`You already have the lock for ${course.courseCode}`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        return;
+      } else {
+        // Locked by someone else
+        setErrorMessage(
+          `This course is currently locked by ${lockStatus.lock?.lockedBy || 'another admin'}. ` +
+          `Please try again later.`
+        );
+        setTimeout(() => setErrorMessage(''), 5000);
+        return;
+      }
+    }
+    
+    // Try to acquire lock
+    setErrorMessage('');
+    const lockResult = await lockCourseOnBackend(course._id);
+    
+    if (lockResult.success) {
+      setSelectedCourse(course);
+      setEditCourse({ ...course });
+      setShowEditCourseModal(true);
+      setSuccessMessage(`Lock acquired for editing ${course.courseCode}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      setErrorMessage(`Failed to acquire lock: ${lockResult.message}`);
+      setTimeout(() => setErrorMessage(''), 5000);
+    }
   };
 
   const handleEditCourse = async () => {
     if (!selectedCourse) return;
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`http://localhost:5000/api/admin/courses/${selectedCourse._id}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(editCourse)
-          });
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editCourse)
+      });
 
-          if (response.ok) {
-            const result = await response.json();
-            setCourses(prev => 
-              prev.map(c => c._id === selectedCourse._id ? result.course : c)
-            );
-            setShowEditCourseModal(false);
-            setSelectedCourse(null);
-            setEditCourse({});
-            setSuccessMessage('Course updated successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error updating course');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
-        }
-      },
-      [`course_${selectedCourse._id}`],
-      `edit_course_${Date.now()}`
-    );
+      if (response.status === 423) {
+        // Lost the lock
+        const error = await response.json();
+        throw new Error(`Lock expired or lost: ${error.message}`);
+      }
+
+      if (response.ok) {
+        const result = await response.json();
+        setCourses(prev => 
+          prev.map(c => c._id === selectedCourse._id ? result.course : c)
+        );
+        setShowEditCourseModal(false);
+        
+        // Release lock after successful save
+        await unlockCourseOnBackend(selectedCourse._id);
+        
+        setSelectedCourse(null);
+        setEditCourse({});
+        setSuccessMessage('Course updated successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Error updating course');
+      }
+    } catch (error) {
+      setErrorMessage(error.message);
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const handleCancelEditCourse = async () => {
+    if (selectedCourse) {
+      // Release lock on backend
+      await unlockCourseOnBackend(selectedCourse._id);
+    }
+    setShowEditCourseModal(false);
+    setSelectedCourse(null);
+    setEditCourse({});
   };
 
   const handleDeleteCourse = async (course) => {
     if (!window.confirm(`Are you sure you want to delete ${course.courseCode} - ${course.courseName}?`)) return;
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`http://localhost:5000/api/admin/courses/${course._id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+    try {
+      // First acquire lock
+      const lockResult = await lockCourseOnBackend(course._id);
+      if (!lockResult.success) {
+        setErrorMessage(`Cannot delete: ${lockResult.message}`);
+        setTimeout(() => setErrorMessage(''), 3000);
+        return;
+      }
 
-          if (response.ok) {
-            setCourses(prev => prev.filter(c => c._id !== course._id));
-            setSuccessMessage('Course deleted successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error deleting course');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/courses/${course._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      },
-      [`course_${course._id}`],
-      `delete_course_${Date.now()}`
-    );
+      });
+
+      if (response.ok) {
+        setCourses(prev => prev.filter(c => c._id !== course._id));
+        
+        // Clean up lock state
+        setCourseLocks(prev => {
+          const newLocks = { ...prev };
+          delete newLocks[course._id];
+          return newLocks;
+        });
+        
+        setSuccessMessage('Course deleted successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error deleting course');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      setErrorMessage('Error deleting course');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   const handleAssignFaculty = async () => {
@@ -371,57 +442,56 @@ const AdminDashboard = () => {
       return;
     }
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newAssignment)
-          });
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newAssignment)
+      });
 
-          if (response.ok) {
-            const result = await response.json();
-            setCourseAssignments(prev => [...prev, result.assignment]);
-            setShowAssignmentModal(false);
-            setNewAssignment({
-              facultyId: '',
-              courseId: '',
-              semester: 'Fall 2024',
-              section: 'A'
-            });
-            setSuccessMessage('Faculty assigned to course successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error assigning faculty');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
-        }
-      },
-      ['course_assignments', `course_${newAssignment.courseId}`, `faculty_${newAssignment.facultyId}`],
-      `assign_faculty_${Date.now()}`
-    );
-  };
-
-  const handleEditCourseClick = (course) => {
-    setSelectedCourse(course);
-    setEditCourse({ ...course });
-    setShowEditCourseModal(true);
+      if (response.ok) {
+        const result = await response.json();
+        setCourseAssignments(prev => [...prev, result.assignment]);
+        setShowAssignmentModal(false);
+        setNewAssignment({
+          facultyId: '',
+          courseId: '',
+          semester: 'Fall 2024',
+          section: 'A'
+        });
+        setSuccessMessage('Faculty assigned to course successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error assigning faculty');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error assigning faculty:', error);
+      setErrorMessage('Error assigning faculty');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   const handleAssignFacultyClick = () => {
     setShowAssignmentModal(true);
   };
 
-  // Mock data for dashboard content
+  // Helper functions for lock status
+  const isCourseLockedByAnotherAdmin = (courseId) => {
+    const lock = courseLocks[courseId];
+    return lock?.isLocked && !lock?.lockedByMe;
+  };
+
+  const getCourseLockStatus = (courseId) => {
+    return courseLocks[courseId] || { isLocked: false, lockedByMe: false, lockedBy: null };
+  };
+
+  // Dashboard content
   const dashboardContent = {
     dashboard: {
       title: 'Admin Dashboard',
@@ -438,8 +508,8 @@ const AdminDashboard = () => {
                 <span className="mini-value status-online">🟢 Online</span>
               </div>
               <div className="mini-stat">
-                <span className="mini-label">Last Updated</span>
-                <span className="mini-value">{new Date().toLocaleTimeString()}</span>
+                <span className="mini-label">Current Admin</span>
+                <span className="mini-value">{user?.email || user?.name || 'Admin'}</span>
               </div>
             </div>
           </div>
@@ -486,27 +556,28 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="dashboard-widgets">
-            <div className="widget-section">
-              <h3>Quick Actions</h3>
-              <div className="quick-actions">
-                <button className="quick-action-btn" onClick={() => { setActiveSection('faculty'); setShowAddModal(true) }}>
-                  <span className="btn-icon">➕</span>
-                  <span>Add Faculty</span>
-                </button>
-                <button className="quick-action-btn" onClick={() => { setActiveSection('courses'); setShowCourseModal(true) }}>
-                  <span className="btn-icon">📚</span>
-                  <span>Add Course</span>
-                </button>
-                <button className="quick-action-btn" onClick={() => setActiveSection('assignments')}>
-                  <span className="btn-icon">📅</span>
-                  <span>Class Schedule</span>
-                </button>
-                <button className="quick-action-btn" onClick={() => setActiveSection('reports')}>
-                  <span className="btn-icon">📊</span>
-                  <span>Generate Report</span>
-                </button>
+          <div className="lock-status-panel">
+            <h4>🔒 Backend 2PL Concurrency Control</h4>
+            <div className="lock-stats">
+              <div className="lock-stat">
+                <span className="lock-stat-label">Active Locks:</span>
+                <span className="lock-stat-value">
+                  {Object.values(courseLocks).filter(lock => lock.isLocked).length}
+                </span>
               </div>
+              <div className="lock-stat">
+                <span className="lock-stat-label">Your Locks:</span>
+                <span className="lock-stat-value">
+                  {Object.values(courseLocks).filter(lock => lock.lockedByMe).length}
+                </span>
+              </div>
+              <div className="lock-stat">
+                <span className="lock-stat-label">Current Admin:</span>
+                <span className="lock-stat-value">{user?.email || user?.name || 'Admin'}</span>
+              </div>
+            </div>
+            <div className="lock-note">
+              <small>Locks are stored in database and shared across all admin users</small>
             </div>
           </div>
         </div>
@@ -514,7 +585,7 @@ const AdminDashboard = () => {
     },
 
     courses: {
-      title: 'Course Management',
+      title: 'Course Management (2PL Protected)',
       content: (
         <div className="course-management">
           <div className="section-header">
@@ -535,62 +606,92 @@ const AdminDashboard = () => {
             </div>
           </div>
 
+          <div className="2pl-info-banner">
+            <div className="2pl-info-content">
+              <strong>🔒 Backend Two-Phase Locking Active:</strong> 
+              <span> When you edit a course, it gets locked exclusively in the database. Other admins cannot edit it until you save or cancel.</span>
+            </div>
+            <div className="current-admin-info">
+              You are logged in as: <strong>{user?.email || user?.name || 'Admin'}</strong>
+            </div>
+          </div>
+
           {courseLoading ? (
             <div className="loading-state">Loading courses...</div>
           ) : (
             <div className="courses-container">
               <div className="courses-grid">
-                {courses.map((course) => (
-                  <div key={course._id} className="course-card">
-                    <div className="course-header">
-                      <h4>{course.courseCode}</h4>
-                      <span className={`course-status ${course.status || 'active'}`}>
-                        {course.status || 'active'}
-                      </span>
-                    </div>
-                    <div className="course-body">
-                      <h5>{course.courseName}</h5>
-                      <p className="course-description">{course.description}</p>
-                      <div className="course-details">
-                        <div className="course-detail">
-                          <span className="detail-label">Department:</span>
-                          <span className="detail-value">{course.department}</span>
-                        </div>
-                        <div className="course-detail">
-                          <span className="detail-label">Credits:</span>
-                          <span className="detail-value">{course.credits}</span>
-                        </div>
-                        <div className="course-detail">
-                          <span className="detail-label">Semester:</span>
-                          <span className="detail-value">{course.semester}</span>
-                        </div>
-                        <div className="course-detail">
-                          <span className="detail-label">Max Students:</span>
-                          <span className="detail-value">{course.maxStudents}</span>
+                {courses.map((course) => {
+                  const lockInfo = getCourseLockStatus(course._id);
+                  const isLocked = lockInfo.isLocked;
+                  const isLockedByMe = lockInfo.lockedByMe;
+                  const isLockedByOther = isLocked && !isLockedByMe;
+                  
+                  return (
+                    <div key={course._id} className={`course-card ${isLocked ? 'locked' : ''} ${isLockedByMe ? 'locked-by-me' : ''}`}>
+                      <div className="course-header">
+                        <h4>{course.courseCode}</h4>
+                        <div className="course-status-group">
+                          <span className={`course-status ${course.status || 'active'}`}>
+                            {course.status || 'active'}
+                          </span>
+                          {isLocked && (
+                            <span className={`lock-indicator ${isLockedByMe ? 'my-lock' : 'other-lock'}`}>
+                              {isLockedByMe ? '🔒 Your Lock' : `🔐 Locked by ${lockInfo.lockedBy}`}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      {course.prerequisites && course.prerequisites.length > 0 && (
-                        <div className="prerequisites">
-                          <strong>Prerequisites:</strong> {course.prerequisites.join(', ')}
+                      <div className="course-body">
+                        <h5>{course.courseName}</h5>
+                        <p className="course-description">{course.description}</p>
+                        <div className="course-details">
+                          <div className="course-detail">
+                            <span className="detail-label">Department:</span>
+                            <span className="detail-value">{course.department}</span>
+                          </div>
+                          <div className="course-detail">
+                            <span className="detail-label">Credits:</span>
+                            <span className="detail-value">{course.credits}</span>
+                          </div>
+                          <div className="course-detail">
+                            <span className="detail-label">Semester:</span>
+                            <span className="detail-value">{course.semester}</span>
+                          </div>
+                          <div className="course-detail">
+                            <span className="detail-label">Max Students:</span>
+                            <span className="detail-value">{course.maxStudents}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="course-actions">
+                        <button 
+                          className={`btn-action edit ${isLockedByOther ? 'disabled' : ''}`}
+                          onClick={() => handleEditCourseClick(course)}
+                          disabled={isLockedByOther}
+                          title={isLockedByOther ? `Currently being edited by ${lockInfo.lockedBy}` : 'Edit course'}
+                        >
+                          {isLockedByOther ? '🔒 Locked' : 'Edit'}
+                        </button>
+                        <button 
+                          className="btn-action delete"
+                          onClick={() => handleDeleteCourse(course)}
+                          disabled={isLockedByOther}
+                          title={isLockedByOther ? "Cannot delete - course is locked" : "Delete course"}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                      
+                      {isLockedByOther && (
+                        <div className="lock-warning">
+                          <span className="warning-icon">⚠️</span>
+                          <span>This course is currently being edited by {lockInfo.lockedBy}</span>
                         </div>
                       )}
                     </div>
-                    <div className="course-actions">
-                      <button 
-                        className="btn-action edit"
-                        onClick={() => handleEditCourseClick(course)}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        className="btn-action delete"
-                        onClick={() => handleDeleteCourse(course)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {courses.length === 0 && (
@@ -601,7 +702,6 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Course Assignments Section */}
           <div className="assignments-section">
             <h4>Current Course Assignments</h4>
             <div className="assignments-table">
@@ -619,15 +719,24 @@ const AdminDashboard = () => {
                   {courseAssignments.map((assignment) => {
                     const course = courses.find(c => c._id === assignment.courseId);
                     const faculty = facultyData.find(f => f._id === assignment.facultyId);
+                    const isCourseLocked = isCourseLockedByAnotherAdmin(assignment.courseId);
+                    
                     return (
                       <tr key={assignment._id}>
-                        <td>{course ? `${course.courseCode} - ${course.courseName}` : 'Unknown Course'}</td>
+                        <td>
+                          {course ? `${course.courseCode} - ${course.courseName}` : 'Unknown Course'}
+                          {isCourseLocked && <span className="table-lock-indicator" title="Course is locked"> 🔒</span>}
+                        </td>
                         <td>{faculty ? faculty.name : 'Unknown Faculty'}</td>
                         <td>{assignment.semester}</td>
                         <td>{assignment.section}</td>
                         <td>
-                          <button className="btn-action delete">
-                            Remove
+                          <button 
+                            className="btn-action delete"
+                            disabled={isCourseLocked}
+                            title={isCourseLocked ? "Cannot remove - course is locked" : "Remove assignment"}
+                          >
+                            {isCourseLocked ? 'Locked' : 'Remove'}
                           </button>
                         </td>
                       </tr>
@@ -711,7 +820,7 @@ const AdminDashboard = () => {
               
               {facultyData.length === 0 && (
                 <div className="empty-state">
-                  No faculty members found. Click "Add Faculty" to create the first one.
+                  No faculty members found.
                 </div>
               )}
             </div>
@@ -763,17 +872,6 @@ const AdminDashboard = () => {
                   </div>
                 )}
               </div>
-
-              <div className="upload-info">
-                <h4>📋 Required Format</h4>
-                <ul>
-                  <li>Column 1: Course Code (e.g., CS101)</li>
-                  <li>Column 2: Faculty Name</li>
-                  <li>Column 3: Semester (e.g., Fall 2024)</li>
-                  <li>Column 4: Time Slot (e.g., 9:00-10:30 AM)</li>
-                  <li>Column 5: Room Number (e.g., Room 101)</li>
-                </ul>
-              </div>
             </div>
 
             <div className="schedules-section">
@@ -787,9 +885,6 @@ const AdminDashboard = () => {
                       <div className="schedule-info">
                         <h5>{u.fileName || u.title || 'Untitled'}</h5>
                         <p>{u.faculty || 'Unknown'} • {u.uploadedAt ? new Date(u.uploadedAt).toLocaleDateString() : ''}</p>
-                      </div>
-                      <div className="schedule-status">
-                        <span className={`status-badge`}>{u.source}</span>
                       </div>
                       {u.fileUrl ? (
                         <a className="btn-action view" href={`http://localhost:5000${u.fileUrl}`} target="_blank" rel="noopener noreferrer">👁️ View</a>
@@ -849,56 +944,6 @@ const AdminDashboard = () => {
                 </button>
               </div>
             </div>
-
-            <div className="reports-history">
-              <h4>📁 Report History</h4>
-              <div className="reports-list">
-                {[
-                  { id: 1, name: 'Faculty Portfolio Summary - Nov 2024', type: 'PDF', date: '2024-11-10', size: '2.4 MB' },
-                  { id: 2, name: 'Department Statistics - Oct 2024', type: 'Excel', date: '2024-10-28', size: '1.8 MB' },
-                  { id: 3, name: 'Course Catalog Report - Nov 2024', type: 'PDF', date: '2024-11-05', size: '1.2 MB' },
-                  { id: 4, name: 'Activity Log Report - Sep 2024', type: 'CSV', date: '2024-09-15', size: '512 KB' },
-                ].map(report => (
-                  <div key={report.id} className="report-item">
-                    <div className="report-icon">
-                      {report.type === 'PDF' && '📄'}
-                      {report.type === 'Excel' && '📊'}
-                      {report.type === 'CSV' && '📋'}
-                    </div>
-                    <div className="report-details">
-                      <h5>{report.name}</h5>
-                      <p>{report.date} • {report.size}</p>
-                    </div>
-                    <div className="report-actions">
-                      <button className="btn-action">⬇️ Download</button>
-                      <button className="btn-action delete">🗑️ Delete</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="report-preview">
-              <h4>📈 Report Statistics</h4>
-              <div className="statistics-grid">
-                <div className="stat-item">
-                  <span className="stat-label">Total Portfolios</span>
-                  <span className="stat-value">{facultyData.length}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Total Courses</span>
-                  <span className="stat-value">{courses.length}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Completion Rate</span>
-                  <span className="stat-value">92%</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Reports Generated</span>
-                  <span className="stat-value">47</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )
@@ -915,7 +960,6 @@ const AdminDashboard = () => {
     { id: 'settings', label: 'SYSTEM SETTINGS', icon: '⚙️' }
   ]
 
-  // Fetch faculty data from API
   const fetchFacultyData = async () => {
     setLoading(true)
     try {
@@ -934,47 +978,12 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching faculty data:', error);
-      // Fallback to demo data if API fails
-      setFacultyData([
-        { 
-          _id: '1', 
-          name: 'Dr. John Smith', 
-          email: 'john.smith@university.edu', 
-          department: 'Computer Science', 
-          role: 'Professor',
-          status: 'active'
-        },
-        { 
-          _id: '2', 
-          name: 'Dr. Maria Garcia', 
-          email: 'maria.garcia@university.edu', 
-          department: 'Mathematics', 
-          role: 'Associate Professor',
-          status: 'active'
-        },
-        { 
-          _id: '3', 
-          name: 'Dr. Robert Johnson', 
-          email: 'robert.johnson@university.edu', 
-          department: 'Physics', 
-          role: 'Assistant Professor',
-          status: 'inactive'
-        },
-        { 
-          _id: '4', 
-          name: 'Dr. Sarah Chen', 
-          email: 'sarah.chen@university.edu', 
-          department: 'Biology', 
-          role: 'Professor',
-          status: 'active'
-        }
-      ]);
+      setFacultyData([]);
     } finally {
       setLoading(false);
     }
   }
 
-  // Fetch recent uploaded files across collections for admin view
   const fetchUploads = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -986,13 +995,30 @@ const AdminDashboard = () => {
       if (res.ok) {
         const data = await res.json()
         setUploadsList(Array.isArray(data.uploads) ? data.uploads : (data.uploads || []))
-      } else {
-        console.warn('Failed to fetch admin uploads')
       }
     } catch (err) {
       console.error('Error fetching uploads:', err)
+      setUploadsList([]);
     }
   }
+
+  // Auto-refresh lock statuses when on courses section
+  useEffect(() => {
+    const refreshLocks = async () => {
+      if (activeSection === 'courses' && courses.length > 0) {
+        // Refresh lock status for visible courses
+        await Promise.all(
+          courses.slice(0, 10).map(course => 
+            checkCourseLockStatus(course._id)
+          )
+        );
+      }
+    };
+
+    const interval = setInterval(refreshLocks, 10000); // Every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [activeSection, courses]);
 
   useEffect(() => {
     fetchFacultyData()
@@ -1001,7 +1027,6 @@ const AdminDashboard = () => {
     fetchCourseAssignments()
   }, [])
 
-  // Add faculty with API call
   const handleAddFaculty = async () => {
     if (!newFaculty.firstName || !newFaculty.email || !newFaculty.password || !newFaculty.department) {
       setErrorMessage('Please fill all required fields');
@@ -1009,207 +1034,160 @@ const AdminDashboard = () => {
       return;
     }
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const payload = {
-            firstName: newFaculty.firstName,
-            lastName: newFaculty.lastName,
-            email: newFaculty.email,
-            password: newFaculty.password,
-            department: newFaculty.department,
-            role: newFaculty.role
-          };
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        firstName: newFaculty.firstName,
+        lastName: newFaculty.lastName,
+        email: newFaculty.email,
+        password: newFaculty.password,
+        department: newFaculty.department,
+        role: newFaculty.role
+      };
 
-          const response = await fetch('http://localhost:5000/api/admin/users', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          });
+      const response = await fetch('http://localhost:5000/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-          if (response.ok) {
-            const result = await response.json();
-            setFacultyData(prev => [...prev, result.user]);
-            setShowAddModal(false);
-            setNewFaculty({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'faculty' });
-            setSuccessMessage('Faculty added successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error adding faculty member');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
-        }
-      },
-      ['faculty'],
-      `add_faculty_${Date.now()}`
-    );
+      if (response.ok) {
+        const result = await response.json();
+        setFacultyData(prev => [...prev, result.user]);
+        setShowAddModal(false);
+        setNewFaculty({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'faculty' });
+        setSuccessMessage('Faculty added successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error adding faculty member');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error adding faculty:', error);
+      setErrorMessage('Error adding faculty member');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   }
 
-  const hasNewFacultyInput = () => {
-    return newFaculty.firstName.trim() && newFaculty.email.trim() && newFaculty.department.trim() && newFaculty.password.trim()
-  }
-
-  // Edit Faculty Functions
   const handleEditClick = (faculty) => {
     setSelectedFaculty(faculty)
     setEditFaculty({ ...faculty })
     setShowEditModal(true)
   }
 
-  // Edit faculty with API call
   const handleEditSave = async () => {
-    if (!hasEditChanges()) return;
+    try {
+      const token = localStorage.getItem('token');
+      const [fn, ...lnParts] = (editFaculty.name || '').trim().split(' ');
+      const payload = {
+        firstName: fn || undefined,
+        lastName: lnParts.join(' ') || undefined,
+        email: editFaculty.email,
+        department: editFaculty.department,
+        role: (editFaculty.role || '').toLowerCase() === 'admin' ? 'admin' : 'faculty'
+      };
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const [fn, ...lnParts] = (editFaculty.name || '').trim().split(' ');
-          const payload = {
-            firstName: fn || undefined,
-            lastName: lnParts.join(' ') || undefined,
-            email: editFaculty.email,
-            department: editFaculty.department,
-            role: (editFaculty.role || '').toLowerCase() === 'admin' ? 'admin' : 'faculty'
-          };
+      const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-          const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            setFacultyData(prev => 
-              prev.map(f => f._id === selectedFaculty._id ? result.user : f)
-            );
-            setShowEditModal(false);
-            setSelectedFaculty(null);
-            setEditFaculty({});
-            setSuccessMessage('Faculty member updated successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error updating faculty member');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
-        }
-      },
-      [`faculty_${selectedFaculty._id}`],
-      `edit_faculty_${Date.now()}`
-    );
+      if (response.ok) {
+        const result = await response.json();
+        setFacultyData(prev => 
+          prev.map(f => f._id === selectedFaculty._id ? result.user : f)
+        );
+        setShowEditModal(false);
+        setSelectedFaculty(null);
+        setEditFaculty({});
+        setSuccessMessage('Faculty member updated successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error updating faculty member');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error updating faculty:', error);
+      setErrorMessage('Error updating faculty member');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   }
 
-  const hasEditChanges = () => {
-    return JSON.stringify(selectedFaculty) !== JSON.stringify(editFaculty)
-  }
-
-  // Status Functions
   const handleStatusClick = (faculty) => {
     setSelectedFaculty(faculty)
     setStatusFaculty({ ...faculty })
     setShowStatusModal(true)
   }
 
-  // Update status with API call
   const handleStatusSave = async () => {
-    if (!hasStatusChanges()) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: statusFaculty.status })
+      });
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: statusFaculty.status })
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            setFacultyData(prev => 
-              prev.map(f => f._id === selectedFaculty._id ? result.user : f)
-            );
-            setShowStatusModal(false);
-            setSelectedFaculty(null);
-            setStatusFaculty({});
-            setSuccessMessage('Status updated successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error updating status');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
-        }
-      },
-      [`faculty_${selectedFaculty._id}`],
-      `status_faculty_${Date.now()}`
-    );
-  }
-
-  const hasStatusChanges = () => {
-    return selectedFaculty.status !== statusFaculty.status
-  }
-
-  const handleStatusToggle = () => {
-    setStatusFaculty(prev => ({
-      ...prev,
-      status: prev.status === 'active' ? 'inactive' : 'active'
-    }))
+      if (response.ok) {
+        const result = await response.json();
+        setFacultyData(prev => 
+          prev.map(f => f._id === selectedFaculty._id ? result.user : f)
+        );
+        setShowStatusModal(false);
+        setSelectedFaculty(null);
+        setStatusFaculty({});
+        setSuccessMessage('Status updated successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error updating status');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setErrorMessage('Error updating status');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   }
 
   const handleDeleteClick = async (faculty) => {
     if (!window.confirm(`Are you sure you want to delete ${faculty.name}?`)) return;
 
-    await executeWith2PL(
-      async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            setFacultyData(prev => prev.filter(f => f._id !== faculty._id));
-            setSuccessMessage('Faculty deleted successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-          } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Error deleting faculty');
-          }
-        } catch (error) {
-          setErrorMessage(error.message);
-          setTimeout(() => setErrorMessage(''), 3000);
-          throw error;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      },
-      [`faculty_${faculty._id}`],
-      `delete_faculty_${Date.now()}`
-    );
+      });
+
+      if (response.ok) {
+        setFacultyData(prev => prev.filter(f => f._id !== faculty._id));
+        setSuccessMessage('Faculty deleted successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error deleting faculty');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting faculty:', error);
+      setErrorMessage('Error deleting faculty member');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   }
 
   return (
@@ -1226,7 +1204,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Sidebar */}
       <div className={`sidebar admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header admin-header">
           <h2>👑 Admin Portal</h2>
@@ -1268,7 +1245,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="main-content">
         <header className="content-header admin-content-header">
           <div className="header-left">
@@ -1292,197 +1268,6 @@ const AdminDashboard = () => {
           )}
         </main>
       </div>
-
-      {/* Add Faculty Modal */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Faculty Member</h3>
-              <button className="close-btn" onClick={() => setShowAddModal(false)}>×</button>
-            </div>
-            <div className="modal-content">
-              <div className="form-group">
-                <label>First Name *</label>
-                <input
-                  type="text"
-                  value={newFaculty.firstName}
-                  onChange={(e) => setNewFaculty(prev => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="Enter first name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Last Name</label>
-                <input
-                  type="text"
-                  value={newFaculty.lastName}
-                  onChange={(e) => setNewFaculty(prev => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Enter last name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Email Address *</label>
-                <input
-                  type="email"
-                  value={newFaculty.email}
-                  onChange={(e) => setNewFaculty(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter email address"
-                />
-              </div>
-              <div className="form-group">
-                <label>Password *</label>
-                <input
-                  type="password"
-                  value={newFaculty.password}
-                  onChange={(e) => setNewFaculty(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter password"
-                />
-              </div>
-              <div className="form-group">
-                <label>Department *</label>
-                <input
-                  type="text"
-                  value={newFaculty.department}
-                  onChange={(e) => setNewFaculty(prev => ({ ...prev, department: e.target.value }))}
-                  placeholder="Enter department"
-                />
-              </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select
-                  value={newFaculty.role}
-                  onChange={(e) => setNewFaculty(prev => ({ ...prev, role: e.target.value }))}
-                >
-                  <option value="faculty">Faculty</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowAddModal(false)}>
-                Cancel
-              </button>
-              <button 
-                className="btn-primary"
-                onClick={handleAddFaculty}
-              >
-                Add Faculty
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Faculty Modal */}
-      {showEditModal && selectedFaculty && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Edit Faculty Member</h3>
-              <button className="close-btn" onClick={() => setShowEditModal(false)}>×</button>
-            </div>
-            <div className="modal-content">
-              <div className="form-group">
-                <label>Full Name</label>
-                <input
-                  type="text"
-                  value={editFaculty.name || ''}
-                  onChange={(e) => setEditFaculty(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Email Address</label>
-                <input
-                  type="email"
-                  value={editFaculty.email || ''}
-                  onChange={(e) => setEditFaculty(prev => ({ ...prev, email: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Department</label>
-                <input
-                  type="text"
-                  value={editFaculty.department || ''}
-                  onChange={(e) => setEditFaculty(prev => ({ ...prev, department: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select
-                  value={editFaculty.role || 'Faculty'}
-                  onChange={(e) => setEditFaculty(prev => ({ ...prev, role: e.target.value }))}
-                >
-                  <option value="Faculty">Faculty</option>
-                  <option value="Admin">Admin</option>
-                </select>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
-              <button 
-                className={`btn-primary ${!hasEditChanges() ? 'disabled' : ''}`}
-                onClick={handleEditSave}
-                disabled={!hasEditChanges()}
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Status Modal */}
-      {showStatusModal && selectedFaculty && (
-        <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Change Faculty Status</h3>
-              <button className="close-btn" onClick={() => setShowStatusModal(false)}>×</button>
-            </div>
-            <div className="modal-content">
-              <div className="status-info">
-                <p><strong>Faculty Member:</strong> {selectedFaculty.name}</p>
-                <p><strong>Current Status:</strong> 
-                  <span className={`status-badge ${selectedFaculty.status}`}>
-                    {selectedFaculty.status}
-                  </span>
-                </p>
-              </div>
-              <div className="form-group">
-                <label>New Status</label>
-                <div className="status-toggle">
-                  <button
-                    className={`status-option ${statusFaculty.status === 'active' ? 'active' : ''}`}
-                    onClick={() => setStatusFaculty(prev => ({ ...prev, status: 'active' }))}
-                  >
-                    Active
-                  </button>
-                  <button
-                    className={`status-option ${statusFaculty.status === 'inactive' ? 'active' : ''}`}
-                    onClick={() => setStatusFaculty(prev => ({ ...prev, status: 'inactive' }))}
-                  >
-                    Inactive
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowStatusModal(false)}>
-                Cancel
-              </button>
-              <button 
-                className={`btn-primary ${!hasStatusChanges() ? 'disabled' : ''}`}
-                onClick={handleStatusSave}
-                disabled={!hasStatusChanges()}
-              >
-                Save Status
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Course Modal */}
       {showCourseModal && (
@@ -1578,11 +1363,14 @@ const AdminDashboard = () => {
 
       {/* Edit Course Modal */}
       {showEditCourseModal && selectedCourse && (
-        <div className="modal-overlay" onClick={() => setShowEditCourseModal(false)}>
+        <div className="modal-overlay" onClick={() => handleCancelEditCourse()}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Edit Course</h3>
-              <button className="close-btn" onClick={() => setShowEditCourseModal(false)}>×</button>
+              <h3>Edit Course (Locked by You)</h3>
+              <div className="modal-lock-info">
+                <span className="lock-badge">🔒 Exclusive Lock Acquired</span>
+              </div>
+              <button className="close-btn" onClick={() => handleCancelEditCourse()}>×</button>
             </div>
             <div className="modal-content">
               <div className="form-group">
@@ -1650,14 +1438,14 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowEditCourseModal(false)}>
-                Cancel
+              <button className="btn-secondary" onClick={() => handleCancelEditCourse()}>
+                Cancel & Release Lock
               </button>
               <button 
                 className="btn-primary"
                 onClick={handleEditCourse}
               >
-                Save Changes
+                Save Changes & Release Lock
               </button>
             </div>
           </div>
