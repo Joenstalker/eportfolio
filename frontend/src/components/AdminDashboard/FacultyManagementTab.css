@@ -1,0 +1,140 @@
+/* Faculty tab specific styles (moved from AdminDashboard.css) */
+.admin-dashboard .faculty-management {
+  padding: 20px 0;
+}
+
+.admin-dashboard .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.admin-dashboard .section-header h3 {
+  color: #000000 !important;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.admin-dashboard .add-faculty-btn {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .add-faculty-btn:hover {
+  background: #333333 !important;
+  transform: translateY(-2px);
+}
+
+.admin-dashboard .faculty-table-container {
+  background: var(--admin-surface) !important;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border) !important;
+  overflow: hidden;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-dashboard .faculty-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-dashboard .faculty-table th {
+  background: var(--admin-surface-2) !important;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--admin-text) !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+.admin-dashboard .faculty-table td {
+  padding: 15px;
+  border-bottom: 1px solid var(--admin-border) !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-dashboard .faculty-table tr:hover td {
+  background: #fafbfc !important;
+}
+
+.admin-dashboard .status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.admin-dashboard .status-badge.active {
+  background: var(--admin-success-bg);
+  color: var(--admin-success) !important;
+}
+
+.admin-dashboard .status-badge.inactive {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger) !important;
+}
+
+.admin-dashboard .action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-dashboard .edit-btn,
+.admin-dashboard .status-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: 6px;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .edit-btn:hover {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+}
+
+.admin-dashboard .status-btn:hover {
+  background: #6b7280 !important;
+  color: #ffffff !important;
+}
+
+/* Enhanced Faculty Management (used by both Faculty + Archived tabs) */
+.admin-dashboard .faculty-management.enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-dashboard .count-badge {
+  display: inline-block;
+  background: #f0f9ff;
+  color: #0369a1;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.admin-dashboard .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--admin-surface-2);
+  border-radius: 12px;
+  border: 2px dashed var(--admin-border);
+}
+
+.admin-dashboard .faculty-row.inactive {
+  opacity: 0.7;
+}
+

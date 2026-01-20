@@ -1,0 +1,41 @@
+/* System Settings tab specific styles (moved from AdminDashboard.css) */
+.admin-dashboard .system-settings {
+  padding: 20px;
+}
+
+.admin-dashboard .settings-container {
+  max-width: 900px;
+}
+
+.admin-dashboard .settings-container > h3 {
+  font-size: 1.5rem;
+  color: var(--admin-text) !important;
+  margin-bottom: 25px;
+}
+
+.admin-dashboard .settings-group {
+  background: var(--admin-surface) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.admin-dashboard .settings-group h4 {
+  color: var(--admin-text) !important;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--admin-border) !important;
+  font-size: 1.05rem;
+}
+
+.admin-dashboard .settings-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid var(--admin-border) !important;
+}
+
