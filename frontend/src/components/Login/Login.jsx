@@ -31,9 +31,43 @@ const Login = () => {
     const [showCodeVerification, setShowCodeVerification] = useState(false);
     const [isAdminMode, setIsAdminMode] = useState(false);
     
-    // FIX: Changed from 'login' to 'loginUser'
-    const { loginUser, user } = useContext(AuthContext);
+    const { loginUser, user, isAuthenticated, logoutUser } = useContext(AuthContext);
     const navigate = useNavigate();
+
+    // Logout any existing user when component mounts
+    useEffect(() => {
+        // Check if we should auto-logout (like when coming from logout)
+        const urlParams = new URLSearchParams(window.location.search);
+        const logoutParam = urlParams.get('logout');
+        
+        if (logoutParam === 'true') {
+            console.log('🔓 Auto-logout triggered');
+            handleAutoLogout();
+        }
+    }, []);
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user && isAuthenticated) {
+            console.log('🔄 User already authenticated, redirecting...');
+            console.log('🎭 Current user role:', user.role);
+            
+            if (user.role === 'admin') {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/dashboard');
+            }
+        }
+    }, [user, isAuthenticated, navigate]);
+
+    const handleAutoLogout = async () => {
+        try {
+            await logoutUser();
+            setSuccess('You have been logged out successfully.');
+        } catch (error) {
+            console.error('Auto-logout error:', error);
+        }
+    };
 
     const handleChange = (e) => {
         setFormData({
@@ -88,26 +122,55 @@ const Login = () => {
         setError('');
         setSuccess('');
 
+        console.log('🚀 Login form submitted');
+        console.log('📧 Email:', formData.email);
+        console.log('👑 Is Admin Mode:', isAdminMode);
+
         try {
-            // FIX: Changed from 'login' to 'loginUser'
-            const response = await loginUser(formData.email, formData.password);
+            const response = await loginUser(formData.email, formData.password, isAdminMode);
             
-            // Redirect based on user role
-            if (response.user.role === 'admin') {
+            console.log('✅ Login successful in component');
+            console.log('👤 Response user object:', response.user);
+            console.log('🎭 User role from response:', response.user?.role);
+            
+            // Check if user role exists
+            if (!response.user || !response.user.role) {
+                console.error('❌ No role found in response');
+                setError('User role not found. Please contact administrator.');
+                return;
+            }
+            
+            // Determine redirect based on role
+            const userRole = response.user.role.toLowerCase();
+            
+            if (userRole === 'admin') {
+                console.log('🎯 Redirecting to admin dashboard');
                 navigate('/admin-dashboard');
+            } else if (userRole === 'faculty') {
+                console.log('🎯 Redirecting to faculty dashboard');
+                navigate('/dashboard');
             } else {
+                console.warn('⚠️ Unknown role, defaulting to faculty dashboard');
                 navigate('/dashboard');
             }
             
         } catch (err) {
-            console.error('Login error:', err);
-            setError(err.message || 'Login failed. Please check your credentials.');
+            console.error('❌ Login error in component:', err);
+            
+            // Enhanced error messages
+            if (err.message.includes('network') || err.message.includes('Failed to fetch')) {
+                setError('Cannot connect to server. Please check if the backend is running.');
+            } else if (err.message.includes('Invalid credentials')) {
+                setError('Invalid email or password. Please try again.');
+            } else if (err.message.includes('admin')) {
+                setError('Admin access required. Please use an admin account or contact administrator.');
+            } else {
+                setError(err.message || 'Login failed. Please check your credentials.');
+            }
         } finally {
             setLoading(false);
         }
     };
-
-    // 
 
     const handleCreateAccount = async (e) => {
         e.preventDefault();
@@ -130,7 +193,7 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/register`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +228,7 @@ const Login = () => {
 
     const handleGoogleSignIn = () => {
         // Redirect to backend Google OAuth endpoint
-        window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+        window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/google`;
     };
 
     const handleForgotPassword = async (e) => {
@@ -175,7 +238,7 @@ const Login = () => {
         setSuccess('');
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/forgot-password`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/forgot-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -221,7 +284,7 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/reset-password`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/reset-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -256,6 +319,20 @@ const Login = () => {
         }
     };
 
+    // Add manual logout button for testing (for login page)
+    const handleManualLogout = async () => {
+        try {
+            setLoading(true);
+            await logoutUser();
+            setSuccess('You have been logged out successfully.');
+            setError('');
+        } catch (error) {
+            setError('Logout failed: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const shouldShowCreateAccount = showCreateAccount || isAdminMode;
 
     return (
@@ -275,6 +352,15 @@ const Login = () => {
                     </p>
                 </div>
 
+                {/* Debug Panel */}
+                <div className="debug-panel">
+                    <div className="debug-info">
+                        <small>Status: {isAuthenticated ? '✅ Authenticated' : '❌ Not authenticated'}</small>
+                        <small>User Role: {user?.role || 'None'}</small>
+                        <small>Admin Mode: {isAdminMode ? 'ON' : 'OFF'}</small>
+                    </div>
+                </div>
+
                 {/* Backend Status Check */}
                 <div className="backend-status">
                     <button 
@@ -282,7 +368,7 @@ const Login = () => {
                         className="status-check-btn"
                         onClick={async () => {
                             try {
-                                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/health`);
+                                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/health`);
                                 if (response.ok) {
                                     const data = await response.json();
                                     alert(`✅ Backend is running!\nStatus: ${data.status}\nMessage: ${data.message}`);
@@ -296,9 +382,22 @@ const Login = () => {
                     >
                         Check Backend Status
                     </button>
+                    
+                    {/* Manual Logout Button (for testing) */}
+                    {isAuthenticated && (
+                        <button 
+                            type="button"
+                            className="logout-test-btn"
+                            onClick={handleManualLogout}
+                            style={{ marginTop: '10px', background: '#ff6b6b' }}
+                            disabled={loading}
+                        >
+                            {loading ? 'Logging out...' : 'Manual Logout Test'}
+                        </button>
+                    )}
                 </div>
 
-                {/* Admin Access Toggle - Only show when not in create account or reset password mode */}
+                {/* Admin Access Toggle */}
                 {!shouldShowCreateAccount && !showResetPassword && (
                     <div className="admin-access-toggle">
                         <button
@@ -620,6 +719,11 @@ const Login = () => {
                         </div>
                     </form>
                 )}
+                
+                {/* Debug Instructions */}
+                <div className="debug-instructions">
+                    <small>💡 Open browser console (F12) to see detailed login logs</small>
+                </div>
             </div>
         </div>
     );

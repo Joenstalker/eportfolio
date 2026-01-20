@@ -86,13 +86,86 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// Setup demo users (DEV only) - idempotent
+router.post('/setup-demo', async (req, res) => {
+    try {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(403).json({ message: 'Demo setup is disabled in production' });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            return res.status(500).json({ message: 'Missing JWT_SECRET in server environment' });
+        }
+
+        const demoUsers = [
+            {
+                firstName: 'Test',
+                lastName: 'Admin',
+                email: 'admin@gmail.com',
+                role: 'admin',
+                department: 'IT',
+                password: 'Admin@1234'
+            },
+            {
+                firstName: 'Test',
+                lastName: 'Faculty',
+                email: 'faculty@gmail.com',
+                role: 'faculty',
+                department: 'Computer Science',
+                password: 'Test@1234'
+            }
+        ];
+
+        const results = [];
+
+        for (const u of demoUsers) {
+            const normalizedEmail = String(u.email).toLowerCase().trim();
+            let user = await User.findOne({ email: normalizedEmail });
+
+            // Always ensure password is set to known value in dev demo seeding
+            const hashedPassword = await bcrypt.hash(u.password, 12);
+
+            if (!user) {
+                user = new User({
+                    firstName: u.firstName,
+                    lastName: u.lastName,
+                    email: normalizedEmail,
+                    password: hashedPassword,
+                    role: u.role,
+                    department: u.department
+                });
+                await user.save();
+                results.push({ email: normalizedEmail, action: 'created', role: u.role });
+            } else {
+                user.firstName = u.firstName;
+                user.lastName = u.lastName;
+                user.role = u.role;
+                user.department = u.department;
+                user.password = hashedPassword;
+                await user.save();
+                results.push({ email: normalizedEmail, action: 'updated', role: u.role });
+            }
+        }
+
+        return res.json({
+            success: true,
+            message: 'Demo users ready',
+            users: results
+        });
+    } catch (error) {
+        console.error('Demo setup error:', error);
+        return res.status(500).json({ message: 'Server error during demo setup' });
+    }
+});
+
 // Login endpoint
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = String(email || '').toLowerCase().trim();
 
         // Find user
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
@@ -132,8 +205,9 @@ router.post('/login', async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
+        const normalizedEmail = String(email || '').toLowerCase().trim();
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -146,7 +220,7 @@ router.post('/forgot-password', async (req, res) => {
         await user.save();
 
         // Send email with reset code
-        await sendResetCodeEmail(email, resetCode);
+        await sendResetCodeEmail(normalizedEmail, resetCode);
 
         res.json({ message: 'Reset code sent to your email' });
     } catch (error) {
@@ -159,9 +233,10 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
     try {
         const { email, code, newPassword } = req.body;
+        const normalizedEmail = String(email || '').toLowerCase().trim();
 
         const user = await User.findOne({ 
-            email, 
+            email: normalizedEmail, 
             resetPasswordCode: code,
             resetPasswordExpires: { $gt: Date.now() }
         });

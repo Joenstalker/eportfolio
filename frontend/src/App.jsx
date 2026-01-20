@@ -5,7 +5,6 @@ import Login from './components/Login/Login';
 import Dashboard from './components/faculty/Dashboard';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import GoogleAuthCallback from './components/googleAuthCallback';
-// FIXED: Use correct relative path
 import GoogleChoose from './components/googleChoose';
 import Layout from './components/Layout/Layout';
 import TeachingPortfolio from './components/faculty/TeachingPortfolio';
@@ -14,7 +13,6 @@ import SeminarsCertificates from './components/faculty/SeminarsCertificates';
 import Research from './components/faculty/Research';
 import Syllabus from './components/faculty/Syllabus';
 import InstructionalMaterials from './components/faculty/InstructionalMaterials';
-
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -42,10 +40,12 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
             <Route path="/auth/choose" element={<GoogleChoose />} />
             
+            {/* Protected Routes with Layout */}
             <Route 
               element={
                 <ProtectedRoute>
@@ -62,6 +62,7 @@ function App() {
               <Route path="/seminars-certificates" element={<SeminarsCertificates />} />
             </Route>
             
+            {/* Admin Route */}
             <Route 
               path="/admin-dashboard" 
               element={
@@ -71,6 +72,7 @@ function App() {
               } 
             />
             
+            {/* Redirects */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

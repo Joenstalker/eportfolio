@@ -6,7 +6,20 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
-    const [loading, setLoading] = useState(false);
+    // Start as loading=true so routes don't redirect before we restore from localStorage
+    const [loading, setLoading] = useState(true);
+
+    // DEV: ensure demo users exist (safe to ignore errors)
+    useEffect(() => {
+        const setupDemo = async () => {
+            try {
+                await fetch('http://localhost:5000/api/auth/setup-demo', { method: 'POST' });
+            } catch (e) {
+                // ignore
+            }
+        };
+        setupDemo();
+    }, []);
 
     // Proper login function implementation
     const loginUser = async (email, password) => {
@@ -24,13 +37,16 @@ export const AuthProvider = ({ children }) => {
 
             console.log('📡 Login response status:', response.status);
 
+            const data = await response.json();
+            console.log('📦 Full response data:', data);
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Login failed');
+                throw new Error(data.message || 'Login failed');
             }
 
-            const data = await response.json();
-            console.log('✅ Login successful:', data);
+            console.log('✅ Login successful');
+            console.log('👤 User role from backend:', data.user?.role);
+            console.log('🔑 Token received:', data.token ? 'Yes' : 'No');
 
             // Store user data and token
             if (data.token && data.user) {
@@ -43,7 +59,7 @@ export const AuthProvider = ({ children }) => {
             return data;
         } catch (error) {
             console.error('❌ Login error:', error);
-            throw error; // Re-throw to handle in component
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -58,20 +74,36 @@ export const AuthProvider = ({ children }) => {
 
     // Check if user is logged in on app start
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
-        
-        if (storedUser && storedToken) {
-            setUser(JSON.parse(storedUser));
-            setToken(storedToken);
-        }
+        const restoreSession = () => {
+            try {
+                const storedUser = localStorage.getItem('user');
+                const storedToken = localStorage.getItem('token');
+                
+                if (storedUser && storedToken) {
+                    const userData = JSON.parse(storedUser);
+                    console.log('🔄 Restored user from localStorage:', userData);
+                    console.log('🔄 User role from localStorage:', userData.role);
+                    setUser(userData);
+                    setToken(storedToken);
+                }
+            } catch (e) {
+                console.error('Error restoring auth session:', e);
+                setUser(null);
+                setToken(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        restoreSession();
     }, []);
 
     const value = {
         user,
         token,
         loading,
-        loginUser, // Make sure this is included
+        isAuthenticated: !!user && !!token,
+        loginUser,
         logoutUser,
     };
 
@@ -93,4 +125,4 @@ export const useAuth = () => {
     }
     return context;
 };
-export default AuthContext
+export default AuthContext;

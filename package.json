@@ -1,0 +1,13 @@
+{
+  "name": "faculty-eportfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root package for Faculty E-Portfolio monorepo (backend + frontend)",
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "backend": "npm --prefix backend start",
+    "backend:dev": "npm --prefix backend run dev",
+    "frontend": "npm --prefix frontend run dev"
+  }
+}
+
