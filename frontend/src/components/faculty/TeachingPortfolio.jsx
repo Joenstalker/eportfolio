@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
@@ -57,10 +58,22 @@ const TeachingPortfolio = () => {
                 const result = await response.json();
                 setSubjects(result.portfolio.subjects);
                 setNewSubject({ subjectCode: '', subjectName: '', section: '', semester: '' });
-                alert('Subject added successfully!');
+                Swal.fire({
+                    title: 'Added!',
+                    text: 'Subject added successfully!',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             } else {
                 const error = await response.json();
-                alert(error.message || 'Error adding subject');
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'Error adding subject',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
             }
         } catch (error) {
             console.error('Error adding subject:', error);
@@ -71,7 +84,17 @@ const TeachingPortfolio = () => {
     };
 
     const deleteSubject = async (subjectId) => {
-        if (!window.confirm('Are you sure you want to delete this subject?')) return;
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (!result.isConfirmed) return;
 
         try {
             const token = localStorage.getItem('token');
@@ -106,6 +129,7 @@ const TeachingPortfolio = () => {
                 <div className="add-form">
                     <h4>Add New Subject</h4>
                     <div className="form-grid">
+                        {/* Add an input dropdown for the Teaching Portfolio section. */}
                         <div className="form-group">
                             <label>Subject Code *</label>
                             <input
@@ -135,12 +159,15 @@ const TeachingPortfolio = () => {
                         </div>
                         <div className="form-group">
                             <label>Semester</label>
-                            <input
-                                type="text"
-                                placeholder="e.g., 1st Semester"
+                            <select
                                 value={newSubject.semester}
                                 onChange={(e) => setNewSubject({...newSubject, semester: e.target.value})}
-                            />
+                            >
+                                <option value="">Select Semester</option>
+                                <option value="1st Semester">1st Semester</option>
+                                <option value="2nd Semester">2nd Semester</option>
+                                <option value="Summer">Summer</option>
+                            </select>
                         </div>
                     </div>
                     <button 

@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
@@ -100,10 +101,22 @@ const loadStats = async () => {
             });
 
             if (response.ok) {
-                alert('Profile updated successfully!');
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Profile updated successfully!',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db',
+                    timer: 3000,
+                    timerProgressBar: true
+                });
             } else {
                 const error = await response.json();
-                alert(error.message || 'Error updating profile');
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'Error updating profile',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
             }
         } catch (error) {
             console.error('Error updating profile:', error);
