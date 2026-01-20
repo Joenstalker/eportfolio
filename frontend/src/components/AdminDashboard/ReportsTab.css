@@ -1,0 +1,82 @@
+/* Reports tab specific styles (moved from AdminDashboard.css) */
+.admin-dashboard .reports-analytics {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-dashboard .reports-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.admin-dashboard .report-generator {
+  background: #ffffff;
+  border: 1px solid var(--admin-border);
+  padding: 20px;
+  border-radius: 12px;
+  grid-column: 1 / -1;
+}
+
+.admin-dashboard .report-generator h4 {
+  margin: 0 0 15px 0;
+}
+
+.admin-dashboard .report-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.admin-dashboard .option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-dashboard .option-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--admin-text);
+}
+
+.admin-dashboard .report-select,
+.admin-dashboard .report-input {
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: var(--admin-text);
+}
+
+.admin-dashboard .format-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-dashboard .format-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  background: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.admin-dashboard .format-btn:hover {
+  background: var(--admin-surface-2);
+  border-color: var(--admin-primary);
+}
+
+.admin-dashboard .generate-btn {
+  grid-column: 1 / -1;
+  padding: 12px;
+  font-weight: 500;
+}
+

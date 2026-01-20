@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import './AdminDashboard.css'
+import CourseManagementTab from './CourseManagementTab'
+import FacultyManagementTab from './FacultyManagementTab'
+import ArchivedUsersTab from './ArchivedUsersTab'
+import ClassAssignmentsTab from './ClassAssignmentsTab'
+import ReportsTab from './ReportsTab'
+import SystemAnalyticsTab from './SystemAnalyticsTab'
+import SystemSettingsTab from './SystemSettingsTab'
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth()
@@ -31,6 +38,7 @@ const AdminDashboard = () => {
   })
   const [editFaculty, setEditFaculty] = useState({})
   const [statusFaculty, setStatusFaculty] = useState({})
+  const [archivedFaculty, setArchivedFaculty] = useState([])
 
   // Course Management State
   const [courses, setCourses] = useState([])
@@ -491,7 +499,7 @@ const AdminDashboard = () => {
     return courseLocks[courseId] || { isLocked: false, lockedByMe: false, lockedBy: null };
   };
 
-  // Dashboard content
+  // Dashboard content (computed after handlers are defined)
   const dashboardContent = {
     dashboard: {
       title: 'Admin Dashboard',
@@ -500,7 +508,10 @@ const AdminDashboard = () => {
           <div className="welcome-banner admin-banner">
             <div className="banner-content">
               <h2>System Administration Panel</h2>
-              <p>Welcome back, {user?.name || user?.firstName || 'Admin'}. Manage the entire e-portfolio system.</p>
+              <p>
+                Welcome back, {user?.name || user?.firstName || 'Admin'}. Manage the entire
+                e-portfolio system.
+              </p>
             </div>
             <div className="banner-stats">
               <div className="mini-stat">
@@ -513,7 +524,7 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="admin-stats">
             <h3>System Overview</h3>
             <div className="stats-grid">
@@ -530,7 +541,7 @@ const AdminDashboard = () => {
                 <div className="stat-content">
                   <h4>Active Faculty</h4>
                   <div className="stat-number">
-                    {facultyData.filter(f => f.status === 'active').length}
+                    {facultyData.filter((f) => f.status === 'active').length}
                   </div>
                   <p>Currently active</p>
                 </div>
@@ -540,7 +551,8 @@ const AdminDashboard = () => {
                 <div className="stat-content">
                   <h4>Departments</h4>
                   <div className="stat-number">
-                    {[...new Set(facultyData.map(f => f.department).filter(d => d))].length || 0}
+                    {[...new Set(facultyData.map((f) => f.department).filter((d) => d))].length ||
+                      0}
                   </div>
                   <p>Different departments</p>
                 </div>
@@ -562,13 +574,13 @@ const AdminDashboard = () => {
               <div className="lock-stat">
                 <span className="lock-stat-label">Active Locks:</span>
                 <span className="lock-stat-value">
-                  {Object.values(courseLocks).filter(lock => lock.isLocked).length}
+                  {Object.values(courseLocks).filter((lock) => lock.isLocked).length}
                 </span>
               </div>
               <div className="lock-stat">
                 <span className="lock-stat-label">Your Locks:</span>
                 <span className="lock-stat-value">
-                  {Object.values(courseLocks).filter(lock => lock.lockedByMe).length}
+                  {Object.values(courseLocks).filter((lock) => lock.lockedByMe).length}
                 </span>
               </div>
               <div className="lock-stat">
@@ -583,407 +595,83 @@ const AdminDashboard = () => {
         </div>
       )
     },
-
     courses: {
       title: 'Course Management (2PL Protected)',
       content: (
-        <div className="course-management">
-          <div className="section-header">
-            <h3>Course Catalog</h3>
-            <div className="header-actions">
-              <button 
-                className="btn-primary"
-                onClick={() => setShowCourseModal(true)}
-              >
-                + Add Course
-              </button>
-              <button 
-                className="btn-secondary"
-                onClick={handleAssignFacultyClick}
-              >
-                📋 Assign Faculty
-              </button>
-            </div>
-          </div>
-
-          <div className="2pl-info-banner">
-            <div className="2pl-info-content">
-              <strong>🔒 Backend Two-Phase Locking Active:</strong> 
-              <span> When you edit a course, it gets locked exclusively in the database. Other admins cannot edit it until you save or cancel.</span>
-            </div>
-            <div className="current-admin-info">
-              You are logged in as: <strong>{user?.email || user?.name || 'Admin'}</strong>
-            </div>
-          </div>
-
-          {courseLoading ? (
-            <div className="loading-state">Loading courses...</div>
-          ) : (
-            <div className="courses-container">
-              <div className="courses-grid">
-                {courses.map((course) => {
-                  const lockInfo = getCourseLockStatus(course._id);
-                  const isLocked = lockInfo.isLocked;
-                  const isLockedByMe = lockInfo.lockedByMe;
-                  const isLockedByOther = isLocked && !isLockedByMe;
-                  
-                  return (
-                    <div key={course._id} className={`course-card ${isLocked ? 'locked' : ''} ${isLockedByMe ? 'locked-by-me' : ''}`}>
-                      <div className="course-header">
-                        <h4>{course.courseCode}</h4>
-                        <div className="course-status-group">
-                          <span className={`course-status ${course.status || 'active'}`}>
-                            {course.status || 'active'}
-                          </span>
-                          {isLocked && (
-                            <span className={`lock-indicator ${isLockedByMe ? 'my-lock' : 'other-lock'}`}>
-                              {isLockedByMe ? '🔒 Your Lock' : `🔐 Locked by ${lockInfo.lockedBy}`}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="course-body">
-                        <h5>{course.courseName}</h5>
-                        <p className="course-description">{course.description}</p>
-                        <div className="course-details">
-                          <div className="course-detail">
-                            <span className="detail-label">Department:</span>
-                            <span className="detail-value">{course.department}</span>
-                          </div>
-                          <div className="course-detail">
-                            <span className="detail-label">Credits:</span>
-                            <span className="detail-value">{course.credits}</span>
-                          </div>
-                          <div className="course-detail">
-                            <span className="detail-label">Semester:</span>
-                            <span className="detail-value">{course.semester}</span>
-                          </div>
-                          <div className="course-detail">
-                            <span className="detail-label">Max Students:</span>
-                            <span className="detail-value">{course.maxStudents}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="course-actions">
-                        <button 
-                          className={`btn-action edit ${isLockedByOther ? 'disabled' : ''}`}
-                          onClick={() => handleEditCourseClick(course)}
-                          disabled={isLockedByOther}
-                          title={isLockedByOther ? `Currently being edited by ${lockInfo.lockedBy}` : 'Edit course'}
-                        >
-                          {isLockedByOther ? '🔒 Locked' : 'Edit'}
-                        </button>
-                        <button 
-                          className="btn-action delete"
-                          onClick={() => handleDeleteCourse(course)}
-                          disabled={isLockedByOther}
-                          title={isLockedByOther ? "Cannot delete - course is locked" : "Delete course"}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                      
-                      {isLockedByOther && (
-                        <div className="lock-warning">
-                          <span className="warning-icon">⚠️</span>
-                          <span>This course is currently being edited by {lockInfo.lockedBy}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {courses.length === 0 && (
-                <div className="empty-state">
-                  No courses found. Click "Add Course" to create the first one.
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="assignments-section">
-            <h4>Current Course Assignments</h4>
-            <div className="assignments-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Course</th>
-                    <th>Faculty</th>
-                    <th>Semester</th>
-                    <th>Section</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courseAssignments.map((assignment) => {
-                    const course = courses.find(c => c._id === assignment.courseId);
-                    const faculty = facultyData.find(f => f._id === assignment.facultyId);
-                    const isCourseLocked = isCourseLockedByAnotherAdmin(assignment.courseId);
-                    
-                    return (
-                      <tr key={assignment._id}>
-                        <td>
-                          {course ? `${course.courseCode} - ${course.courseName}` : 'Unknown Course'}
-                          {isCourseLocked && <span className="table-lock-indicator" title="Course is locked"> 🔒</span>}
-                        </td>
-                        <td>{faculty ? faculty.name : 'Unknown Faculty'}</td>
-                        <td>{assignment.semester}</td>
-                        <td>{assignment.section}</td>
-                        <td>
-                          <button 
-                            className="btn-action delete"
-                            disabled={isCourseLocked}
-                            title={isCourseLocked ? "Cannot remove - course is locked" : "Remove assignment"}
-                          >
-                            {isCourseLocked ? 'Locked' : 'Remove'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              
-              {courseAssignments.length === 0 && (
-                <div className="empty-state">
-                  No course assignments found. Assign faculty to courses to get started.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <CourseManagementTab
+          user={user}
+          courses={courses}
+          courseLoading={courseLoading}
+          getCourseLockStatus={getCourseLockStatus}
+          isCourseLockedByAnotherAdmin={isCourseLockedByAnotherAdmin}
+          onAddCourseClick={() => setShowCourseModal(true)}
+          onAssignFacultyClick={handleAssignFacultyClick}
+          onEditCourseClick={handleEditCourseClick}
+          onDeleteCourseClick={handleDeleteCourse}
+          courseAssignments={courseAssignments}
+          facultyData={facultyData}
+        />
       )
     },
-
     faculty: {
       title: 'Faculty Management',
       content: (
-        <div className="faculty-management">
-          <div className="section-header">
-            <h3>Faculty Members (Categorized)</h3>
-            <div className="header-actions">
-              {/* Department Filter */}
-              <select
-                className="faculty-filter-select"
-                value={filterDept}
-                onChange={(e) => setFilterDept(e.target.value)}
-              >
-                <option value="all">All Departments</option>
-                {[...new Set(facultyData.map(f => f.department).filter(Boolean))].map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-
-              <button 
-                className="add-faculty-btn"
-                onClick={() => setShowAddModal(true)}
-              >
-                + Add Faculty
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="loading-state">Loading faculty data...</div>
-          ) : (
-            <div className="faculty-table-container">
-              {Object.entries(
-                (filterDept === 'all' ? facultyData : facultyData.filter(f => f.department === filterDept))
-                .reduce((groups, faculty) => {
-                  const dept = faculty.department || 'Unassigned';
-                  if (!groups[dept]) groups[dept] = [];
-                  groups[dept].push(faculty);
-                  return groups;
-                }, {})
-              ).map(([department, members]) => (
-                <div key={department} className="faculty-category">
-                  <div className="faculty-category-header">
-                    <h4>{department}</h4>
-                    <span className="count-badge">
-                      {members.length} member{members.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-
-                  <table className="faculty-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {members.map((faculty) => (
-                        <tr key={faculty._id} className={faculty.status === 'inactive' ? 'inactive' : ''}>
-                          <td>{faculty.name}</td>
-                          <td>{faculty.email}</td>
-                          <td>{faculty.role}</td>
-                          <td>
-                            <span className={`status-badge ${faculty.status}`}>
-                              {faculty.status}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="action-buttons">
-                              <button 
-                                className="edit-btn"
-                                onClick={() => handleEditClick(faculty)}
-                              >
-                                Edit
-                              </button>
-                              <button 
-                                className="status-btn"
-                                onClick={() => handleStatusClick(faculty)}
-                              >
-                                Update
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-              
-              {facultyData.length === 0 && (
-                <div className="empty-state">
-                  No faculty members found.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <FacultyManagementTab
+          loading={loading}
+          facultyData={facultyData}
+          filterDept={filterDept}
+          setFilterDept={setFilterDept}
+          onAddFacultyClick={() => setShowAddModal(true)}
+          onEditClick={handleEditClick}
+          onArchiveClick={handleArchiveClick}
+        />
       )
     },
-
+    archive: {
+      title: 'Archived Users',
+      content: (
+        <ArchivedUsersTab
+          archivedFaculty={archivedFaculty}
+          onUnarchiveClick={handleUnarchiveClick}
+        />
+      )
+    },
     assignments: {
       title: 'Class Assignment Control',
       content: (
-        <div className="class-assignments">
-          <div className="section-header">
-            <h3>Class Schedule Upload</h3>
-            <span className="count-badge">Upload final class schedules</span>
-          </div>
-
-          <div className="assignments-container">
-            <div className="upload-section">
-              <div className="upload-box">
-                <div className="upload-icon">📄</div>
-                <h4>Upload Class Schedule</h4>
-                <p>Upload a final class schedule (CSV or Excel format)</p>
-                <input 
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="file-input"
-                  id="schedule-upload"
-                />
-                <label htmlFor="schedule-upload" className="file-label">
-                  Choose File
-                </label>
-                {selectedFile && (
-                  <div className="file-selected">
-                    <span>✅ {selectedFile.name}</span>
-                  </div>
-                )}
-                <button 
-                  className="btn-upload"
-                  onClick={handleUploadSchedule}
-                  disabled={!selectedFile || uploadProgress > 0}
-                >
-                  {uploadProgress > 0 ? `Uploading... ${uploadProgress}%` : 'Upload Schedule'}
-                </button>
-                {uploadProgress > 0 && (
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{width: `${uploadProgress}%`}}></div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="schedules-section">
-              <h4>Recent Uploads</h4>
-              <div className="schedules-list">
-                {uploadsList.length === 0 ? (
-                  <div className="empty-state">No recent uploads found.</div>
-                ) : (
-                  uploadsList.map((u, idx) => (
-                    <div key={idx} className="schedule-item">
-                      <div className="schedule-info">
-                        <h5>{u.fileName || u.title || 'Untitled'}</h5>
-                        <p>{u.faculty || 'Unknown'} • {u.uploadedAt ? new Date(u.uploadedAt).toLocaleDateString() : ''}</p>
-                      </div>
-                      {u.fileUrl ? (
-                        <a className="btn-action view" href={`http://localhost:5000${u.fileUrl}`} target="_blank" rel="noopener noreferrer">👁️ View</a>
-                      ) : (
-                        <button className="btn-action view" disabled>No File</button>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ClassAssignmentsTab
+          handleUploadSchedule={handleUploadSchedule}
+          selectedFile={selectedFile}
+          setSelectedFile={setSelectedFile}
+          uploadProgress={uploadProgress}
+          uploadsList={uploadsList}
+        />
       )
     },
-
     reports: {
       title: 'Reports and Analytics',
       content: (
-        <div className="reports-analytics">
-          <div className="section-header">
-            <h3>Generate & Export Reports</h3>
-            <span className="count-badge">Faculty Portfolio Summary</span>
-          </div>
-
-          <div className="reports-container">
-            <div className="report-generator">
-              <h4>📊 Report Generation</h4>
-              <div className="report-options">
-                <div className="option-group">
-                  <label>Report Type</label>
-                  <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="report-select">
-                    <option value="summary">Faculty Portfolio Summary</option>
-                    <option value="detailed">Detailed Faculty Report</option>
-                    <option value="department">Department Statistics</option>
-                    <option value="activity">Activity Log Report</option>
-                    <option value="courses">Course Catalog Report</option>
-                  </select>
-                </div>
-
-                <div className="option-group">
-                  <label>Date Range</label>
-                  <input type="date" className="report-input" defaultValue={new Date().toISOString().split('T')[0]} />
-                </div>
-
-                <div className="option-group">
-                  <label>Format</label>
-                  <div className="format-buttons">
-                    <button className="format-btn pdf">📄 PDF</button>
-                    <button className="format-btn excel">📊 Excel</button>
-                    <button className="format-btn csv">📋 CSV</button>
-                  </div>
-                </div>
-
-                <button className="btn-primary generate-btn" onClick={handleGenerateReport}>
-                  🔄 Generate Report
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ReportsTab
+          reportType={reportType}
+          setReportType={setReportType}
+          handleGenerateReport={handleGenerateReport}
+        />
       )
+    },
+    analytics: {
+      title: 'System Analytics',
+      content: <SystemAnalyticsTab />
+    },
+    settings: {
+      title: 'System Settings',
+      content: <SystemSettingsTab />
     }
   }
 
   const adminMenuItems = [
     { id: 'dashboard', label: 'DASHBOARD', icon: '📊' },
     { id: 'faculty', label: 'FACULTY MANAGEMENT', icon: '👨‍🏫' },
+    { id: 'archive', label: 'ARCHIVED USERS', icon: '🗄️' },
     { id: 'courses', label: 'COURSE MANAGEMENT', icon: '📚' },
     { id: 'assignments', label: 'CLASS ASSIGNMENTS', icon: '📅' },
     { id: 'reports', label: 'REPORTS', icon: '📋' },
@@ -1004,6 +692,7 @@ const AdminDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setFacultyData(data);
+        setArchivedFaculty(data.filter(u => u.status === 'inactive'));
       } else {
         throw new Error('Failed to fetch faculty data');
       }
@@ -1104,10 +793,10 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleEditClick = (faculty) => {
-    setSelectedFaculty(faculty)
-    setEditFaculty({ ...faculty })
-    setShowEditModal(true)
+  function handleEditClick(faculty) {
+    setSelectedFaculty(faculty);
+    setEditFaculty({ ...faculty });
+    setShowEditModal(true);
   }
 
   const handleEditSave = async () => {
@@ -1159,6 +848,74 @@ const AdminDashboard = () => {
     setShowStatusModal(true)
   }
 
+  async function handleArchiveClick(faculty) {
+    if (!window.confirm(`Archive ${faculty.name}? They will become inactive and cannot log in.`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'inactive' })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setFacultyData(prev => 
+          prev.map(f => f._id === faculty._id ? result.user : f)
+        );
+        setArchivedFaculty(prev => [...prev.filter(f => f._id !== result.user._id), result.user]);
+        setSuccessMessage('User archived successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error archiving user');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error archiving user:', error);
+      setErrorMessage('Error archiving user');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  }
+
+  async function handleUnarchiveClick(faculty) {
+    if (!window.confirm(`Unarchive ${faculty.name}? They will become active and can log in again.`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'active' })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setFacultyData(prev =>
+          prev.map(f => f._id === faculty._id ? result.user : f)
+        );
+        setArchivedFaculty(prev => prev.filter(f => f._id !== result.user._id));
+        setSuccessMessage('User unarchived successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || 'Error unarchiving user');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error unarchiving user:', error);
+      setErrorMessage('Error unarchiving user');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  }
+
   const handleStatusSave = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -1175,6 +932,11 @@ const AdminDashboard = () => {
         const result = await response.json();
         setFacultyData(prev => 
           prev.map(f => f._id === selectedFaculty._id ? result.user : f)
+        );
+        setArchivedFaculty(prev =>
+          result.user.status === 'inactive'
+            ? [...prev.filter(f => f._id !== result.user._id), result.user]
+            : prev.filter(f => f._id !== result.user._id)
         );
         setShowStatusModal(false);
         setSelectedFaculty(null);

@@ -3,71 +3,11 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const lockService = require('../services/serviceLock');
-const jwt = require('jsonwebtoken');
+const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/role');
 
-// Authentication middleware
-const authenticate = async (req, res, next) => {
-  try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ No Bearer token found');
-      return res.status(401).json({ 
-        message: 'Access token required. Format: Bearer <token>' 
-      });
-    }
-    
-    const token = authHeader.split(' ')[1];
-    
-    if (!token) {
-      console.log('❌ Token missing after Bearer');
-      return res.status(401).json({ message: 'No token provided' });
-    }
-    
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    console.log('🔑 Decoded token:', decoded);
-    
-    // Extract user info - handle missing name field
-    const userId = decoded.id || decoded.userId || decoded._id;
-    const userEmail = decoded.email || 'unknown@example.com';
-    
-    // Create a user name from email if not in token
-    let userName = decoded.name || decoded.firstName;
-    if (!userName) {
-      // Extract username from email (part before @)
-      userName = userEmail.split('@')[0];
-      // Capitalize first letter
-      userName = userName.charAt(0).toUpperCase() + userName.slice(1);
-    }
-    
-    // Attach user to request
-    req.user = {
-      id: userId,
-      email: userEmail,
-      role: decoded.role || 'user',
-      name: userName
-    };
-    
-    console.log('✅ User authenticated:', req.user);
-    next();
-  } catch (error) {
-    console.error('❌ Token verification error:', error.message);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expired' });
-    }
-    
-    return res.status(401).json({ message: 'Authentication failed' });
-  }
-};
-
-// Apply authentication to all routes
-router.use(authenticate);
+// All course management endpoints are ADMIN-only and require a valid JWT
+router.use(auth, requireRole('admin'));
 
 // GET all courses with lock status
 router.get('/', async (req, res) => {
@@ -118,7 +58,7 @@ router.get('/:id', async (req, res) => {
         console.log('📝 Getting single course:', req.params.id);
         const course = await Course.findById(req.params.id);
         if (!course) {
-            return res.status(404).json({ message: 'Course not found' });
+      return res.status(404).json({ message: 'Course not found' });
         }
 
         const lockStatus = await lockService.checkLock(course._id, 'Course');
@@ -158,12 +98,19 @@ router.post('/:id/lock', async (req, res) => {
 
         console.log('✅ Course found:', course.courseCode);
 
+        const userName =
+          req.user.name ||
+          (req.user.email
+            ? req.user.email.split('@')[0].charAt(0).toUpperCase() +
+              req.user.email.split('@')[0].slice(1)
+            : 'Admin');
+
         const lockResult = await lockService.acquireLock(
             course._id,
             'Course',
             req.user.id,
             req.user.email,
-            req.user.name, // This should now be set from the middleware
+            userName,
             'WRITE',
             req.body.durationMinutes || 15
         );

@@ -44,9 +44,15 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
-        // Normalize inputs and constrain role
+        // Normalize inputs
         const normalizedEmail = String(email).toLowerCase().trim();
-        const normalizedRole = String(role).toLowerCase() === 'admin' ? 'admin' : (String(role).toLowerCase() === 'staff' ? 'staff' : 'faculty');
+        /**
+         * IMPORTANT RBAC RULE:
+         * - Public self‑registration can ONLY create faculty accounts.
+         * - Admins can later promote a faculty to admin via the admin user‑management endpoints.
+         * - We therefore ignore any "role" coming from the client here and force "faculty".
+         */
+        const normalizedRole = 'faculty';
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
@@ -168,6 +174,11 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Block archived / inactive accounts from logging in
+        if (user.isActive === false) {
+            return res.status(403).json({ message: 'Your account is archived/inactive. Please contact the system administrator.' });
         }
 
         // Check password

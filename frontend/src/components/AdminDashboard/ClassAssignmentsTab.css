@@ -1,0 +1,168 @@
+/* Class Assignments tab specific styles (moved from AdminDashboard.css) */
+.admin-dashboard .class-assignments {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-dashboard .assignments-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.admin-dashboard .upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.admin-dashboard .upload-box {
+  background: #ffffff;
+  border: 2px dashed var(--admin-border);
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .upload-box:hover {
+  border-color: var(--admin-primary);
+  background: var(--admin-surface-2);
+}
+
+.admin-dashboard .upload-icon {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.admin-dashboard .upload-box h4 {
+  margin: 10px 0 5px 0;
+  font-size: 1.1rem;
+}
+
+.admin-dashboard .upload-box p {
+  margin: 5px 0 15px 0;
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+.admin-dashboard .file-input {
+  display: none;
+}
+
+.admin-dashboard .file-label {
+  display: inline-block;
+  background: var(--admin-primary);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .file-label:hover {
+  background: var(--admin-primary-600);
+}
+
+.admin-dashboard .file-selected {
+  margin-top: 10px;
+  color: var(--admin-success);
+  font-weight: 500;
+}
+
+.admin-dashboard .btn-upload {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background: var(--admin-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .btn-upload:hover:not(:disabled) {
+  background: var(--admin-primary-600);
+}
+
+.admin-dashboard .btn-upload:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-dashboard .progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.admin-dashboard .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--admin-primary), var(--admin-primary-600));
+  transition: width 0.3s ease;
+}
+
+.admin-dashboard .schedules-section {
+  background: #ffffff;
+  border: 1px solid var(--admin-border);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.admin-dashboard .schedules-section h4 {
+  margin: 0 0 15px 0;
+}
+
+.admin-dashboard .schedules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-dashboard .schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--admin-surface-2);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.admin-dashboard .schedule-item:hover {
+  background: #e5e7eb;
+}
+
+.admin-dashboard .schedule-info h5 {
+  margin: 0 0 4px 0;
+  font-size: 0.95rem;
+}
+
+.admin-dashboard .schedule-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--admin-muted);
+}
+
+/* "View" button styling for recent uploads */
+.admin-dashboard .btn-action.view {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+

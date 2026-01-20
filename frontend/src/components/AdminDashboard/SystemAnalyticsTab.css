@@ -1,0 +1,14 @@
+/* System Analytics tab specific styles (moved from AdminDashboard.css) */
+.admin-dashboard .system-analytics {
+  padding: 20px;
+}
+
+.admin-dashboard .analytics-overview {
+  margin-bottom: 20px;
+}
+
+.admin-dashboard .analytics-overview h3 {
+  font-size: 1.5rem;
+  color: var(--admin-text) !important;
+}
+

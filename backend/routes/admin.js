@@ -1,26 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/role');
 const adminController = require('../controllers/adminController');
 
+/**
+ * All routes in this file are ADMIN‑ONLY.
+ * - We first require a valid JWT (auth)
+ * - Then we enforce role === 'admin' with requireRole('admin')
+ */
+router.use(auth, requireRole('admin'));
+
 // Course routes
-router.get('/courses', auth, adminController.getCourses);
-router.post('/courses', auth, adminController.createCourse);
-router.put('/courses/:id', auth, adminController.updateCourse);
-router.delete('/courses/:id', auth, adminController.deleteCourse);
+router.get('/courses', adminController.getCourses);
+router.post('/courses', adminController.createCourse);
+router.put('/courses/:id', adminController.updateCourse);
+router.delete('/courses/:id', adminController.deleteCourse);
 
 // Course assignment routes
-router.get('/course-assignments', auth, adminController.getCourseAssignments);
-router.post('/course-assignments', auth, adminController.createCourseAssignment);
-router.delete('/course-assignments/:id', auth, adminController.deleteCourseAssignment);
+router.get('/course-assignments', adminController.getCourseAssignments);
+router.post('/course-assignments', adminController.createCourseAssignment);
+router.delete('/course-assignments/:id', adminController.deleteCourseAssignment);
 
 // User management routes
-router.get('/users', auth, adminController.getUsers);
-router.post('/users', auth, adminController.createUser);
-router.put('/users/:id', auth, adminController.updateUser);
-router.delete('/users/:id', auth, adminController.deleteUser);
+router.get('/users', adminController.getUsers);
+router.post('/users', adminController.createUser);
+router.put('/users/:id', adminController.updateUser);
+router.delete('/users/:id', adminController.deleteUser);
 
 // Recent uploads
-router.get('/uploads', auth, adminController.getUploads);
+router.get('/uploads', adminController.getUploads);
 
 module.exports = router;
