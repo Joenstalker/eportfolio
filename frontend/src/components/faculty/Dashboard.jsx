@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import  AuthContext  from '../../contexts/AuthContext';
 import ProfileDashboard from './ProfileDashboard';
 import TeachingPortfolio from './TeachingPortfolio';
@@ -12,6 +12,30 @@ import './Dashboard.css';
 const Dashboard = () => {
     const { user, logout } = useContext(AuthContext);
     const [activeTab, setActiveTab] = useState('profile');
+    const [profilePic, setProfilePic] = useState(localStorage.getItem('facultyProfilePic') || 'https://via.placeholder.com/150');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handlePhotoClick = () => {
+        setShowDropdown(!showDropdown);
+    };
+
+    const triggerFileInput = () => {
+        fileInputRef.current.click();
+        setShowDropdown(false);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfilePic(reader.result);
+                localStorage.setItem('facultyProfilePic', reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const tabs = [
         { id: 'profile', label: 'PROFILE DASHBOARD', icon: '👤' },
@@ -53,8 +77,25 @@ const Dashboard = () => {
                 </div>
                 <div className="header-right">
                     <div className="user-info">
-                        <span>Welcome, {user?.firstName || user?.name || 'User'}</span>
-                        <button onClick={logout} className="logout-btn">Logout</button>
+                        <span className="welcome-text">Welcome, {user?.firstName || user?.name || 'User'}</span>
+                        <div className="profile-wrapper">
+                            <div className="profile-pic-container" onClick={handlePhotoClick}>
+                                <img src={profilePic} alt="Profile" className="profile-pic" />
+                            </div>
+                            {showDropdown && (
+                                <div className="profile-dropdown">
+                                    <button onClick={triggerFileInput} className="dropdown-item">Change Photo</button>
+                                    <button onClick={logout} className="dropdown-item logout">Logout</button>
+                                </div>
+                            )}
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleFileChange} 
+                                style={{ display: 'none' }} 
+                                accept="image/*"
+                            />
+                        </div>
                     </div>
                 </div>
             </header>

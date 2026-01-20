@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './Layout.css';
 
@@ -21,13 +21,13 @@ const Layout = () => {
                 </div>
                 
                 <ul className="sidebar-menu">
-                    <li><Link to="/dashboard">Profile Dashboard</Link></li>
-                    <li><Link to="/teaching-portfolio">Teaching Portfolio</Link></li>
-                    <li><Link to="/class-portfolio">Class Portfolio</Link></li>
-                    <li><Link to="/research">Research</Link></li>
-                    <li><Link to="/syllabus">Syllabus</Link></li>
-                    <li><Link to="/instructional-materials">Instructional Materials</Link></li>
-                    <li><Link to="/seminars-certificates">Seminars & Certificates</Link></li>
+                    <li><NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>Profile Dashboard</NavLink></li>
+                    <li><NavLink to="/teaching-portfolio" className={({ isActive }) => isActive ? 'active' : ''}>Teaching Portfolio</NavLink></li>
+                    <li><NavLink to="/class-portfolio" className={({ isActive }) => isActive ? 'active' : ''}>Class Portfolio</NavLink></li>
+                    <li><NavLink to="/research" className={({ isActive }) => isActive ? 'active' : ''}>Research</NavLink></li>
+                    <li><NavLink to="/syllabus" className={({ isActive }) => isActive ? 'active' : ''}>Syllabus</NavLink></li>
+                    <li><NavLink to="/instructional-materials" className={({ isActive }) => isActive ? 'active' : ''}>Instructional Materials</NavLink></li>
+                    <li><NavLink to="/seminars-certificates" className={({ isActive }) => isActive ? 'active' : ''}>Seminars & Certificates</NavLink></li>
                 </ul>
                 
                 <button onClick={handleLogout} className="logout-btn">

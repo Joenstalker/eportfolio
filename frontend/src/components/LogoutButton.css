@@ -3,49 +3,42 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     border: none;
-    border-radius: 6px;
-    font-weight: 500;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: inherit;
-}
-
-/* Size variants */
-.logout-button.small {
-    padding: 6px 12px;
-    font-size: 13px;
+    letter-spacing: 0.3px;
 }
 
 .logout-button.medium {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 12px 24px;
+    font-size: 15px;
 }
 
-.logout-button.large {
-    padding: 10px 20px;
-    font-size: 16px;
-}
-
-/* Style variants */
 .logout-button.default {
-    background: #ef4444;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);
 }
 
 .logout-button.default:hover {
-    background: #dc2626;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3);
 }
 
 .logout-button.outline {
     background: transparent;
-    border: 1px solid #ef4444;
+    border: 2px solid #ef4444;
     color: #ef4444;
 }
 
 .logout-button.outline:hover {
-    background: #fef2f2;
+    background: rgba(239, 68, 68, 0.05);
+    transform: translateY(-2px);
 }
 
 .logout-button.text {
