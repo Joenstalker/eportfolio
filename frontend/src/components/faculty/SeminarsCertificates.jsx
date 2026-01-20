@@ -1,10 +1,14 @@
 import React, { useState, useContext, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const SeminarsCertificates = () => {
     const { user } = useContext(AuthContext);
     const [seminars, setSeminars] = useState([]);
+    const [venues, setVenues] = useState(['Main Hall', 'Conference Room A', 'Virtual Zoom', 'Hotel Ballroom']);
+    const [showAddVenue, setShowAddVenue] = useState(false);
+    const [customVenue, setCustomVenue] = useState('');
     const [newSeminar, setNewSeminar] = useState({
         title: '',
         date: '',
@@ -41,6 +45,14 @@ const SeminarsCertificates = () => {
     };
 
     const addSeminar = async () => {
+        let finalVenue = newSeminar.venue;
+        if (showAddVenue && customVenue) {
+            finalVenue = customVenue;
+            if (!venues.includes(customVenue)) {
+                setVenues([...venues, customVenue]);
+            }
+        }
+
         if (!newSeminar.title || !newSeminar.date || !newSeminar.organizer) {
             alert('Please fill in all required fields');
             return;
@@ -52,7 +64,7 @@ const SeminarsCertificates = () => {
             formData.append('title', newSeminar.title);
             formData.append('date', newSeminar.date);
             formData.append('organizer', newSeminar.organizer);
-            formData.append('venue', newSeminar.venue);
+            formData.append('venue', finalVenue);
             formData.append('duration', newSeminar.duration);
             if (newSeminar.certificateFile) {
                 formData.append('certificate', newSeminar.certificateFile);
@@ -72,8 +84,15 @@ const SeminarsCertificates = () => {
                 setNewSeminar({
                     title: '', date: '', organizer: '', venue: '', duration: '', certificateFile: null
                 });
+                setCustomVenue('');
+                setShowAddVenue(false);
                 document.getElementById('certificate-upload').value = '';
-                alert('Seminar added successfully!');
+                Swal.fire({
+                    title: 'Seminar Added!',
+                    text: 'Your seminar details have been saved.',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db'
+                });
             }
         } catch (error) {
             console.error('Error adding seminar:', error);
@@ -118,14 +137,45 @@ const SeminarsCertificates = () => {
                             placeholder="Enter organizer name"
                         />
                     </div>
+                    {/* Implement a dropdown menu for the Venue field under Seminars and Certificates, including an “Add Venue” option for new entries. */}
                     <div className="form-group">
                         <label>Venue</label>
-                        <input
-                            type="text"
-                            value={newSeminar.venue}
-                            onChange={(e) => setNewSeminar({...newSeminar, venue: e.target.value})}
-                            placeholder="Enter venue"
-                        />
+                        {!showAddVenue ? (
+                            <select
+                                value={newSeminar.venue}
+                                onChange={(e) => {
+                                    if (e.target.value === 'ADD_NEW') {
+                                        setShowAddVenue(true);
+                                    } else {
+                                        setNewSeminar({...newSeminar, venue: e.target.value});
+                                    }
+                                }}
+                            >
+                                <option value="">Select Venue</option>
+                                {venues.map(v => <option key={v} value={v}>{v}</option>)}
+                                <option value="ADD_NEW">+ Add Venue</option>
+                            </select>
+                        ) : (
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                                <input
+                                    type="text"
+                                    value={customVenue}
+                                    onChange={(e) => setCustomVenue(e.target.value)}
+                                    placeholder="Enter new venue"
+                                    style={{ flex: 1 }}
+                                />
+                                <button 
+                                    className="action-btn delete" 
+                                    onClick={() => {
+                                        setShowAddVenue(false);
+                                        setCustomVenue('');
+                                    }}
+                                    style={{ padding: '5px' }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="form-group">
                         <label>Duration (hours)</label>
