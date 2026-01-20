@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import Swal from 'sweetalert2'
 import './AdminDashboard.css'
 import CourseManagementTab from './CourseManagementTab'
 import FacultyManagementTab from './FacultyManagementTab'
@@ -25,8 +26,6 @@ const AdminDashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [reportType, setReportType] = useState('summary')
-  const [successMessage, setSuccessMessage] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
   const [uploadsList, setUploadsList] = useState([])
   const [newFaculty, setNewFaculty] = useState({
     firstName: '',
@@ -69,6 +68,42 @@ const AdminDashboard = () => {
   // Lock state - tracks which courses are locked in the UI
   const [courseLocks, setCourseLocks] = useState({})
 
+  // ==================== SWEETALERT HELPER FUNCTIONS ====================
+  
+  const showSuccessAlert = (message, title = 'Success') => {
+    Swal.fire({
+      icon: 'success',
+      title: title,
+      text: message,
+      timer: 3000,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
+  };
+
+  const showErrorAlert = (message, title = 'Error') => {
+    Swal.fire({
+      icon: 'error',
+      title: title,
+      text: message,
+      timer: 5000,
+      showConfirmButton: true,
+      confirmButtonColor: '#d33'
+    });
+  };
+
+  const showWarningAlert = (message, title = 'Warning') => {
+    Swal.fire({
+      icon: 'warning',
+      title: title,
+      text: message,
+      timer: 5000,
+      showConfirmButton: true,
+      confirmButtonColor: '#ff9800'
+    });
+  };
+
   // Handler functions
   const handleUploadSchedule = () => {
     if (!selectedFile) return;
@@ -79,14 +114,12 @@ const AdminDashboard = () => {
     setTimeout(() => {
       setUploadProgress(0)
       setSelectedFile(null)
-      setSuccessMessage('Schedule uploaded successfully!')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      showSuccessAlert('Schedule uploaded successfully!')
     }, 550)
   }
 
   const handleGenerateReport = () => {
-    setSuccessMessage(`${reportType} report generated successfully!`)
-    setTimeout(() => setSuccessMessage(''), 3000)
+    showSuccessAlert(`${reportType} report generated successfully!`)
   }
 
   // ==================== BACKEND 2PL API FUNCTIONS ====================
@@ -261,8 +294,7 @@ const AdminDashboard = () => {
 
   const handleAddCourse = async () => {
     if (!newCourse.courseCode || !newCourse.courseName || !newCourse.department) {
-      setErrorMessage('Please fill all required fields');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Please fill all required fields');
       return;
     }
 
@@ -291,17 +323,14 @@ const AdminDashboard = () => {
           maxStudents: 30,
           prerequisites: []
         });
-        setSuccessMessage('Course added successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Course added successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error adding course');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error adding course');
       }
     } catch (error) {
       console.error('Error adding course:', error);
-      setErrorMessage('Error adding course');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error adding course');
     }
   };
 
@@ -315,33 +344,28 @@ const AdminDashboard = () => {
         setSelectedCourse(course);
         setEditCourse({ ...course });
         setShowEditCourseModal(true);
-        setSuccessMessage(`You already have the lock for ${course.courseCode}`);
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert(`You already have the lock for ${course.courseCode}`);
         return;
       } else {
         // Locked by someone else
-        setErrorMessage(
+        showErrorAlert(
           `This course is currently locked by ${lockStatus.lock?.lockedBy || 'another admin'}. ` +
           `Please try again later.`
         );
-        setTimeout(() => setErrorMessage(''), 5000);
         return;
       }
     }
     
     // Try to acquire lock
-    setErrorMessage('');
     const lockResult = await lockCourseOnBackend(course._id);
     
     if (lockResult.success) {
       setSelectedCourse(course);
       setEditCourse({ ...course });
       setShowEditCourseModal(true);
-      setSuccessMessage(`Lock acquired for editing ${course.courseCode}`);
-      setTimeout(() => setSuccessMessage(''), 3000);
+      showSuccessAlert(`Lock acquired for editing ${course.courseCode}`);
     } else {
-      setErrorMessage(`Failed to acquire lock: ${lockResult.message}`);
-      setTimeout(() => setErrorMessage(''), 5000);
+      showErrorAlert(`Failed to acquire lock: ${lockResult.message}`);
     }
   };
 
@@ -377,15 +401,13 @@ const AdminDashboard = () => {
         
         setSelectedCourse(null);
         setEditCourse({});
-        setSuccessMessage('Course updated successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Course updated successfully!');
       } else {
         const error = await response.json();
         throw new Error(error.message || 'Error updating course');
       }
     } catch (error) {
-      setErrorMessage(error.message);
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert(error.message);
     }
   };
 
@@ -400,14 +422,24 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteCourse = async (course) => {
-    if (!window.confirm(`Are you sure you want to delete ${course.courseCode} - ${course.courseName}?`)) return;
+    const result = await Swal.fire({
+      title: 'Delete Course?',
+      text: `Are you sure you want to delete ${course.courseCode} - ${course.courseName}? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       // First acquire lock
       const lockResult = await lockCourseOnBackend(course._id);
       if (!lockResult.success) {
-        setErrorMessage(`Cannot delete: ${lockResult.message}`);
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(`Cannot delete: ${lockResult.message}`);
         return;
       }
 
@@ -429,24 +461,20 @@ const AdminDashboard = () => {
           return newLocks;
         });
         
-        setSuccessMessage('Course deleted successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Course deleted successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error deleting course');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error deleting course');
       }
     } catch (error) {
       console.error('Error deleting course:', error);
-      setErrorMessage('Error deleting course');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error deleting course');
     }
   };
 
   const handleAssignFaculty = async () => {
     if (!newAssignment.facultyId || !newAssignment.courseId) {
-      setErrorMessage('Please select both faculty and course');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Please select both faculty and course');
       return;
     }
 
@@ -471,17 +499,14 @@ const AdminDashboard = () => {
           semester: 'Fall 2024',
           section: 'A'
         });
-        setSuccessMessage('Faculty assigned to course successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Faculty assigned to course successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error assigning faculty');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error assigning faculty');
       }
     } catch (error) {
       console.error('Error assigning faculty:', error);
-      setErrorMessage('Error assigning faculty');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error assigning faculty');
     }
   };
 
@@ -497,6 +522,79 @@ const AdminDashboard = () => {
 
   const getCourseLockStatus = (courseId) => {
     return courseLocks[courseId] || { isLocked: false, lockedByMe: false, lockedBy: null };
+  };
+
+  // ==================== FORM VALIDATION FUNCTIONS ====================
+  
+  // Check if Add Course form has all required fields
+  const isAddCourseFormValid = () => {
+    return !showCourseModal || (
+      newCourse.courseCode.trim() !== '' &&
+      newCourse.courseName.trim() !== '' &&
+      newCourse.department.trim() !== ''
+    );
+  };
+
+  // Check if Edit Course form has all required fields
+  const isEditCourseFormValid = () => {
+    return !showEditCourseModal || (
+      editCourse.courseCode?.trim() !== '' &&
+      editCourse.courseName?.trim() !== '' &&
+      editCourse.department?.trim() !== ''
+    );
+  };
+
+  // Check if Assign Faculty form has all required fields
+  const isAssignFacultyFormValid = () => {
+    return !showAssignmentModal || (
+      newAssignment.facultyId !== '' &&
+      newAssignment.courseId !== ''
+    );
+  };
+
+  // Check if Add Faculty form has all required fields
+  const isAddFacultyFormValid = () => {
+    return !showAddModal || (
+      newFaculty.firstName.trim() !== '' &&
+      newFaculty.email.trim() !== '' &&
+      newFaculty.password.trim() !== '' &&
+      newFaculty.department.trim() !== ''
+    );
+  };
+
+  // Check if Edit Faculty form has all required fields
+  const isEditFacultyFormValid = () => {
+    return !showEditModal || (
+      editFaculty.email?.trim() !== '' &&
+      editFaculty.department?.trim() !== ''
+    );
+  };
+
+  // Check if any form with required fields is incomplete
+  const hasIncompleteRequiredFields = () => {
+    return !isAddCourseFormValid() ||
+           !isEditCourseFormValid() ||
+           !isAssignFacultyFormValid() ||
+           !isAddFacultyFormValid() ||
+           !isEditFacultyFormValid();
+  };
+
+  // Handle section change with validation
+  const handleSectionChange = (sectionId) => {
+    if (hasIncompleteRequiredFields()) {
+      const incompleteForms = [];
+      if (!isAddCourseFormValid()) incompleteForms.push('Add Course');
+      if (!isEditCourseFormValid()) incompleteForms.push('Edit Course');
+      if (!isAssignFacultyFormValid()) incompleteForms.push('Assign Faculty');
+      if (!isAddFacultyFormValid()) incompleteForms.push('Add Faculty');
+      if (!isEditFacultyFormValid()) incompleteForms.push('Edit Faculty');
+      
+      showWarningAlert(
+        `Please complete all required fields in the following forms before navigating: ${incompleteForms.join(', ')}`
+      );
+      return;
+    }
+    setActiveSection(sectionId);
   };
 
   // Dashboard content (computed after handlers are defined)
@@ -664,7 +762,7 @@ const AdminDashboard = () => {
     },
     settings: {
       title: 'System Settings',
-      content: <SystemSettingsTab />
+      content: <SystemSettingsTab onNavigate={handleSectionChange} />
     }
   }
 
@@ -749,8 +847,7 @@ const AdminDashboard = () => {
 
   const handleAddFaculty = async () => {
     if (!newFaculty.firstName || !newFaculty.email || !newFaculty.password || !newFaculty.department) {
-      setErrorMessage('Please fill all required fields');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Please fill all required fields');
       return;
     }
 
@@ -779,17 +876,14 @@ const AdminDashboard = () => {
         setFacultyData(prev => [...prev, result.user]);
         setShowAddModal(false);
         setNewFaculty({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'faculty' });
-        setSuccessMessage('Faculty added successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Faculty added successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error adding faculty member');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error adding faculty member');
       }
     } catch (error) {
       console.error('Error adding faculty:', error);
-      setErrorMessage('Error adding faculty member');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error adding faculty member');
     }
   }
 
@@ -828,17 +922,14 @@ const AdminDashboard = () => {
         setShowEditModal(false);
         setSelectedFaculty(null);
         setEditFaculty({});
-        setSuccessMessage('Faculty member updated successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Faculty member updated successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error updating faculty member');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error updating faculty member');
       }
     } catch (error) {
       console.error('Error updating faculty:', error);
-      setErrorMessage('Error updating faculty member');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error updating faculty member');
     }
   }
 
@@ -849,7 +940,18 @@ const AdminDashboard = () => {
   }
 
   async function handleArchiveClick(faculty) {
-    if (!window.confirm(`Archive ${faculty.name}? They will become inactive and cannot log in.`)) return;
+    const result = await Swal.fire({
+      title: 'Archive Faculty?',
+      text: `Archive ${faculty.name}? They will become inactive and cannot log in.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#111827',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, archive',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -868,22 +970,30 @@ const AdminDashboard = () => {
           prev.map(f => f._id === faculty._id ? result.user : f)
         );
         setArchivedFaculty(prev => [...prev.filter(f => f._id !== result.user._id), result.user]);
-        setSuccessMessage('User archived successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('User archived successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error archiving user');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error archiving user');
       }
     } catch (error) {
       console.error('Error archiving user:', error);
-      setErrorMessage('Error archiving user');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error archiving user');
     }
   }
 
   async function handleUnarchiveClick(faculty) {
-    if (!window.confirm(`Unarchive ${faculty.name}? They will become active and can log in again.`)) return;
+    const result = await Swal.fire({
+      title: 'Unarchive Faculty?',
+      text: `Unarchive ${faculty.name}? They will become active and can log in again.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#111827',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, unarchive',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -902,17 +1012,14 @@ const AdminDashboard = () => {
           prev.map(f => f._id === faculty._id ? result.user : f)
         );
         setArchivedFaculty(prev => prev.filter(f => f._id !== result.user._id));
-        setSuccessMessage('User unarchived successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('User unarchived successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error unarchiving user');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error unarchiving user');
       }
     } catch (error) {
       console.error('Error unarchiving user:', error);
-      setErrorMessage('Error unarchiving user');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error unarchiving user');
     }
   }
 
@@ -941,22 +1048,30 @@ const AdminDashboard = () => {
         setShowStatusModal(false);
         setSelectedFaculty(null);
         setStatusFaculty({});
-        setSuccessMessage('Status updated successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Status updated successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error updating status');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error updating status');
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      setErrorMessage('Error updating status');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error updating status');
     }
   }
 
   const handleDeleteClick = async (faculty) => {
-    if (!window.confirm(`Are you sure you want to delete ${faculty.name}?`)) return;
+    const result = await Swal.fire({
+      title: 'Delete Faculty?',
+      text: `Are you sure you want to delete ${faculty.name}? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -969,34 +1084,19 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         setFacultyData(prev => prev.filter(f => f._id !== faculty._id));
-        setSuccessMessage('Faculty deleted successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        showSuccessAlert('Faculty deleted successfully!');
       } else {
         const error = await response.json();
-        setErrorMessage(error.message || 'Error deleting faculty');
-        setTimeout(() => setErrorMessage(''), 3000);
+        showErrorAlert(error.message || 'Error deleting faculty');
       }
     } catch (error) {
       console.error('Error deleting faculty:', error);
-      setErrorMessage('Error deleting faculty member');
-      setTimeout(() => setErrorMessage(''), 3000);
+      showErrorAlert('Error deleting faculty member');
     }
   }
 
   return (
     <div className="dashboard admin-dashboard">
-      {successMessage && (
-        <div className="success-notification">
-          ✅ {successMessage}
-        </div>
-      )}
-      
-      {errorMessage && (
-        <div className="error-notification">
-          ❌ {errorMessage}
-        </div>
-      )}
-
       <div className={`sidebar admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header admin-header">
           <h2>👑 Admin Portal</h2>
@@ -1013,7 +1113,7 @@ const AdminDashboard = () => {
             <button
               key={item.id}
               className={`nav-item admin-nav-item ${activeSection === item.id ? 'active' : ''}`}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => handleSectionChange(item.id)}
             >
               <span className="nav-icon">{item.icon}</span>
               {sidebarOpen && (
@@ -1064,11 +1164,23 @@ const AdminDashboard = () => {
 
       {/* Add Course Modal */}
       {showCourseModal && (
-        <div className="modal-overlay" onClick={() => setShowCourseModal(false)}>
+        <div className="modal-overlay" onClick={() => {
+          if (isAddCourseFormValid()) {
+            setShowCourseModal(false);
+          } else {
+            showWarningAlert('Please complete all required fields (marked with *) before closing.');
+          }
+        }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Add New Course</h3>
-              <button className="close-btn" onClick={() => setShowCourseModal(false)}>×</button>
+              <button className="close-btn" onClick={() => {
+                if (isAddCourseFormValid()) {
+                  setShowCourseModal(false);
+                } else {
+                  showWarningAlert('Please complete all required fields (marked with *) before closing.');
+                }
+              }}>×</button>
             </div>
             <div className="modal-content">
               <div className="form-group">
@@ -1156,14 +1268,26 @@ const AdminDashboard = () => {
 
       {/* Edit Course Modal */}
       {showEditCourseModal && selectedCourse && (
-        <div className="modal-overlay" onClick={() => handleCancelEditCourse()}>
+        <div className="modal-overlay" onClick={() => {
+          if (isEditCourseFormValid()) {
+            handleCancelEditCourse();
+          } else {
+            showWarningAlert('Please complete all required fields before closing. The lock will be released.');
+          }
+        }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Edit Course (Locked by You)</h3>
               <div className="modal-lock-info">
                 <span className="lock-badge">🔒 Exclusive Lock Acquired</span>
               </div>
-              <button className="close-btn" onClick={() => handleCancelEditCourse()}>×</button>
+              <button className="close-btn" onClick={() => {
+                if (isEditCourseFormValid()) {
+                  handleCancelEditCourse();
+                } else {
+                  showWarningAlert('Please complete all required fields before closing. The lock will be released.');
+                }
+              }}>×</button>
             </div>
             <div className="modal-content">
               <div className="form-group">
@@ -1247,11 +1371,23 @@ const AdminDashboard = () => {
 
       {/* Assign Faculty Modal */}
       {showAssignmentModal && (
-        <div className="modal-overlay" onClick={() => setShowAssignmentModal(false)}>
+        <div className="modal-overlay" onClick={() => {
+          if (isAssignFacultyFormValid()) {
+            setShowAssignmentModal(false);
+          } else {
+            showWarningAlert('Please select both Faculty and Course (marked with *) before closing.');
+          }
+        }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Assign Faculty to Course</h3>
-              <button className="close-btn" onClick={() => setShowAssignmentModal(false)}>×</button>
+              <button className="close-btn" onClick={() => {
+                if (isAssignFacultyFormValid()) {
+                  setShowAssignmentModal(false);
+                } else {
+                  showWarningAlert('Please select both Faculty and Course (marked with *) before closing.');
+                }
+              }}>×</button>
             </div>
             <div className="modal-content">
               <div className="form-group">
