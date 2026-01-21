@@ -792,20 +792,19 @@ const AdminDashboard = () => {
   }
 
   const adminMenuItems = [
-    { id: 'dashboard', label: 'DASHBOARD', icon: '📊' },
+    { id: 'dashboard', label: 'DASHBOARD' },
     { 
       id: 'faculty',
       label: 'FACULTY MANAGEMENT',
-      icon: '👨‍🏫',
       children: [
-        { id: 'archive', label: 'Archived Users', icon: '🗄️' }
+        { id: 'archive', label: 'Archived Users' }
       ]
     },
-    { id: 'courses', label: 'COURSE MANAGEMENT', icon: '📚' },
-    { id: 'assignments', label: 'CLASS ASSIGNMENTS', icon: '📅' },
-    { id: 'reports', label: 'REPORTS', icon: '📋' },
-    { id: 'analytics', label: 'SYSTEM ANALYTICS', icon: '📈' },
-    { id: 'settings', label: 'SYSTEM SETTINGS', icon: '⚙️' }
+    { id: 'courses', label: 'COURSE MANAGEMENT' },
+    { id: 'assignments', label: 'CLASS ASSIGNMENTS' },
+    { id: 'reports', label: 'REPORTS' },
+    { id: 'analytics', label: 'SYSTEM ANALYTICS' },
+    { id: 'settings', label: 'SYSTEM SETTINGS' }
   ]
 
   const isMenuItemActive = (item) => {

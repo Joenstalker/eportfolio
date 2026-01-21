@@ -65,7 +65,7 @@
 
 /* Adjust main content when sidebar is closed */
 .admin-dashboard .sidebar.closed ~ .main-content {
-  margin-left: var(--admin-sidebar-width-closed) !important;
+  margin-left: 60px !important;
 }
 
 /* Topbar styles moved to AdminTopbar.css */
