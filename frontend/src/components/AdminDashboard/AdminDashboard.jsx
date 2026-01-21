@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Swal from 'sweetalert2'
 import './AdminDashboard.css'
+import AdminSidebar from './AdminSidebar'
+import AdminTopbar from './AdminTopbar'
 import CourseManagementTab from './CourseManagementTab'
 import FacultyManagementTab from './FacultyManagementTab'
 import ArchivedUsersTab from './ArchivedUsersTab'
@@ -1177,84 +1179,24 @@ const AdminDashboard = () => {
 
   return (
     <div className="dashboard admin-dashboard">
-      <div className={`sidebar admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header admin-header">
-          <h2>👑 Admin Portal</h2>
-          <button 
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? '◀' : '▶'}
-          </button>
-        </div>
-        
-        <nav className="sidebar-nav">
-          {adminMenuItems.map(item => {
-            const isActive = isMenuItemActive(item);
-            const showChildren = sidebarOpen && item.children && (facultyMenuOpen || isActive);
-            return (
-              <div key={item.id} className={`nav-group ${item.children ? 'has-children' : ''}`}>
-                <button
-                  className={`nav-item admin-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleMenuItemClick(item)}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  {sidebarOpen && (
-                    <>
-                      <span className="nav-label">{item.label}</span>
-                      {item.children && (
-                        <span className="nav-chevron">{showChildren ? '▾' : '▸'}</span>
-                      )}
-                    </>
-                  )}
-                </button>
-                {showChildren && (
-                  <div className="subnav">
-                    {item.children.map(child => (
-                      <button
-                        key={child.id}
-                        className={`subnav-item ${activeSection === child.id ? 'active' : ''}`}
-                        onClick={() => handleSubItemClick(item, child)}
-                      >
-                        <span className="nav-icon">{child.icon}</span>
-                        <span className="nav-label">{child.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className="sidebar-footer">
-            <div className="admin-info">
-            <div className="admin-name">{user?.name || user?.firstName || 'Admin'}</div>
-            <div className="admin-role">System Administrator</div>
-          </div>
-          <button 
-            className="logout-btn admin-logout"
-            onClick={handleLogout}
-          >
-            <span className="nav-icon">🚪</span>
-            {sidebarOpen && 'Logout'}
-          </button>
-        </div>
-      </div>
+      <AdminSidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        adminMenuItems={adminMenuItems}
+        activeSection={activeSection}
+        facultyMenuOpen={facultyMenuOpen}
+        user={user}
+        handleMenuItemClick={handleMenuItemClick}
+        handleSubItemClick={handleSubItemClick}
+        handleLogout={handleLogout}
+        isMenuItemActive={isMenuItemActive}
+      />
 
       <div className="main-content">
-        <header className="content-header admin-content-header">
-          <div className="header-left">
-            <h1>{dashboardContent[activeSection]?.title || 'Admin Dashboard'}</h1>
-            <div className="year-badge admin-badge">Admin System</div>
-          </div>
-          <div className="header-right">
-            <div className="user-menu admin-user-menu">
-              <span>System Administrator</span>
-              <div className="user-role">{user?.email || ''}</div>
-            </div>
-          </div>
-        </header>
+        <AdminTopbar 
+          pageTitle={dashboardContent[activeSection]?.title}
+          user={user}
+        />
 
         <main className="content-main">
           {dashboardContent[activeSection]?.content || (
