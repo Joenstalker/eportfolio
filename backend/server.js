@@ -6,6 +6,13 @@ require('dotenv').config();
 
 const app = express();
 
+// Request logging middleware (before routes)
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
+    next();
+});
+
 // Middleware
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -23,6 +30,7 @@ app.use('/api/teaching', require('./routes/teaching'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/seminars', require('./routes/seminars'));
 app.use('/api/research', require('./routes/research'));
+app.use('/api/extension', require('./routes/extension')); // Add extension route
 app.use('/api/syllabus', require('./routes/syllabus'));
 app.use('/api/materials', require('./routes/instructionalMaterials'));
 app.use('/api/admin', require('./routes/admin'));
@@ -57,13 +65,6 @@ app.use((error, req, res, next) => {
 // 404 handler
 app.use('*', (req, res) => {
     res.status(404).json({ message: 'Route not found' });
-});
-
-// In server.js, add this before routes
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
-  console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
-  next();
 });
 
 const PORT = process.env.PORT || 5000;

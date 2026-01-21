@@ -18,7 +18,7 @@ const instructionalMaterialSchema = new mongoose.Schema({
     description: String,
     type: {
         type: String,
-        enum: ['lecture', 'assignment', 'quiz', 'exam', 'project', 'presentation', 'other'],
+        enum: ['lecture', 'assignment', 'quiz', 'exam', 'project', 'presentation', 'handout', 'video', 'other'],
         required: true
     },
     section: String,

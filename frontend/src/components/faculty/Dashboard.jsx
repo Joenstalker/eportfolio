@@ -12,7 +12,7 @@ import InstructionalMaterials from './InstructionalMaterials';
 import './Dashboard.css';
 
 const Dashboard = () => {
-    const { user, logout } = useContext(AuthContext);
+    const { user, logoutUser } = useContext(AuthContext);
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('profile');
     const [profilePic, setProfilePic] = useState(localStorage.getItem('facultyProfilePic') || 'https://via.placeholder.com/150');
@@ -65,7 +65,7 @@ const Dashboard = () => {
             confirmButtonText: 'Logout'
         }).then((result) => {
             if (result.isConfirmed) {
-                logout();
+                logoutUser();
                 navigate('/login');
             }
         });

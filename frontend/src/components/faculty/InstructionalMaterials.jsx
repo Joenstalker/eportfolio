@@ -3,7 +3,7 @@ import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const InstructionalMaterials = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [materials, setMaterials] = useState([]);
     const [newMaterial, setNewMaterial] = useState({
         title: '',
@@ -21,37 +21,80 @@ const InstructionalMaterials = () => {
 
     const loadMaterials = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/materials', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            if (response.ok) {
-                const data = await response.json();
-                setMaterials(Array.isArray(data) ? data : (data.materials || []));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            setMaterials(Array.isArray(data) ? data : (data.materials || []));
         } catch (error) {
             console.error('Error loading materials:', error);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error loading materials: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
     const addMaterial = async () => {
         if (!newMaterial.title || !newMaterial.file) {
-            alert('Please fill in title and upload a file');
+            Swal.fire({
+                title: 'Missing Fields!',
+                text: 'Please fill in title and upload a file',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('title', newMaterial.title);
             formData.append('description', newMaterial.description);
+            // Send both subjectCode and subjectName (using the same value for now)
+            formData.append('subjectCode', newMaterial.subject || 'General');
             formData.append('subjectName', newMaterial.subject);
             formData.append('type', newMaterial.type);
             formData.append('tags', newMaterial.tags);
-            formData.append('accessLevel', newMaterial.accessLevel);
-            formData.append('file', newMaterial.file);
+            // Map accessLevel to isPublic (boolean) for the backend
+            formData.append('isPublic', newMaterial.accessLevel === 'public');
+            if (newMaterial.file) {
+                formData.append('file', newMaterial.file);
+            }
 
             const response = await fetch('http://localhost:5000/api/materials', {
                 method: 'POST',
@@ -60,20 +103,43 @@ const InstructionalMaterials = () => {
                 },
                 body: formData
             });
-
-            if (response.ok) {
-                const result = await response.json();
-                setMaterials([...materials, result.material]);
-                setNewMaterial({
-                    title: '', description: '', subject: '', type: 'lecture',
-                    tags: '', accessLevel: 'private', file: null
-                });
-                document.getElementById('material-file').value = '';
-                alert('Material uploaded successfully!');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            setMaterials([...materials, result.material]);
+            setNewMaterial({
+                title: '', description: '', subject: '', type: 'lecture',
+                tags: '', accessLevel: 'private', file: null
+            });
+            document.getElementById('material-file').value = '';
+            Swal.fire({
+                title: 'Success!',
+                text: 'Material uploaded successfully!',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('Error uploading material:', error);
-            alert('Error uploading material');
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error uploading material: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
@@ -84,7 +150,10 @@ const InstructionalMaterials = () => {
             handout: '📄',
             video: '🎥',
             assignment: '📝',
-            quiz: '❓'
+            quiz: '❓',
+            exam: '시험',
+            project: '🏗️',
+            other: '📁'
         };
         return icons[type] || '📁';
     };
@@ -130,6 +199,9 @@ const InstructionalMaterials = () => {
                             <option value="video">Video</option>
                             <option value="assignment">Assignment</option>
                             <option value="quiz">Quiz</option>
+                            <option value="exam">Exam</option>
+                            <option value="project">Project</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
                     <div className="form-group">

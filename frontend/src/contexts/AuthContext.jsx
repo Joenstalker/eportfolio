@@ -80,6 +80,15 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
     };
 
+    // Ensure token is available (used by components)
+    const ensureToken = () => {
+        const currentToken = token || localStorage.getItem('token');
+        if (!currentToken) {
+            console.warn('⚠️ No token available');
+        }
+        return currentToken;
+    };
+
     // Check if user is logged in on app start
     useEffect(() => {
         const restoreSession = () => {
@@ -131,6 +140,7 @@ export const AuthProvider = ({ children }) => {
         // Backwards-compatible alias: some components call `logout`
         logout: logoutUser,
         logoutUser,
+        ensureToken, // Add ensureToken function
     };
 
     return (

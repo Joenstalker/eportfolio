@@ -4,7 +4,7 @@ import AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const TeachingPortfolio = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [subjects, setSubjects] = useState([]);
     const [newSubject, setNewSubject] = useState({ 
         subjectCode: '', 
@@ -20,31 +20,68 @@ const TeachingPortfolio = () => {
 
     const loadSubjects = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/teaching', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                setSubjects(data.subjects || []);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            setSubjects(data.subjects || []);
         } catch (error) {
             console.error('Error loading subjects:', error);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error loading subjects: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
     const addSubject = async () => {
         if (!newSubject.subjectCode || !newSubject.subjectName) {
-            alert('Please fill in subject code and name');
+            Swal.fire({
+                title: 'Missing Fields!',
+                text: 'Please fill in subject code and name',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/teaching/subjects', {
                 method: 'POST',
                 headers: {
@@ -54,30 +91,38 @@ const TeachingPortfolio = () => {
                 body: JSON.stringify(newSubject)
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                setSubjects(result.portfolio.subjects);
-                setNewSubject({ subjectCode: '', subjectName: '', section: '', semester: '' });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            setSubjects(result.portfolio.subjects);
+            setNewSubject({ subjectCode: '', subjectName: '', section: '', semester: '' });
+            Swal.fire({
+                title: 'Added!',
+                text: 'Subject added successfully!',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (error) {
+            console.error('Error adding subject:', error);
+            if (error.message.includes('Failed to fetch')) {
                 Swal.fire({
-                    title: 'Added!',
-                    text: 'Subject added successfully!',
-                    icon: 'success',
-                    confirmButtonColor: '#3498db',
-                    timer: 2000,
-                    showConfirmButton: false
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
                 });
             } else {
-                const error = await response.json();
                 Swal.fire({
                     title: 'Error!',
-                    text: error.message || 'Error adding subject',
+                    text: `Error adding subject: ${error.message}`,
                     icon: 'error',
                     confirmButtonColor: '#e74c3c'
                 });
             }
-        } catch (error) {
-            console.error('Error adding subject:', error);
-            alert('Error adding subject');
         } finally {
             setLoading(false);
         }
@@ -97,7 +142,17 @@ const TeachingPortfolio = () => {
         if (!result.isConfirmed) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const response = await fetch(`http://localhost:5000/api/teaching/subjects/${subjectId}`, {
                 method: 'DELETE',
                 headers: {
@@ -105,13 +160,35 @@ const TeachingPortfolio = () => {
                 }
             });
 
-            if (response.ok) {
-                setSubjects(subjects.filter(subject => subject._id !== subjectId));
-                alert('Subject deleted successfully!');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            setSubjects(subjects.filter(subject => subject._id !== subjectId));
+            Swal.fire({
+                title: 'Deleted!',
+                text: 'Subject deleted successfully!',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('Error deleting subject:', error);
-            alert('Error deleting subject');
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error deleting subject: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 

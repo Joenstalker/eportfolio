@@ -4,7 +4,7 @@ import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const ProfileDashboard = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [profile, setProfile] = useState({
         name: '',
         email: '',
@@ -40,30 +40,46 @@ const ProfileDashboard = () => {
     // In ProfileDashboard.jsx - fix the loadStats function
 const loadStats = async () => {
     try {
-        const token = localStorage.getItem('token');
+        const token = ensureToken();
+        if (!token) {
+            console.error('No token available');
+            return;
+        }
         
         // Load teaching portfolio stats
         const teachingResponse = await fetch('http://localhost:5000/api/teaching', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!teachingResponse.ok) {
+            throw new Error(`HTTP error! status: ${teachingResponse.status}`);
+        }
         const teachingData = await teachingResponse.json();
         
         // Load class portfolio stats - FIXED flatMap issue
         const classResponse = await fetch('http://localhost:5000/api/class-portfolio', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!classResponse.ok) {
+            throw new Error(`HTTP error! status: ${classResponse.status}`);
+        }
         const classData = await classResponse.json();
         
         // Load research stats
         const researchResponse = await fetch('http://localhost:5000/api/research', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!researchResponse.ok) {
+            throw new Error(`HTTP error! status: ${researchResponse.status}`);
+        }
         const researchData = await researchResponse.json();
         
         // Load seminars stats
         const seminarsResponse = await fetch('http://localhost:5000/api/seminars', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!seminarsResponse.ok) {
+            throw new Error(`HTTP error! status: ${seminarsResponse.status}`);
+        }
         const seminarsData = await seminarsResponse.json();
 
         // Fix flatMap issue - handle both array and object responses
@@ -82,6 +98,21 @@ const loadStats = async () => {
         });
     } catch (error) {
         console.error('Error loading stats:', error);
+        if (error.message.includes('Failed to fetch')) {
+            Swal.fire({
+                title: 'Connection Error!',
+                text: 'Unable to connect to server. Please make sure the backend is running.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: `Error loading stats: ${error.message}`,
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+        }
     }
 };
 
@@ -90,7 +121,17 @@ const loadStats = async () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/profile', {
                 method: 'PUT',
                 headers: {
@@ -99,28 +140,38 @@ const loadStats = async () => {
                 },
                 body: JSON.stringify(profile)
             });
-
-            if (response.ok) {
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            Swal.fire({
+                title: 'Success!',
+                text: 'Profile updated successfully!',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            if (error.message.includes('Failed to fetch')) {
                 Swal.fire({
-                    title: 'Success!',
-                    text: 'Profile updated successfully!',
-                    icon: 'success',
-                    confirmButtonColor: '#3498db',
-                    timer: 3000,
-                    timerProgressBar: true
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
                 });
             } else {
-                const error = await response.json();
                 Swal.fire({
                     title: 'Error!',
-                    text: error.message || 'Error updating profile',
+                    text: `Error updating profile: ${error.message}`,
                     icon: 'error',
                     confirmButtonColor: '#e74c3c'
                 });
             }
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            alert('Error updating profile');
         } finally {
             setLoading(false);
         }

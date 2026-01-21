@@ -4,11 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import './Layout.css';
 
 const Layout = () => {
-    const { user, logout } = useAuth();
+    const { user, logoutUser } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        logout();
+        logoutUser();
         navigate('/login');
     };
 

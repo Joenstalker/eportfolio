@@ -31,6 +31,10 @@ const ClassPortfolio = () => {
     const loadMaterials = async () => {
         try {
             const token = getToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
             
             console.log('📦 Loading materials with token...');
             const response = await fetch('http://localhost:5000/api/class-portfolio', {
@@ -42,19 +46,33 @@ const ClassPortfolio = () => {
             
             console.log('📡 Load response status:', response.status);
             
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Materials loaded:', data);
-                
-                // Flatten materials from all class portfolios
-                const allMaterials = data.flatMap(portfolio => portfolio.materials || []);
-                setMaterials(allMaterials);
-            } else {
-                console.log('⚠️ Could not load materials, but continuing...');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
+            const data = await response.json();
+            console.log('✅ Materials loaded:', data);
+            
+            // Flatten materials from all class portfolios
+            const allMaterials = data.flatMap(portfolio => portfolio.materials || []);
+            setMaterials(allMaterials);
         } catch (error) {
             console.error('❌ Error loading materials:', error);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error loading materials: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
@@ -64,18 +82,37 @@ const ClassPortfolio = () => {
         console.log('📁 Selected file:', selectedFile);
         
         if (!newMaterial.title || !newMaterial.subject) {
-            alert('Please fill in title and subject');
+            Swal.fire({
+                title: 'Missing Fields!',
+                text: 'Please fill in title and subject',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         if (!selectedFile) {
-            alert('Please select a file to upload');
+            Swal.fire({
+                title: 'No File Selected!',
+                text: 'Please select a file to upload',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         setLoading(true);
         try {
             const token = getToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
             
             const formData = new FormData();
             
@@ -102,52 +139,83 @@ const ClassPortfolio = () => {
             console.log('📡 Response status:', response.status);
             console.log('📡 Response ok:', response.ok);
 
-            if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Upload successful:', result);
-                
-                // Add the new material to the list
-                setMaterials(prev => [...prev, result.material]);
-                
-                // Reset form
-                setNewMaterial({ 
-                    title: '', 
-                    subject: '', 
-                    type: 'Lecture', 
-                    description: '', 
-                    section: '', 
-                    topic: '', 
-                    isPublic: false 
-                });
-                setSelectedFile(null);
-                document.getElementById('material-file').value = '';
-                
-                alert('Material added successfully!');
-            } else {
-                const errorText = await response.text();
-                console.error('❌ Upload failed:', errorText);
-                
-                // Even if upload fails, we still have a token for next time
-                if (response.status === 401) {
-                    alert('Upload requires proper authentication. Please ensure you are logged in with a valid account.');
-                } else {
-                    alert(`Upload failed: ${errorText}`);
-                }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
+            const result = await response.json();
+            console.log('✅ Upload successful:', result);
+            
+            // Add the new material to the list
+            setMaterials(prev => [...prev, result.material]);
+            
+            // Reset form
+            setNewMaterial({ 
+                title: '', 
+                subject: '', 
+                type: 'Lecture', 
+                description: '', 
+                section: '', 
+                topic: '', 
+                isPublic: false 
+            });
+            setSelectedFile(null);
+            document.getElementById('material-file').value = '';
+            
+            Swal.fire({
+                title: 'Success!',
+                text: 'Material added successfully!',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('❌ Error adding material:', error);
-            alert(`Upload failed: ${error.message}`);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Upload Failed!',
+                    text: `Upload failed: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const deleteMaterial = async (materialId) => {
-        if (!window.confirm('Are you sure you want to delete this material?')) return;
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You won\'t be able to revert this!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+        
+        if (!result.isConfirmed) return;
 
         try {
             const token = getToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
             
             console.log('🗑️ Deleting material:', materialId);
             const response = await fetch(`http://localhost:5000/api/class-portfolio/materials/${materialId}`, {
@@ -160,18 +228,36 @@ const ClassPortfolio = () => {
 
             console.log('📡 Delete response status:', response.status);
 
-            if (response.ok) {
-                // Remove from local state
-                setMaterials(materials.filter(material => material._id !== materialId));
-                alert('Material deleted successfully!');
-            } else {
-                console.error('❌ Delete failed with status:', response.status);
-                alert('Error deleting material. Please try again.');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
+            // Remove from local state
+            setMaterials(materials.filter(material => material._id !== materialId));
+            Swal.fire({
+                title: 'Deleted!',
+                text: 'Material deleted successfully!',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('❌ Error deleting material:', error);
-            alert('Error deleting material: ' + error.message);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error deleting material: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 

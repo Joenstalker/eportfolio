@@ -46,7 +46,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
             type,
             section,
             topic,
-            isPublic: isPublic === 'true',
+            isPublic: isPublic === 'true' || isPublic === true,
             file: {
                 fileName: req.file.originalname,
                 fileUrl: `/uploads/${req.file.filename}`,
