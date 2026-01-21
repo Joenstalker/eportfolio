@@ -29,7 +29,6 @@ const Login = () => {
     const [showCreateAccount, setShowCreateAccount] = useState(false);
     const [showResetPassword, setShowResetPassword] = useState(false);
     const [showCodeVerification, setShowCodeVerification] = useState(false);
-    const [isAdminMode, setIsAdminMode] = useState(false);
     
     const { loginUser, user, isAuthenticated, logoutUser } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -52,7 +51,8 @@ const Login = () => {
             console.log('🔄 User already authenticated, redirecting...');
             console.log('🎭 Current user role:', user.role);
             
-            if (user.role === 'admin') {
+            const role = typeof user.role === 'string' ? user.role.toLowerCase() : user.role;
+            if (role === 'admin') {
                 navigate('/admin-dashboard');
             } else {
                 navigate('/dashboard');
@@ -124,24 +124,40 @@ const Login = () => {
 
         console.log('🚀 Login form submitted');
         console.log('📧 Email:', formData.email);
-        console.log('👑 Is Admin Mode:', isAdminMode);
+        // Admin vs Faculty is determined by the user's role from the backend/JWT.
 
         try {
-            const response = await loginUser(formData.email, formData.password, isAdminMode);
+            const response = await loginUser(formData.email, formData.password);
             
             console.log('✅ Login successful in component');
             console.log('👤 Response user object:', response.user);
             console.log('🎭 User role from response:', response.user?.role);
+            console.log('🔑 Raw token from response:', response.token ? 'present' : 'missing');
             
+            // Prefer role from JWT payload if available, fallback to response.user.role
+            const getRoleFromToken = (jwtToken) => {
+                try {
+                    if (!jwtToken || typeof jwtToken !== 'string') return null;
+                    const [, payload] = jwtToken.split('.');
+                    if (!payload) return null;
+                    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+                    return typeof json.role === 'string' ? json.role.toLowerCase() : null;
+                } catch {
+                    return null;
+                }
+            };
+
+            const roleFromJwt = getRoleFromToken(response.token);
+
             // Check if user role exists
-            if (!response.user || !response.user.role) {
+            if (!response.user || (!response.user.role && !roleFromJwt)) {
                 console.error('❌ No role found in response');
                 setError('User role not found. Please contact administrator.');
                 return;
             }
             
             // Determine redirect based on role
-            const userRole = response.user.role.toLowerCase();
+            const userRole = (roleFromJwt || response.user.role).toLowerCase();
             
             if (userRole === 'admin') {
                 console.log('🎯 Redirecting to admin dashboard');
@@ -319,21 +335,7 @@ const Login = () => {
         }
     };
 
-    // Add manual logout button for testing (for login page)
-    const handleManualLogout = async () => {
-        try {
-            setLoading(true);
-            await logoutUser();
-            setSuccess('You have been logged out successfully.');
-            setError('');
-        } catch (error) {
-            setError('Logout failed: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const shouldShowCreateAccount = showCreateAccount || isAdminMode;
+    const shouldShowCreateAccount = showCreateAccount;
 
     return (
         <div className="login-container">
@@ -345,83 +347,10 @@ const Login = () => {
                             ? 'Reset Password'
                             : shouldShowCreateAccount 
                                 ? 'Create New Account' 
-                                : isAdminMode 
-                                    ? 'Admin Sign In' 
-                                    : 'Sign in to your account'
+                                : 'Sign in to your account'
                         }
                     </p>
                 </div>
-
-                {/* Debug Panel */}
-                <div className="debug-panel">
-                    <div className="debug-info">
-                        <small>Status: {isAuthenticated ? '✅ Authenticated' : '❌ Not authenticated'}</small>
-                        <small>User Role: {user?.role || 'None'}</small>
-                        <small>Admin Mode: {isAdminMode ? 'ON' : 'OFF'}</small>
-                    </div>
-                </div>
-
-                {/* Backend Status Check */}
-                <div className="backend-status">
-                    <button 
-                        type="button"
-                        className="status-check-btn"
-                        onClick={async () => {
-                            try {
-                                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/health`);
-                                if (response.ok) {
-                                    const data = await response.json();
-                                    alert(`✅ Backend is running!\nStatus: ${data.status}\nMessage: ${data.message}`);
-                                } else {
-                                    alert('❌ Backend is not responding. Please check if server is running on port 5000.');
-                                }
-                            } catch (error) {
-                                alert('❌ Cannot connect to backend. Make sure the server is running on http://localhost:5000');
-                            }
-                        }}
-                    >
-                        Check Backend Status
-                    </button>
-                    
-                    {/* Manual Logout Button (for testing) */}
-                    {isAuthenticated && (
-                        <button 
-                            type="button"
-                            className="logout-test-btn"
-                            onClick={handleManualLogout}
-                            style={{ marginTop: '10px', background: '#ff6b6b' }}
-                            disabled={loading}
-                        >
-                            {loading ? 'Logging out...' : 'Manual Logout Test'}
-                        </button>
-                    )}
-                </div>
-
-                {/* Admin Access Toggle */}
-                {!shouldShowCreateAccount && !showResetPassword && (
-                    <div className="admin-access-toggle">
-                        <button
-                            type="button"
-                            className={`toggle-btn ${isAdminMode ? 'active' : ''}`}
-                            onClick={() => setIsAdminMode(!isAdminMode)}
-                        >
-                            {isAdminMode ? '← Back to Faculty Login' : 'Admin Access'}
-                        </button>
-                    </div>
-                )}
-
-                {/* Create Account Button for Admin Mode */}
-                {isAdminMode && !showCreateAccount && !showResetPassword && (
-                    <div className="admin-actions">
-                        <button 
-                            type="button"
-                            className="create-account-btn"
-                            onClick={() => setShowCreateAccount(true)}
-                        >
-                            + Create New Account
-                        </button>
-                    </div>
-                )}
 
                 {showResetPassword ? (
                     // Reset Password Form
@@ -662,7 +591,7 @@ const Login = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
-                                placeholder={isAdminMode ? "Enter admin email" : "Enter your email"}
+                                placeholder="Enter your email"
                                 disabled={loading}
                             />
                         </div>
@@ -686,7 +615,7 @@ const Login = () => {
                             className="login-btn"
                             disabled={loading}
                         >
-                            {loading ? 'Signing in...' : isAdminMode ? 'Admin Sign In' : 'Sign In'}
+                            {loading ? 'Signing in...' : 'Sign In'}
                         </button>
 
                         <div className="divider">

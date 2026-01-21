@@ -27,7 +27,22 @@ const AdminRoute = ({ children }) => {
   
   if (loading) return <div>Loading...</div>;
   
-  if (user && user.role === 'admin') {
+  // Prefer role from JWT (source of truth), fallback to user.role
+  const getRoleFromToken = () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      return typeof json.role === 'string' ? json.role.toLowerCase() : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const role = getRoleFromToken() || (typeof user?.role === 'string' ? user.role.toLowerCase() : user?.role);
+  if (user && role === 'admin') {
     return children;
   }
   
@@ -35,6 +50,17 @@ const AdminRoute = ({ children }) => {
 };
 
 function App() {
+  const adminPaths = [
+    '/admin-dashboard',
+    '/admin-faculty-management',
+    '/admin-archived-users',
+    '/admin-course-management',
+    '/admin-class-assignments',
+    '/admin-reports',
+    '/admin-system-analytics',
+    '/admin-system-settings'
+  ];
+
   return (
     <AuthProvider>
       <Router>
@@ -62,15 +88,18 @@ function App() {
               <Route path="/seminars-certificates" element={<SeminarsCertificates />} />
             </Route>
             
-            {/* Admin Route */}
-            <Route 
-              path="/admin-dashboard" 
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              } 
-            />
+            {/* Admin Routes with tab-specific URLs */}
+            {adminPaths.map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+            ))}
             
             {/* Redirects */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

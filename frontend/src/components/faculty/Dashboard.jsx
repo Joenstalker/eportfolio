@@ -1,4 +1,5 @@
 import React, { useState, useContext, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import  AuthContext  from '../../contexts/AuthContext';
 import ProfileDashboard from './ProfileDashboard';
@@ -12,6 +13,7 @@ import './Dashboard.css';
 
 const Dashboard = () => {
     const { user, logout } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('profile');
     const [profilePic, setProfilePic] = useState(localStorage.getItem('facultyProfilePic') || 'https://via.placeholder.com/150');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -64,6 +66,7 @@ const Dashboard = () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 logout();
+                navigate('/login');
             }
         });
     };

@@ -142,53 +142,7 @@
     color: #666;
     font-size: 12px;
 }
-/* Admin Access Toggle */
-.admin-access-toggle {
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.toggle-btn {
-    background: transparent;
-    border: 2px solid #007bff;
-    color: #007bff;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.toggle-btn:hover {
-    background: #007bff;
-    color: white;
-}
-
-.toggle-btn.active {
-    background: #007bff;
-    color: white;
-}
-
-/* Admin Actions */
-.admin-actions {
-    margin-bottom: 20px;
-}
-
-.create-account-btn {
-    width: 100%;
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.3s ease;
-}
-
-.create-account-btn:hover {
-    background: #218838;
-}
+/* Removed: admin toggle + backend status debug UI (not needed for production) */
 
 /* Form Actions */
 .form-actions {
@@ -291,25 +245,7 @@
     transform: none;
 }
 /* ================== NEW CSS END ================== */
-/* Add to your existing Login.css */
-.backend-status {
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.status-check-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.status-check-btn:hover {
-    background: #5a6268;
-}
+/* Removed: backend status button (debug-only) */
 
 .demo-accounts {
     background: #f8f9fa;
@@ -354,48 +290,7 @@
     border-left: 4px solid #28a745;
 }
 
-.admin-access-toggle {
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.toggle-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.3s;
-}
-
-.toggle-btn.active {
-    background: #dc3545;
-}
-
-.toggle-btn:hover {
-    transform: translateY(-1px);
-}
-
-.admin-actions {
-    margin-bottom: 15px;
-}
-
-.create-account-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 100%;
-    transition: all 0.3s;
-}
-
-.create-account-btn:hover {
-    background: #218838;
-}
+/* Removed: admin access toggle (role-based routing handles admin vs faculty) */
 
 .success-message {
     background: #d4edda;

@@ -40,17 +40,6 @@ export const authAPI = {
     return response.data;
   },
 
-  // Setup demo users (optional)
-  setupDemo: async () => {
-    try {
-      const response = await apiClient.post('/auth/setup-demo');
-      return response.data;
-    } catch (error) {
-      console.log('Demo setup not available, continuing...');
-      return { success: true };
-    }
-  },
-
   // Logout
   logout: async () => {
     const response = await apiClient.post('/auth/logout');

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Swal from 'sweetalert2'
 import './AdminDashboard.css'
@@ -12,8 +13,11 @@ import SystemSettingsTab from './SystemSettingsTab'
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [facultyMenuOpen, setFacultyMenuOpen] = useState(false)
   const [facultyData, setFacultyData] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedFaculty, setSelectedFaculty] = useState(null)
@@ -580,6 +584,22 @@ const AdminDashboard = () => {
   };
 
   // Handle section change with validation
+  const sectionToPathMap = {
+    dashboard: '/admin-dashboard',
+    faculty: '/admin-faculty-management',
+    archive: '/admin-archived-users',
+    courses: '/admin-course-management',
+    assignments: '/admin-class-assignments',
+    reports: '/admin-reports',
+    analytics: '/admin-system-analytics',
+    settings: '/admin-system-settings',
+  };
+
+  const pathToSectionMap = Object.entries(sectionToPathMap).reduce((acc, [key, val]) => {
+    acc[val] = key;
+    return acc;
+  }, {});
+
   const handleSectionChange = (sectionId) => {
     if (hasIncompleteRequiredFields()) {
       const incompleteForms = [];
@@ -592,9 +612,12 @@ const AdminDashboard = () => {
       showWarningAlert(
         `Please complete all required fields in the following forms before navigating: ${incompleteForms.join(', ')}`
       );
-      return;
+      return false;
     }
     setActiveSection(sectionId);
+    const nextPath = sectionToPathMap[sectionId] || '/admin-dashboard';
+    navigate(nextPath);
+    return true;
   };
 
   // Dashboard content (computed after handlers are defined)
@@ -768,14 +791,71 @@ const AdminDashboard = () => {
 
   const adminMenuItems = [
     { id: 'dashboard', label: 'DASHBOARD', icon: '📊' },
-    { id: 'faculty', label: 'FACULTY MANAGEMENT', icon: '👨‍🏫' },
-    { id: 'archive', label: 'ARCHIVED USERS', icon: '🗄️' },
+    { 
+      id: 'faculty',
+      label: 'FACULTY MANAGEMENT',
+      icon: '👨‍🏫',
+      children: [
+        { id: 'archive', label: 'Archived Users', icon: '🗄️' }
+      ]
+    },
     { id: 'courses', label: 'COURSE MANAGEMENT', icon: '📚' },
     { id: 'assignments', label: 'CLASS ASSIGNMENTS', icon: '📅' },
     { id: 'reports', label: 'REPORTS', icon: '📋' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS', icon: '📈' },
     { id: 'settings', label: 'SYSTEM SETTINGS', icon: '⚙️' }
   ]
+
+  const isMenuItemActive = (item) => {
+    if (activeSection === item.id) return true;
+    if (item.children) {
+      return item.children.some(child => child.id === activeSection);
+    }
+    return false;
+  };
+
+  // Sync URL path -> active section
+  useEffect(() => {
+    const path = location.pathname;
+    const resolved = pathToSectionMap[path];
+    if (resolved) {
+      setActiveSection(resolved);
+      if (resolved === 'faculty' || resolved === 'archive') setFacultyMenuOpen(true);
+      return;
+    }
+
+    // Default to dashboard for unknown admin paths
+    if (path.startsWith('/admin-') && path !== '/admin-dashboard') {
+      navigate('/admin-dashboard', { replace: true });
+    }
+    setActiveSection('dashboard');
+  }, [location.pathname, navigate]);
+
+  const handleMenuItemClick = (item) => {
+    if (item.id === 'faculty') {
+      const changed = handleSectionChange('faculty');
+      if (changed) {
+        setFacultyMenuOpen(true);
+      }
+      return;
+    }
+    setFacultyMenuOpen(false);
+    handleSectionChange(item.id);
+  };
+
+  const handleSubItemClick = (parentItem, childItem) => {
+    const changed = handleSectionChange(childItem.id);
+    if (changed) {
+      if (parentItem.id === 'faculty') {
+        setFacultyMenuOpen(true);
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const fetchFacultyData = async () => {
     setLoading(true)
@@ -1109,18 +1189,42 @@ const AdminDashboard = () => {
         </div>
         
         <nav className="sidebar-nav">
-          {adminMenuItems.map(item => (
-            <button
-              key={item.id}
-              className={`nav-item admin-nav-item ${activeSection === item.id ? 'active' : ''}`}
-              onClick={() => handleSectionChange(item.id)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {sidebarOpen && (
-                <span className="nav-label">{item.label}</span>
-              )}
-            </button>
-          ))}
+          {adminMenuItems.map(item => {
+            const isActive = isMenuItemActive(item);
+            const showChildren = sidebarOpen && item.children && (facultyMenuOpen || isActive);
+            return (
+              <div key={item.id} className={`nav-group ${item.children ? 'has-children' : ''}`}>
+                <button
+                  className={`nav-item admin-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => handleMenuItemClick(item)}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  {sidebarOpen && (
+                    <>
+                      <span className="nav-label">{item.label}</span>
+                      {item.children && (
+                        <span className="nav-chevron">{showChildren ? '▾' : '▸'}</span>
+                      )}
+                    </>
+                  )}
+                </button>
+                {showChildren && (
+                  <div className="subnav">
+                    {item.children.map(child => (
+                      <button
+                        key={child.id}
+                        className={`subnav-item ${activeSection === child.id ? 'active' : ''}`}
+                        onClick={() => handleSubItemClick(item, child)}
+                      >
+                        <span className="nav-icon">{child.icon}</span>
+                        <span className="nav-label">{child.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
@@ -1130,7 +1234,7 @@ const AdminDashboard = () => {
           </div>
           <button 
             className="logout-btn admin-logout"
-            onClick={logout}
+            onClick={handleLogout}
           >
             <span className="nav-icon">🚪</span>
             {sidebarOpen && 'Logout'}

@@ -92,99 +92,34 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Setup demo users (DEV only) - idempotent
-router.post('/setup-demo', async (req, res) => {
-    try {
-        if (process.env.NODE_ENV === 'production') {
-            return res.status(403).json({ message: 'Demo setup is disabled in production' });
-        }
-
-        if (!process.env.JWT_SECRET) {
-            return res.status(500).json({ message: 'Missing JWT_SECRET in server environment' });
-        }
-
-        const demoUsers = [
-            {
-                firstName: 'Test',
-                lastName: 'Admin',
-                email: 'admin@gmail.com',
-                role: 'admin',
-                department: 'IT',
-                password: 'Admin@1234'
-            },
-            {
-                firstName: 'Test',
-                lastName: 'Faculty',
-                email: 'faculty@gmail.com',
-                role: 'faculty',
-                department: 'Computer Science',
-                password: 'Test@1234'
-            }
-        ];
-
-        const results = [];
-
-        for (const u of demoUsers) {
-            const normalizedEmail = String(u.email).toLowerCase().trim();
-            let user = await User.findOne({ email: normalizedEmail });
-
-            // Always ensure password is set to known value in dev demo seeding
-            const hashedPassword = await bcrypt.hash(u.password, 12);
-
-            if (!user) {
-                user = new User({
-                    firstName: u.firstName,
-                    lastName: u.lastName,
-                    email: normalizedEmail,
-                    password: hashedPassword,
-                    role: u.role,
-                    department: u.department
-                });
-                await user.save();
-                results.push({ email: normalizedEmail, action: 'created', role: u.role });
-            } else {
-                user.firstName = u.firstName;
-                user.lastName = u.lastName;
-                user.role = u.role;
-                user.department = u.department;
-                user.password = hashedPassword;
-                await user.save();
-                results.push({ email: normalizedEmail, action: 'updated', role: u.role });
-            }
-        }
-
-        return res.json({
-            success: true,
-            message: 'Demo users ready',
-            users: results
-        });
-    } catch (error) {
-        console.error('Demo setup error:', error);
-        return res.status(500).json({ message: 'Server error during demo setup' });
-    }
-});
-
 // Login endpoint
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const normalizedEmail = String(email || '').toLowerCase().trim();
 
-        // Find user
-        const user = await User.findOne({ email: normalizedEmail });
-        if (!user) {
+        // Find user(s). This codebase previously allowed duplicate emails.
+        // We must select the record whose password matches, then prefer admin among matches.
+        const candidates = await User.find({ email: normalizedEmail }).limit(20);
+        if (!candidates || candidates.length === 0) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
+
+        const passwordMatches = [];
+        for (const candidate of candidates) {
+            const ok = await bcrypt.compare(password, candidate.password);
+            if (ok) passwordMatches.push(candidate);
+        }
+
+        if (passwordMatches.length === 0) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const user = passwordMatches.find(u => (u.role || '').toString().toLowerCase() === 'admin') || passwordMatches[0];
 
         // Block archived / inactive accounts from logging in
         if (user.isActive === false) {
             return res.status(403).json({ message: 'Your account is archived/inactive. Please contact the system administrator.' });
-        }
-
-        // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
         }
 
         // Create token

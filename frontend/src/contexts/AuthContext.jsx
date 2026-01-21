@@ -9,17 +9,8 @@ export const AuthProvider = ({ children }) => {
     // Start as loading=true so routes don't redirect before we restore from localStorage
     const [loading, setLoading] = useState(true);
 
-    // DEV: ensure demo users exist (safe to ignore errors)
-    useEffect(() => {
-        const setupDemo = async () => {
-            try {
-                await fetch('http://localhost:5000/api/auth/setup-demo', { method: 'POST' });
-            } catch (e) {
-                // ignore
-            }
-        };
-        setupDemo();
-    }, []);
+    // NOTE: demo user auto-seeding removed. Users should be created via DB seeding script
+    // or via authenticated admin user-management endpoints.
 
     // Proper login function implementation
     const loginUser = async (email, password) => {
@@ -48,11 +39,28 @@ export const AuthProvider = ({ children }) => {
             console.log('👤 User role from backend:', data.user?.role);
             console.log('🔑 Token received:', data.token ? 'Yes' : 'No');
 
-            // Store user data and token
+            const getRoleFromToken = (jwtToken) => {
+                try {
+                    if (!jwtToken || typeof jwtToken !== 'string') return null;
+                    const [, payload] = jwtToken.split('.');
+                    if (!payload) return null;
+                    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+                    return typeof json.role === 'string' ? json.role.toLowerCase() : null;
+                } catch {
+                    return null;
+                }
+            };
+
+            // Store user data and token (normalize role, prefer role from JWT if available)
             if (data.token && data.user) {
+                const roleFromJwt = getRoleFromToken(data.token);
+                const normalizedUser = {
+                    ...data.user,
+                    role: roleFromJwt || (typeof data.user.role === 'string' ? data.user.role.toLowerCase() : data.user.role),
+                };
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setUser(data.user);
+                localStorage.setItem('user', JSON.stringify(normalizedUser));
+                setUser(normalizedUser);
                 setToken(data.token);
             }
 
@@ -81,9 +89,25 @@ export const AuthProvider = ({ children }) => {
                 
                 if (storedUser && storedToken) {
                     const userData = JSON.parse(storedUser);
+                    const getRoleFromToken = (jwtToken) => {
+                        try {
+                            if (!jwtToken || typeof jwtToken !== 'string') return null;
+                            const [, payload] = jwtToken.split('.');
+                            if (!payload) return null;
+                            const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+                            return typeof json.role === 'string' ? json.role.toLowerCase() : null;
+                        } catch {
+                            return null;
+                        }
+                    };
+                    const roleFromJwt = getRoleFromToken(storedToken);
+                    const normalizedUser = {
+                        ...userData,
+                        role: roleFromJwt || (typeof userData.role === 'string' ? userData.role.toLowerCase() : userData.role),
+                    };
                     console.log('🔄 Restored user from localStorage:', userData);
                     console.log('🔄 User role from localStorage:', userData.role);
-                    setUser(userData);
+                    setUser(normalizedUser);
                     setToken(storedToken);
                 }
             } catch (e) {
@@ -104,6 +128,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         isAuthenticated: !!user && !!token,
         loginUser,
+        // Backwards-compatible alias: some components call `logout`
+        logout: logoutUser,
         logoutUser,
     };
 
