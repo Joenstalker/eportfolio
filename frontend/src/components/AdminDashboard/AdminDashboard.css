@@ -22,14 +22,20 @@
   --admin-danger: #b91c1c;
   --admin-radius: 12px;
   --admin-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --admin-sidebar-width: 280px;
+  --admin-sidebar-width-closed: 80px;
 }
 
 .admin-dashboard {
   display: flex;
   min-height: 100vh;
+  width: 100vw;
   background-color: var(--admin-bg) !important;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--admin-text) !important;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 /* Force black text everywhere */
@@ -40,7 +46,7 @@
 
 /* Sidebar Styles */
 .admin-dashboard .sidebar {
-  width: 280px;
+  width: var(--admin-sidebar-width);
   background: var(--admin-surface-2) !important;
   color: var(--admin-text) !important;
   transition: all 0.3s ease;
@@ -51,10 +57,13 @@
   top: 0;
   height: 100vh;
   box-shadow: 4px 0 12px rgba(15, 23, 42, 0.06);
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
 }
 
 .admin-dashboard .sidebar.closed {
-  width: 80px;
+  width: var(--admin-sidebar-width-closed);
 }
 
 .admin-dashboard .sidebar-header {
@@ -195,6 +204,9 @@
   overflow: hidden;
   background: #f3f4f6 !important;
   padding: 20px 24px;
+  min-width: 0; /* Allow flex item to shrink below content size */
+  margin-left: 0 !important; /* Override any inherited margin from Layout.css */
+  margin: 0 !important; /* Remove all margins */
 }
 
 .admin-dashboard .content-header {
@@ -236,12 +248,13 @@
   padding: 20px 0 0 0;
   overflow-y: auto;
   background: transparent !important;
+  width: 100%;
 }
 
 /* Dashboard Content */
 .admin-dashboard .dashboard-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 .admin-dashboard .welcome-banner {
