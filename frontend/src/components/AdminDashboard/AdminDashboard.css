@@ -139,39 +139,133 @@
 /* Modal styles */
 .admin-dashboard .modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.4);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
-  padding: 0 16px; /* avoid touching viewport edge on small screens */
+  z-index: 1000;
+  padding: 20px;
   box-sizing: border-box;
-}
-
-.admin-dashboard .modal {
-  width: 100%;
-  max-width: 600px;
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-border) !important;
-  border-radius: var(--admin-radius);
-  box-shadow: var(--admin-shadow);
-  max-height: 90vh;
+  animation: fadeIn 0.2s ease;
   overflow-y: auto;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-dashboard .modal {
+  position: relative;
+  width: 100%;
+  max-width: 550px;
+  margin: auto;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
 .admin-dashboard .modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--admin-border) !important;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--admin-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+}
+
+.admin-dashboard .modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.admin-dashboard .modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-dashboard .lock-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.admin-dashboard .close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.75rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.admin-dashboard .close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .admin-dashboard .modal-content {
-  padding: 20px;
+  padding: 24px;
   display: grid;
-  gap: 16px;
+  gap: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.admin-dashboard .modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-dashboard .modal-content::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.admin-dashboard .modal-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.admin-dashboard .modal-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 @media (max-width: 768px) {
@@ -179,37 +273,103 @@
     max-width: 95vw;
     margin: 0 10px;
   }
+  
+  .admin-dashboard .modal-header {
+    padding: 16px 20px;
+  }
+  
+  .admin-dashboard .modal-content {
+    padding: 20px;
+  }
 }
 
 .admin-dashboard .modal .form-group {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+}
+
+.admin-dashboard .modal .form-group label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--admin-text);
+}
+
+.admin-dashboard .modal .form-group input,
+.admin-dashboard .modal .form-group select,
+.admin-dashboard .modal .form-group textarea {
+  padding: 10px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+}
+
+.admin-dashboard .modal .form-group input:focus,
+.admin-dashboard .modal .form-group select:focus,
+.admin-dashboard .modal .form-group textarea:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
+  background: var(--admin-surface);
+}
+
+.admin-dashboard .modal .form-group textarea {
+  resize: vertical;
+  font-family: inherit;
 }
 
 .admin-dashboard .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--admin-border) !important;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
 }
 
 .admin-dashboard .btn-primary {
-  background: var(--admin-primary) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+  color: #ffffff;
   border: none;
-  padding: 10px 16px;
+  padding: 10px 20px;
   border-radius: 8px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9375rem;
+  letter-spacing: 0.025em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-dashboard .btn-primary:hover {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.admin-dashboard .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .admin-dashboard .btn-secondary {
-  background: #ffffff !important;
-  color: var(--admin-text) !important;
-  border: 1px solid var(--admin-border) !important;
-  padding: 10px 16px;
+  background: #ffffff;
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  padding: 10px 20px;
   border-radius: 8px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9375rem;
+}
+
+.admin-dashboard .btn-secondary:hover {
+  background: var(--admin-surface-2);
+  border-color: var(--admin-text);
 }
 
 /* Notifications */

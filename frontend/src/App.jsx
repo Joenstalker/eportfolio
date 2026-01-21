@@ -55,6 +55,7 @@ function App() {
     '/admin-faculty-management',
     '/admin-archived-users',
     '/admin-course-management',
+    '/admin-archived-courses',
     '/admin-class-assignments',
     '/admin-reports',
     '/admin-system-analytics',

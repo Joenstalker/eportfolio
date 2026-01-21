@@ -32,7 +32,7 @@ const courseSchema = new mongoose.Schema({
     semester: {
         type: String,
         required: true,
-        enum: ['Fall 2024', 'Spring 2025', 'Summer 2025', 'Fall 2025']
+        trim: true
     },
     maxStudents: {
         type: Number,
@@ -47,7 +47,7 @@ const courseSchema = new mongoose.Schema({
     }],
     status: {
         type: String,
-        enum: ['active', 'inactive'],
+        enum: ['active', 'inactive', 'archived'],
         default: 'active'
     }
 }, {

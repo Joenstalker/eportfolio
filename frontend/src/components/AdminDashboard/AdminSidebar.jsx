@@ -7,6 +7,7 @@ const AdminSidebar = ({
   adminMenuItems,
   activeSection,
   facultyMenuOpen,
+  coursesMenuOpen,
   user,
   handleMenuItemClick,
   handleSubItemClick,
@@ -31,7 +32,10 @@ const AdminSidebar = ({
           <nav className="sidebar-nav">
             {adminMenuItems.map(item => {
               const isActive = isMenuItemActive(item);
-              const showChildren = sidebarOpen && item.children && (facultyMenuOpen || isActive);
+              const showChildren = sidebarOpen && item.children && (
+                (item.id === 'faculty' && (facultyMenuOpen || isActive)) ||
+                (item.id === 'courses' && (coursesMenuOpen || isActive))
+              );
               return (
                 <div key={item.id} className={`nav-group ${item.children ? 'has-children' : ''}`}>
                   <button

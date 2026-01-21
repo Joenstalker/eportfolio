@@ -13,9 +13,8 @@ const FacultyManagementTab = ({
   return (
     <div className="faculty-management">
       <div className="section-header">
-        <h3>Faculty Members (Categorized)</h3>
+        <h3>Faculty Members</h3>
         <div className="header-actions">
-          {/* Department Filter */}
           <select
             className="faculty-filter-select"
             value={filterDept}

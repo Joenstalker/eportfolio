@@ -1,0 +1,48 @@
+/* Archived Courses Tab Styles */
+.archived-courses {
+  padding: 20px;
+}
+
+.archived-courses .section-header {
+  margin-bottom: 24px;
+}
+
+.archived-courses .section-header h3 {
+  font-size: 1.5rem;
+  color: var(--admin-text);
+  font-weight: 600;
+}
+
+.archived-courses .empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--admin-muted);
+  background: var(--admin-surface-2);
+  border-radius: var(--admin-radius);
+}
+
+.archived-courses .courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.archived-courses .course-card.archived {
+  opacity: 0.8;
+  background: var(--admin-surface-2);
+}
+
+.archived-courses .course-status.archived {
+  background: #9ca3af;
+  color: #ffffff;
+}
+
+.archived-courses .btn-action.unarchive {
+  background: #10b981;
+  color: #ffffff;
+  border: 1px solid #059669;
+}
+
+.archived-courses .btn-action.unarchive:hover {
+  background: #059669;
+}
