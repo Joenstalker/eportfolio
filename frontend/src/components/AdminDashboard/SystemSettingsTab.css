@@ -143,7 +143,7 @@
 
 .admin-dashboard .settings-actions {
   display: flex;
-  gap: 12px;
+  gap: 50px;
   justify-content: center;
   margin-top: 30px;
   padding-top: 20px;
