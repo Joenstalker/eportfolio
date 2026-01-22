@@ -13,17 +13,22 @@ export const AuthProvider = ({ children }) => {
     // or via authenticated admin user-management endpoints.
 
     // Proper login function implementation
-    const loginUser = async (email, password) => {
+    const loginUser = async (email, password, recaptchaToken = null) => {
         setLoading(true);
         try {
             console.log('🔐 Attempting login for:', email);
+            
+            const requestBody = { email, password };
+            if (recaptchaToken) {
+                requestBody.recaptchaToken = recaptchaToken;
+            }
             
             const response = await fetch('http://localhost:5000/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify(requestBody)
             });
 
             console.log('📡 Login response status:', response.status);

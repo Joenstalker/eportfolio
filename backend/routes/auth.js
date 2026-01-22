@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const router = express.Router();
@@ -93,11 +94,49 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// Verify reCAPTCHA token
+const verifyRecaptcha = async (token) => {
+    if (!token) {
+        return { success: false, message: 'Missing reCAPTCHA token' };
+    }
+
+    // Skip verification in development mode
+    if (process.env.NODE_ENV === 'development') {
+        return { success: true };
+    }
+
+    try {
+        const response = await axios.post('https://www.google.com/recaptcha/api/siteverify', null, {
+            params: {
+                secret: process.env.RECAPTCHA_SECRET_KEY,
+                response: token
+            }
+        });
+
+        const { success } = response.data;
+        
+        if (!success) {
+            return { success: false, message: 'reCAPTCHA verification failed' };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('reCAPTCHA verification error:', error);
+        return { success: false, message: 'reCAPTCHA verification error' };
+    }
+};
+
 // Login endpoint
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, recaptchaToken } = req.body;
         const normalizedEmail = String(email || '').toLowerCase().trim();
+
+        // Verify reCAPTCHA token
+        const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+        if (!recaptchaResult.success) {
+            return res.status(400).json({ message: `reCAPTCHA error: ${recaptchaResult.message}` });
+        }
 
         // Find user(s). This codebase previously allowed duplicate emails.
         // We must select the record whose password matches, then prefer admin among matches.
