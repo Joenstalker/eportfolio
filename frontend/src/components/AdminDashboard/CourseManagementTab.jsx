@@ -90,11 +90,13 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const lockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}/acquire-lock`, {
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ durationMinutes: 15 })
       });
 
       if (response.status === 409) {
@@ -127,7 +129,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const unlockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}/release-lock`, {
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/unlock`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -156,7 +158,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const checkCourseLockStatus = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}/lock-status`, {
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock-status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
