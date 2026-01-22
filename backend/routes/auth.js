@@ -101,11 +101,14 @@ const verifyRecaptcha = async (token) => {
     }
 
     // Skip verification in development mode
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        console.log('🔧 Skipping reCAPTCHA verification in development/test mode');
         return { success: true };
     }
 
     try {
+        console.log('🔍 Verifying reCAPTCHA token...');
+        
         const response = await axios.post('https://www.google.com/recaptcha/api/siteverify', null, {
             params: {
                 secret: process.env.RECAPTCHA_SECRET_KEY,
@@ -113,16 +116,22 @@ const verifyRecaptcha = async (token) => {
             }
         });
 
-        const { success } = response.data;
+        console.log('📊 reCAPTCHA API Response:', response.data);
+
+        const { success, 'error-codes': errorCodes } = response.data;
         
         if (!success) {
-            return { success: false, message: 'reCAPTCHA verification failed' };
+            const errorMessage = errorCodes ? errorCodes.join(', ') : 'reCAPTCHA verification failed';
+            console.error('❌ reCAPTCHA verification failed:', errorMessage);
+            return { success: false, message: `reCAPTCHA error: ${errorMessage}` };
         }
 
+        console.log('✅ reCAPTCHA verification successful');
         return { success: true };
     } catch (error) {
-        console.error('reCAPTCHA verification error:', error);
-        return { success: false, message: 'reCAPTCHA verification error' };
+        console.error('💥 reCAPTCHA verification error:', error.message);
+        console.error('📋 Error details:', error.response?.data || error);
+        return { success: false, message: `reCAPTCHA verification error: ${error.message}` };
     }
 };
 

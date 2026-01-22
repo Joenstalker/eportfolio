@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Extension = require('../models/Extension');
+const auth = require('../middleware/auth');
 
 // Get all extension activities for the logged-in user
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'Unauthorized: No user ID provided' });
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
 });
 
 // Add new extension activity
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'Unauthorized: No user ID provided' });
@@ -46,7 +47,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update extension activity
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'Unauthorized: No user ID provided' });
@@ -76,7 +77,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete extension activity
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'Unauthorized: No user ID provided' });

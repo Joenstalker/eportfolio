@@ -132,11 +132,16 @@ const Login = () => {
         setError('');
         setSuccess('');
 
-        // Verify reCAPTCHA if not in development
-        if (!recaptchaValue && process.env.NODE_ENV !== 'development') {
-            setError('Please complete the reCAPTCHA verification');
-            setLoading(false);
-            return;
+        // In development, we can skip reCAPTCHA validation to avoid rate limiting issues
+        // but we'll still pass the token if it exists
+        if (process.env.NODE_ENV !== 'development') {
+            if (!recaptchaValue) {
+                setError('Please complete the reCAPTCHA verification');
+                setLoading(false);
+                return;
+            }
+        } else {
+            console.log('📝 Development mode: reCAPTCHA validation skipped');
         }
 
         console.log('🚀 Login form submitted');
@@ -635,7 +640,7 @@ const Login = () => {
                         {/* reCAPTCHA Widget */}
                         <div className="form-group recaptcha-container">
                             <ReCAPTCHA
-                                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
                                 onChange={(value) => setRecaptchaValue(value)}
                                 onExpired={() => setRecaptchaValue(null)}
                                 onErrored={() => setRecaptchaValue(null)}
@@ -683,7 +688,7 @@ const Login = () => {
                 
                 {/* Debug Instructions */}
                 <div className="debug-instructions">
-                    <small>💡 Open browser console (F12) to see detailed login logs</small>
+                    
                 </div>
             </div>
         </div>
