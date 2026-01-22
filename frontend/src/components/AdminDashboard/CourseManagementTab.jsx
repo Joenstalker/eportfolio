@@ -279,6 +279,8 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
     try {
       const token = localStorage.getItem('token');
+      console.log('➕ Adding new course:', newCourse);
+      
       const response = await fetch('http://localhost:5000/api/courses', {
         method: 'POST',
         headers: {
@@ -288,8 +290,12 @@ const CourseManagementTab = ({ user, facultyData }) => {
         body: JSON.stringify(newCourse)
       });
 
+      console.log('📥 Response status:', response.status);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Course created successfully:', result);
+        
         setCourses(prev => [...prev, result]);
         setShowCourseModal(false);
         setNewCourse({
@@ -305,11 +311,12 @@ const CourseManagementTab = ({ user, facultyData }) => {
         showSuccessAlert('Course added successfully!');
       } else {
         const error = await response.json();
+        console.error('❌ Error response:', error);
         showErrorAlert(error.message || 'Error adding course');
       }
     } catch (error) {
-      console.error('Error adding course:', error);
-      showErrorAlert('Error adding course');
+      console.error('❌ Add course error:', error);
+      showErrorAlert(`Error adding course: ${error.message}`);
     }
   };
 

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
-const lockService = require('../services/lockService');
+const lockService = require('../services/serviceLock');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/role');
 
