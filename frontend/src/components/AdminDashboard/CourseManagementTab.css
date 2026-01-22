@@ -3,6 +3,26 @@
   padding: 20px;
 }
 
+/* Section Header and Button Spacing */
+.course-management .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.course-management .section-header h3 {
+  color: #000000;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.course-management .header-actions {
+  display: flex;
+  gap: 20px; /* Spacing between buttons */
+}
+
 .admin-dashboard .courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -452,7 +472,7 @@
 }
 
 .course-management .btn-primary:hover {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+   background: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
@@ -477,4 +497,6 @@
 .course-management .btn-secondary:hover {
   background: var(--admin-surface-2);
   border-color: var(--admin-text);
+   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }

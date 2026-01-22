@@ -354,7 +354,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
       });
       
       const response = await fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -426,7 +426,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/courses/${course._id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
