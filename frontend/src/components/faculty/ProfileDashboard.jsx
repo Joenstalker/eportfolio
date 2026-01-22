@@ -25,13 +25,13 @@ const ProfileDashboard = () => {
     useEffect(() => {
         if (user) {
             setProfile({
-                name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
                 email: user.email || '',
-                department: user.personalInfo?.department || '',
-                position: user.personalInfo?.position || '',
-                phone: user.personalInfo?.contactNumber || '',
-                office: '',
-                bio: ''
+                department: user.department || '',
+                position: user.position || '',
+                phone: user.phone || '',
+                office: user.office || '',
+                bio: user.bio || ''
             });
             loadStats();
         }
@@ -132,20 +132,58 @@ const loadStats = async () => {
                 return;
             }
             
-            const response = await fetch('http://localhost:5000/api/profile', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(profile)
-            });
+            // Split the name into firstName and lastName
+            const nameParts = profile.name.split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Prepare personal info for the profile dashboard
+            const personalInfo = {
+                fullName: profile.name,
+                email: profile.email,
+                phone: profile.phone,
+                department: profile.department,
+                position: profile.position,
+                office: profile.office
+            };
+            
+            // Update both the profile dashboard and the user info
+            const [profileResponse, userResponse] = await Promise.all([
+                fetch('http://localhost:5000/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ personalInfo })
+                }),
+                fetch('http://localhost:5000/api/auth/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: profile.email,
+                        department: profile.department,
+                        phone: profile.phone,
+                        office: profile.office,
+                        bio: profile.bio
+                    })
+                })
+            ]);
+            
+            if (!profileResponse.ok || !userResponse.ok) {
+                const profileError = profileResponse.status !== 200 ? `Profile update failed (${profileResponse.status})` : null;
+                const userError = userResponse.status !== 200 ? `User profile update failed (${userResponse.status})` : null;
+                
+                throw new Error([profileError, userError].filter(Boolean).join(' and '));
             }
             
-            const result = await response.json();
+            const profileResult = await profileResponse.json();
+            const userResult = await userResponse.json();
             
             Swal.fire({
                 title: 'Success!',

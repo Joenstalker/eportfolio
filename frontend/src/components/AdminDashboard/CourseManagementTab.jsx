@@ -90,18 +90,16 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const lockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock`, {
+      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}/acquire-lock`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ durationMinutes: 15 })
+          'Authorization': `Bearer ${token}`
+        }
       });
 
-      if (response.status === 423) {
+      if (response.status === 409) {
         const errorData = await response.json();
-        throw new Error(`Locked by ${errorData.lockedBy?.name || 'another admin'}`);
+        throw new Error(`Locked by ${errorData.lockInfo?.lockedByUsername || 'another admin'}`);
       }
 
       if (!response.ok) {
@@ -116,11 +114,11 @@ const CourseManagementTab = ({ user, facultyData }) => {
           isLocked: true,
           lockedByMe: true,
           lockedBy: user?.name || user?.firstName || 'You',
-          expiresAt: data.lock?.expiresAt || new Date(Date.now() + 15 * 60 * 1000)
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000)
         }
       }));
       
-      return { success: true, lock: data.lock };
+      return { success: true, lock: data };
     } catch (error) {
       return { success: false, message: error.message };
     }
@@ -129,7 +127,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const unlockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/unlock`, {
+      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}/release-lock`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -158,7 +156,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const checkCourseLockStatus = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock-status`, {
+      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}/lock-status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -172,9 +170,9 @@ const CourseManagementTab = ({ user, facultyData }) => {
             ...prev,
             [courseId]: {
               isLocked: true,
-              lockedByMe: data.lock?.isLockedByMe || false,
-              lockedBy: data.lock?.lockedBy || 'Another admin',
-              expiresAt: data.lock?.expiresAt
+              lockedByMe: data.lockInfo?.lockedBy === (user?.name || user?.firstName || 'You') || false,
+              lockedBy: data.lockInfo?.lockedByUsername || 'Another admin',
+              expiresAt: data.lockInfo?.acquiredAt
             }
           }));
         } else {
@@ -217,6 +215,30 @@ const CourseManagementTab = ({ user, facultyData }) => {
       if (response.ok) {
         const data = await response.json();
         setCourses(data);
+        
+        // Update lock status for each course
+        data.forEach(course => {
+          if (course.isLocked && course.lockInfo) {
+            setCourseLocks(prev => ({
+              ...prev,
+              [course._id]: {
+                isLocked: true,
+                lockedByMe: course.lockInfo.lockedBy === user?._id,
+                lockedBy: course.lockInfo.lockedByUsername,
+                expiresAt: course.lockInfo.acquiredAt
+              }
+            }));
+          } else {
+            setCourseLocks(prev => ({
+              ...prev,
+              [course._id]: {
+                isLocked: false,
+                lockedByMe: false,
+                lockedBy: null
+              }
+            }));
+          }
+        });
       } else {
         throw new Error('Failed to fetch courses');
       }
@@ -332,7 +354,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
       });
       
       const response = await fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -340,9 +362,9 @@ const CourseManagementTab = ({ user, facultyData }) => {
         body: JSON.stringify(editCourse)
       });
 
-      if (response.status === 423) {
+      if (response.status === 409) {
         const error = await response.json();
-        throw new Error(`Lock expired or lost: ${error.message}`);
+        throw new Error(`Lock conflict: ${error.message}`);
       }
 
       if (response.ok) {
@@ -404,7 +426,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/courses/${course._id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
