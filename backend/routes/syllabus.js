@@ -68,4 +68,23 @@ router.get('/subject/:subjectCode', auth, async (req, res) => {
     }
 });
 
+// Delete syllabus
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const syllabus = await Syllabus.findOneAndDelete({ 
+            _id: req.params.id, 
+            facultyId: req.user.id 
+        });
+        
+        if (!syllabus) {
+            return res.status(404).json({ message: 'Syllabus not found' });
+        }
+
+        res.json({ message: 'Syllabus deleted successfully' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

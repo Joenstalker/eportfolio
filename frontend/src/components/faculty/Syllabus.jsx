@@ -3,7 +3,7 @@ import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const Syllabus = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [syllabi, setSyllabi] = useState([]);
     const [newSyllabus, setNewSyllabus] = useState({
         subjectCode: '',
@@ -19,29 +19,67 @@ const Syllabus = () => {
 
     const loadSyllabi = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/syllabus', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            if (response.ok) {
-                const data = await response.json();
-                setSyllabi(Array.isArray(data) ? data : (data.syllabi || []));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            setSyllabi(Array.isArray(data) ? data : (data.syllabi || []));
         } catch (error) {
             console.error('Error loading syllabi:', error);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error loading syllabi: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
     const addSyllabus = async () => {
         if (!newSyllabus.subjectCode || !newSyllabus.subjectName || !newSyllabus.file) {
-            alert('Please fill in all required fields and upload a file');
+            Swal.fire({
+                title: 'Missing Fields!',
+                text: 'Please fill in all required fields and upload a file',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('subjectCode', newSyllabus.subjectCode);
             formData.append('subjectName', newSyllabus.subjectName);
@@ -56,19 +94,42 @@ const Syllabus = () => {
                 },
                 body: formData
             });
-
-            if (response.ok) {
-                const result = await response.json();
-                setSyllabi([...syllabi, result.syllabus]);
-                setNewSyllabus({
-                    subjectCode: '', subjectName: '', academicYear: '', semester: '', file: null
-                });
-                document.getElementById('syllabus-file').value = '';
-                alert('Syllabus uploaded successfully!');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            setSyllabi([...syllabi, result.syllabus]);
+            setNewSyllabus({
+                subjectCode: '', subjectName: '', academicYear: '', semester: '', file: null
+            });
+            document.getElementById('syllabus-file').value = '';
+            Swal.fire({
+                title: 'Success!',
+                text: 'Syllabus uploaded successfully!',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('Error uploading syllabus:', error);
-            alert('Error uploading syllabus');
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error uploading syllabus: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 

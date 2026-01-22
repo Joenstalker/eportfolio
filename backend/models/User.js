@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+    phone: String,  // Added for user profile
+    office: String,  // Added for user profile
+    bio: String,     // Added for user profile
     resetPasswordCode: String,
     resetPasswordExpires: Date,
     profilePicture: String,

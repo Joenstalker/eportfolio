@@ -80,4 +80,25 @@ router.post('/subjects/:subjectId/classlist', auth, async (req, res) => {
     }
 });
 
+// Delete subject
+router.delete('/subjects/:subjectId', auth, async (req, res) => {
+    try {
+        const portfolio = await TeachingPortfolio.findOne({ facultyId: req.user.id });
+        if (!portfolio) {
+            return res.status(404).json({ message: 'Portfolio not found' });
+        }
+        
+        portfolio.subjects.pull(req.params.subjectId);
+        await portfolio.save();
+
+        res.json({ 
+            message: 'Subject deleted successfully',
+            subjects: portfolio.subjects 
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

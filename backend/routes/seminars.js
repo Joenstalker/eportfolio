@@ -42,4 +42,23 @@ router.post('/', auth, upload.single('certificate'), async (req, res) => {
     }
 });
 
+// Delete seminar
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const seminar = await SeminarCertificate.findOneAndDelete({ 
+            _id: req.params.id, 
+            facultyId: req.user.id 
+        });
+        
+        if (!seminar) {
+            return res.status(404).json({ message: 'Seminar not found' });
+        }
+
+        res.json({ message: 'Seminar deleted successfully' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

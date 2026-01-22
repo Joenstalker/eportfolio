@@ -45,4 +45,23 @@ router.post('/', auth, upload.single('researchFile'), async (req, res) => {
     }
 });
 
+// Delete research
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const research = await Research.findOneAndDelete({ 
+            _id: req.params.id, 
+            facultyId: req.user.id 
+        });
+        
+        if (!research) {
+            return res.status(404).json({ message: 'Research paper not found' });
+        }
+
+        res.json({ message: 'Research paper deleted successfully' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

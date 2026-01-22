@@ -3,7 +3,7 @@ import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const Research = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [researchPapers, setResearchPapers] = useState([]);
     const [newPaper, setNewPaper] = useState({
         title: '',
@@ -22,32 +22,70 @@ const Research = () => {
 
     const loadResearchPapers = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/research', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            if (response.ok) {
-                const data = await response.json();
-                const items = Array.isArray(data)
-                    ? data
-                    : (data.researchPapers || data.research || data.researches || []);
-                setResearchPapers(items);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            const items = Array.isArray(data)
+                ? data
+                : (data.researchPapers || data.research || data.researches || []);
+            setResearchPapers(items);
         } catch (error) {
             console.error('Error loading research papers:', error);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error loading research papers: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
     const addResearchPaper = async () => {
         if (!newPaper.title || !newPaper.authors) {
-            alert('Please fill in title and authors');
+            Swal.fire({
+                title: 'Missing Fields!',
+                text: 'Please fill in title and authors',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('title', newPaper.title);
             formData.append('authors', newPaper.authors);
@@ -67,21 +105,44 @@ const Research = () => {
                 },
                 body: formData
             });
-
-            if (response.ok) {
-                const result = await response.json();
-                const added = result.researchPaper || result.research || result;
-                setResearchPapers(prev => [...prev, added]);
-                setNewPaper({
-                    title: '', authors: '', journal: '', publicationDate: '', 
-                    doi: '', abstract: '', status: 'published', file: null
-                });
-                document.getElementById('research-file').value = '';
-                alert('Research paper added successfully!');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            const added = result.researchPaper || result.research || result;
+            setResearchPapers(prev => [...prev, added]);
+            setNewPaper({
+                title: '', authors: '', journal: '', publicationDate: '', 
+                doi: '', abstract: '', status: 'published', file: null
+            });
+            document.getElementById('research-file').value = '';
+            Swal.fire({
+                title: 'Success!',
+                text: 'Research paper added successfully!',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('Error adding research paper:', error);
-            alert('Error adding research paper');
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error adding research paper: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 

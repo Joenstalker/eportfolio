@@ -4,7 +4,7 @@ import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const SeminarsCertificates = () => {
-    const { user } = useContext(AuthContext);
+    const { user, ensureToken } = useContext(AuthContext);
     const [seminars, setSeminars] = useState([]);
     const [venues, setVenues] = useState(['Main Hall', 'Conference Room A', 'Virtual Zoom', 'Hotel Ballroom']);
     const [showAddVenue, setShowAddVenue] = useState(false);
@@ -25,18 +25,41 @@ const SeminarsCertificates = () => {
 
     const loadSeminars = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
+            
             const response = await fetch('http://localhost:5000/api/seminars', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            if (response.ok) {
-                const data = await response.json();
-                setSeminars(Array.isArray(data) ? data : (data.seminars || []));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            setSeminars(Array.isArray(data) ? data : (data.seminars || []));
         } catch (error) {
             console.error('Error loading seminars:', error);
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error loading seminars: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 
@@ -54,12 +77,27 @@ const SeminarsCertificates = () => {
         }
 
         if (!newSeminar.title || !newSeminar.date || !newSeminar.organizer) {
-            alert('Please fill in all required fields');
+            Swal.fire({
+                title: 'Missing Fields!',
+                text: 'Please fill in all required fields',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = ensureToken();
+            if (!token) {
+                Swal.fire({
+                    title: 'Authentication Required!',
+                    text: 'Please log in again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('title', newSeminar.title);
             formData.append('date', newSeminar.date);
@@ -77,26 +115,42 @@ const SeminarsCertificates = () => {
                 },
                 body: formData
             });
-
-            if (response.ok) {
-                const result = await response.json();
-                setSeminars([...seminars, result.seminar]);
-                setNewSeminar({
-                    title: '', date: '', organizer: '', venue: '', duration: '', certificateFile: null
-                });
-                setCustomVenue('');
-                setShowAddVenue(false);
-                document.getElementById('certificate-upload').value = '';
-                Swal.fire({
-                    title: 'Seminar Added!',
-                    text: 'Your seminar details have been saved.',
-                    icon: 'success',
-                    confirmButtonColor: '#3498db'
-                });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            setSeminars([...seminars, result.seminar]);
+            setNewSeminar({
+                title: '', date: '', organizer: '', venue: '', duration: '', certificateFile: null
+            });
+            setCustomVenue('');
+            setShowAddVenue(false);
+            document.getElementById('certificate-upload').value = '';
+            Swal.fire({
+                title: 'Seminar Added!',
+                text: 'Your seminar details have been saved.',
+                icon: 'success',
+                confirmButtonColor: '#3498db'
+            });
         } catch (error) {
             console.error('Error adding seminar:', error);
-            alert('Error adding seminar');
+            if (error.message.includes('Failed to fetch')) {
+                Swal.fire({
+                    title: 'Connection Error!',
+                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error adding seminar: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
     };
 

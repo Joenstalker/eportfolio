@@ -43,6 +43,14 @@ const Login = () => {
             console.log('🔓 Auto-logout triggered');
             handleAutoLogout();
         }
+        
+        // Check for Google auth errors
+        const errorParam = urlParams.get('error');
+        if (errorParam === 'unauthorized_email') {
+            setError('Your email is not authorized. Please contact the administrator to add your email to the system before signing in with Google.');
+        } else if (errorParam === 'account_inactive') {
+            setError('Your account is inactive. Please contact the administrator to reactivate your account.');
+        }
     }, []);
 
     // Redirect if already logged in

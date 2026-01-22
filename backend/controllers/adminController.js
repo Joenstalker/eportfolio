@@ -9,6 +9,8 @@ const Research = require('../models/Research');
 const Course = require('../models/Course');
 const CourseAssignment = require('../models/CourseAssignment');
 
+const ServiceLock = require('../services/serviceLock');
+
 // Helper to ensure the requester is an admin
 const requireAdmin = (req, res) => {
   if (!req.user || req.user.role !== 'admin') {
@@ -25,7 +27,28 @@ exports.getCourses = async (req, res) => {
     if (!requireAdmin(req, res)) return;
 
     const courses = await Course.find().sort({ courseCode: 1 });
-    res.json(courses);
+    
+    // Add lock status to each course
+    const coursesWithLockStatus = await Promise.all(courses.map(async (course) => {
+      const lock = await ServiceLock.isLocked(course._id, 'course');
+      let lockUserInfo = null;
+      if (lock && lock.userId) {
+        // Get user info for the lock
+        const user = await User.findById(lock.userId).select('firstName lastName email');
+        lockUserInfo = {
+          lockedBy: lock.userId,
+          lockedByUsername: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
+          acquiredAt: lock.acquiredAt
+        };
+      }
+      return {
+        ...course.toObject(),
+        isLocked: !!lock,
+        lockInfo: lockUserInfo
+      };
+    }));
+    
+    res.json(coursesWithLockStatus);
   } catch (error) {
     console.error('Error fetching courses:', error);
     res.status(500).json({ message: 'Server error' });
@@ -86,7 +109,35 @@ exports.updateCourse = async (req, res) => {
       prerequisites,
       status
     } = req.body;
-
+    
+    // Check if the course is locked by someone else
+    const lock = await ServiceLock.isLocked(req.params.id, 'course');
+    if (lock && lock.userId.toString() !== req.user.id) {
+      return res.status(409).json({ 
+        message: 'Course is currently being edited by another user',
+        lockInfo: {
+          lockedByUsername: `${lock.userId.firstName || ''} ${lock.userId.lastName || ''}`.trim(),
+          acquiredAt: lock.acquiredAt
+        }
+      });
+    }
+    
+    // Acquire a lock for this user (or refresh existing lock)
+    const lockAcquired = await ServiceLock.acquire(
+      req.params.id,
+      'course',
+      req.user.id,
+      req.headers['x-session-id'] || req.sessionID || 'default-session'
+    );
+    
+    if (!lockAcquired) {
+      return res.status(409).json({ 
+        message: 'Failed to acquire lock on course',
+        reason: 'Another user has acquired the lock since your request'
+      });
+    }
+    
+    // Update the course
     const course = await Course.findByIdAndUpdate(
       req.params.id,
       {
@@ -104,6 +155,13 @@ exports.updateCourse = async (req, res) => {
     );
 
     if (!course) {
+      // Release the lock if course was not found
+      await ServiceLock.release(
+        req.params.id,
+        'course',
+        req.user.id,
+        req.headers['x-session-id'] || req.sessionID || 'default-session'
+      );
       return res.status(404).json({ message: 'Course not found' });
     }
 
@@ -118,17 +176,144 @@ exports.deleteCourse = async (req, res) => {
   try {
     if (!requireAdmin(req, res)) return;
 
+    // Check if the course is locked by someone else
+    const lock = await ServiceLock.isLocked(req.params.id, 'course');
+    if (lock && lock.userId.toString() !== req.user.id) {
+      return res.status(409).json({ 
+        message: 'Course is currently being edited by another user',
+        lockInfo: {
+          lockedByUsername: `${lock.userId.firstName || ''} ${lock.userId.lastName || ''}`.trim(),
+          acquiredAt: lock.acquiredAt
+        }
+      });
+    }
+    
+    // Acquire a lock for this user (or refresh existing lock)
+    const lockAcquired = await ServiceLock.acquire(
+      req.params.id,
+      'course',
+      req.user.id,
+      req.headers['x-session-id'] || req.sessionID || 'default-session'
+    );
+    
+    if (!lockAcquired) {
+      return res.status(409).json({ 
+        message: 'Failed to acquire lock on course',
+        reason: 'Another user has acquired the lock since your request'
+      });
+    }
+    
     const course = await Course.findByIdAndDelete(req.params.id);
 
     if (!course) {
+      // Release the lock if course was not found
+      await ServiceLock.release(
+        req.params.id,
+        'course',
+        req.user.id,
+        req.headers['x-session-id'] || req.sessionID || 'default-session'
+      );
       return res.status(404).json({ message: 'Course not found' });
     }
 
     await CourseAssignment.deleteMany({ courseId: req.params.id });
+    
+    // Release the lock after successful deletion
+    await ServiceLock.release(
+      req.params.id,
+      'course',
+      req.user.id,
+      req.headers['x-session-id'] || req.sessionID || 'default-session'
+    );
 
     res.json({ message: 'Course deleted successfully' });
   } catch (error) {
     console.error('Error deleting course:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ===== Course Lock Management =====
+
+exports.getLockStatus = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    
+    const lock = await ServiceLock.isLocked(req.params.id, 'course');
+    
+    if (lock) {
+      const user = await User.findById(lock.userId).select('firstName lastName email');
+      res.json({ 
+        isLocked: true, 
+        lockInfo: {
+          lockedBy: lock.userId,
+          lockedByUsername: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
+          acquiredAt: lock.acquiredAt
+        }
+      });
+    } else {
+      res.json({ isLocked: false });
+    }
+  } catch (error) {
+    console.error('Error checking lock status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.acquireLock = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    
+    const lockAcquired = await ServiceLock.acquire(
+      req.params.id,
+      'course',
+      req.user.id,
+      req.headers['x-session-id'] || req.sessionID || 'default-session'
+    );
+    
+    if (lockAcquired) {
+      res.json({ success: true, message: 'Lock acquired successfully' });
+    } else {
+      const lock = await ServiceLock.isLocked(req.params.id, 'course');
+      if (lock) {
+        const user = await User.findById(lock.userId).select('firstName lastName email');
+        res.status(409).json({ 
+          success: false, 
+          message: 'Course is currently being edited by another user',
+          lockInfo: {
+            lockedBy: lock.userId,
+            lockedByUsername: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
+            acquiredAt: lock.acquiredAt
+          }
+        });
+      } else {
+        res.status(500).json({ success: false, message: 'Failed to acquire lock' });
+      }
+    }
+  } catch (error) {
+    console.error('Error acquiring lock:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.releaseLock = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    
+    const released = await ServiceLock.release(
+      req.params.id,
+      'course',
+      req.user.id,
+      req.headers['x-session-id'] || req.sessionID || 'default-session'
+    );
+    
+    if (released) {
+      res.json({ success: true, message: 'Lock released successfully' });
+    } else {
+      res.status(400).json({ success: false, message: 'No lock found to release or lock owned by different user' });
+    }
+  } catch (error) {
+    console.error('Error releasing lock:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

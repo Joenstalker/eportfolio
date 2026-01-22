@@ -17,6 +17,11 @@ router.post('/courses', adminController.createCourse);
 router.put('/courses/:id', adminController.updateCourse);
 router.delete('/courses/:id', adminController.deleteCourse);
 
+// Course lock management routes
+router.get('/courses/:id/lock-status', adminController.getLockStatus);
+router.post('/courses/:id/acquire-lock', adminController.acquireLock);
+router.post('/courses/:id/release-lock', adminController.releaseLock);
+
 // Course assignment routes
 router.get('/course-assignments', adminController.getCourseAssignments);
 router.post('/course-assignments', adminController.createCourseAssignment);

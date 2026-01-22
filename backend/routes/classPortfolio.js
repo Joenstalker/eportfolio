@@ -53,8 +53,8 @@ const upload = multer({
 // GET /api/class-portfolio - Get all class portfolios
 router.get('/', auth, async (req, res) => {
     try {
-        console.log('📦 Fetching class portfolio for user:', req.user._id);
-        const classPortfolios = await ClassPortfolio.find({ facultyId: req.user._id });
+        console.log('📦 Fetching class portfolio for user:', req.user.id);
+        const classPortfolios = await ClassPortfolio.find({ facultyId: req.user.id });
         console.log('✅ Found class portfolios:', classPortfolios.length);
         res.json(classPortfolios);
     } catch (error) {
@@ -72,7 +72,7 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
         console.log('👤 User:', req.user);
 
         // Check if user is authenticated
-        if (!req.user || !req.user._id) {
+        if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
@@ -88,14 +88,14 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
 
         // Find or create class portfolio for this subject
         let classPortfolio = await ClassPortfolio.findOne({ 
-            facultyId: req.user._id, 
+            facultyId: req.user.id, 
             subjectCode: subject 
         });
 
         if (!classPortfolio) {
             console.log('📝 Creating new class portfolio for subject:', subject);
             classPortfolio = new ClassPortfolio({
-                facultyId: req.user._id,
+                facultyId: req.user.id,
                 subjectCode: subject,
                 subjectName: subject,
                 materials: []
@@ -139,7 +139,7 @@ router.post('/materials', auth, upload.single('materialFile'), async (req, res) 
 router.delete('/materials/:materialId', auth, async (req, res) => {
     try {
         const classPortfolio = await ClassPortfolio.findOne({ 
-            facultyId: req.user._id,
+            facultyId: req.user.id,
             'materials._id': req.params.materialId 
         });
         
