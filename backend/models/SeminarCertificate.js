@@ -9,6 +9,7 @@ const seminarSchema = new mongoose.Schema({
     title: String,
     date: Date,
     organizer: String,
+    venue: String,
     certificateFile: {
         fileName: String,
         fileUrl: String,

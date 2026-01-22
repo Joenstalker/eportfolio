@@ -6,7 +6,8 @@ import './facultyComponents.css';
 const SeminarsCertificates = () => {
     const { user, ensureToken } = useContext(AuthContext);
     const [seminars, setSeminars] = useState([]);
-    const [venues, setVenues] = useState(['Main Hall', 'Conference Room A', 'Virtual Zoom', 'Hotel Ballroom']);
+    const [venues, setVenues] = useState([]);
+    const [loadingVenues, setLoadingVenues] = useState(true);
     const [showAddVenue, setShowAddVenue] = useState(false);
     const [customVenue, setCustomVenue] = useState('');
     const [newSeminar, setNewSeminar] = useState({
@@ -19,8 +20,9 @@ const SeminarsCertificates = () => {
     });
 
     useEffect(() => {
-        // Load seminars from database
+        // Load seminars and venues from database
         loadSeminars();
+        loadVenues();
     }, []);
 
     const loadSeminars = async () => {
@@ -63,16 +65,71 @@ const SeminarsCertificates = () => {
         }
     };
 
+    const loadVenues = async () => {
+        try {
+            const token = ensureToken();
+            if (!token) {
+                console.error('No token available');
+                return;
+            }
+            
+            const response = await fetch('http://localhost:5000/api/venues', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            setVenues(data);
+        } catch (error) {
+            console.error('Error loading venues:', error);
+            // Fallback to default venues if there's an error
+            setVenues(['Main Hall', 'Conference Room A', 'Virtual Zoom', 'Hotel Ballroom']);
+        } finally {
+            setLoadingVenues(false);
+        }
+    };
+
     const handleFileChange = (e) => {
         setNewSeminar({...newSeminar, certificateFile: e.target.files[0]});
     };
 
     const addSeminar = async () => {
         let finalVenue = newSeminar.venue;
+        let venueToAdd = null;
+        
         if (showAddVenue && customVenue) {
             finalVenue = customVenue;
-            if (!venues.includes(customVenue)) {
-                setVenues([...venues, customVenue]);
+            venueToAdd = customVenue;
+        }
+        
+        // If a new venue needs to be added, create it first
+        if (venueToAdd) {
+            try {
+                const token = ensureToken();
+                const venueResponse = await fetch('http://localhost:5000/api/venues', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: venueToAdd })
+                });
+                
+                if (!venueResponse.ok) {
+                    const errorData = await venueResponse.json();
+                    // If venue already exists, that's okay, we can still proceed
+                    if (errorData.message !== 'Venue already exists') {
+                        throw new Error(errorData.message || 'Error adding venue');
+                    }
+                }
+            } catch (error) {
+                console.error('Error adding venue:', error);
+                // Continue with the seminar creation even if venue creation fails
             }
         }
 
@@ -103,7 +160,7 @@ const SeminarsCertificates = () => {
             formData.append('date', newSeminar.date);
             formData.append('organizer', newSeminar.organizer);
             formData.append('venue', finalVenue);
-            formData.append('duration', newSeminar.duration);
+            formData.append('duration', newSeminar.duration || '');
             if (newSeminar.certificateFile) {
                 formData.append('certificate', newSeminar.certificateFile);
             }
@@ -128,6 +185,8 @@ const SeminarsCertificates = () => {
             setCustomVenue('');
             setShowAddVenue(false);
             document.getElementById('certificate-upload').value = '';
+            // Reload venues to include any newly added ones
+            loadVenues();
             Swal.fire({
                 title: 'Seminar Added!',
                 text: 'Your seminar details have been saved.',
@@ -194,7 +253,9 @@ const SeminarsCertificates = () => {
                     {/* Implement a dropdown menu for the Venue field under Seminars and Certificates, including an “Add Venue” option for new entries. */}
                     <div className="form-group">
                         <label>Venue</label>
-                        {!showAddVenue ? (
+                        {loadingVenues ? (
+                            <div>Loading venues...</div>
+                        ) : !showAddVenue ? (
                             <select
                                 value={newSeminar.venue}
                                 onChange={(e) => {
@@ -206,7 +267,11 @@ const SeminarsCertificates = () => {
                                 }}
                             >
                                 <option value="">Select Venue</option>
-                                {venues.map(v => <option key={v} value={v}>{v}</option>)}
+                                {venues.map(v => (
+                                    <option key={typeof v === 'string' ? v : v._id} value={typeof v === 'string' ? v : v.name}>
+                                        {typeof v === 'string' ? v : v.name}
+                                    </option>
+                                ))}
                                 <option value="ADD_NEW">+ Add Venue</option>
                             </select>
                         ) : (

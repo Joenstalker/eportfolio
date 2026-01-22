@@ -36,6 +36,7 @@ app.use('/api/materials', require('./routes/instructionalMaterials'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/class-portfolio', require('./routes/classPortfolio'));
 app.use('/api/courses', require('./routes/course'));
+app.use('/api/venues', require('./routes/venues'));
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ 

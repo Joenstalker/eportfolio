@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/role');
 const adminController = require('../controllers/adminController');
+const BackupUtil = require('../utils/backup');
 
 /**
  * All routes in this file are ADMIN‑ONLY.
@@ -35,5 +36,10 @@ router.delete('/users/:id', adminController.deleteUser);
 
 // Recent uploads
 router.get('/uploads', adminController.getUploads);
+
+// Backup routes
+router.get('/backups', adminController.getBackups);
+router.post('/backups/create', adminController.createBackup);
+router.post('/backups/restore/:filename', adminController.restoreBackup);
 
 module.exports = router;

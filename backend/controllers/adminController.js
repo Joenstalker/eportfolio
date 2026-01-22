@@ -10,6 +10,7 @@ const Course = require('../models/Course');
 const CourseAssignment = require('../models/CourseAssignment');
 
 const ServiceLock = require('../services/serviceLock');
+const path = require('path');
 
 // Helper to ensure the requester is an admin
 const requireAdmin = (req, res) => {
@@ -532,6 +533,48 @@ exports.deleteUser = async (req, res) => {
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ===== Backup Management =====
+
+exports.getBackups = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    
+    const BackupUtil = require('../utils/backup');
+    const backups = BackupUtil.getBackupList();
+    res.json({ backups });
+  } catch (error) {
+    console.error('Error getting backups:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.createBackup = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    
+    const BackupUtil = require('../utils/backup');
+    const result = await BackupUtil.createBackup();
+    res.json(result);
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.restoreBackup = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    
+    const BackupUtil = require('../utils/backup');
+    const backupPath = path.join(__dirname, '../backups', req.params.filename);
+    const result = await BackupUtil.restoreFromBackup(backupPath);
+    res.json(result);
+  } catch (error) {
+    console.error('Error restoring backup:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

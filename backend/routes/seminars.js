@@ -18,7 +18,7 @@ router.get('/', auth, async (req, res) => {
 // Add seminar
 router.post('/', auth, upload.single('certificate'), async (req, res) => {
     try {
-        const { title, date, organizer } = req.body;
+        const { title, date, organizer, venue } = req.body;
         
         const filePayload = req.file ? {
             fileName: req.file.originalname,
@@ -31,6 +31,7 @@ router.post('/', auth, upload.single('certificate'), async (req, res) => {
             title,
             date,
             organizer,
+            venue,
             certificateFile: filePayload
         });
 
