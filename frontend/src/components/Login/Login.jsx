@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
+import ReCAPTCHA from 'react-google-recaptcha';
 import './Login.css';
 
 const Login = () => {
@@ -29,6 +30,7 @@ const Login = () => {
     const [showCreateAccount, setShowCreateAccount] = useState(false);
     const [showResetPassword, setShowResetPassword] = useState(false);
     const [showCodeVerification, setShowCodeVerification] = useState(false);
+    const [recaptchaValue, setRecaptchaValue] = useState(null);
     
     const { loginUser, user, isAuthenticated, logoutUser } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -130,17 +132,25 @@ const Login = () => {
         setError('');
         setSuccess('');
 
+        // Verify reCAPTCHA if not in development
+        if (!recaptchaValue && process.env.NODE_ENV !== 'development') {
+            setError('Please complete the reCAPTCHA verification');
+            setLoading(false);
+            return;
+        }
+
         console.log('🚀 Login form submitted');
         console.log('📧 Email:', formData.email);
         // Admin vs Faculty is determined by the user's role from the backend/JWT.
 
         try {
-            const response = await loginUser(formData.email, formData.password);
+            // Call login with reCAPTCHA token through AuthContext
+            const data = await loginUser(formData.email, formData.password, recaptchaValue);
             
             console.log('✅ Login successful in component');
-            console.log('👤 Response user object:', response.user);
-            console.log('🎭 User role from response:', response.user?.role);
-            console.log('🔑 Raw token from response:', response.token ? 'present' : 'missing');
+            console.log('👤 Response user object:', data.user);
+            console.log('🎭 User role from response:', data.user?.role);
+            console.log('🔑 Raw token from response:', data.token ? 'present' : 'missing');
             
             // Prefer role from JWT payload if available, fallback to response.user.role
             const getRoleFromToken = (jwtToken) => {
@@ -155,17 +165,17 @@ const Login = () => {
                 }
             };
 
-            const roleFromJwt = getRoleFromToken(response.token);
+            const roleFromJwt = getRoleFromToken(data.token);
 
             // Check if user role exists
-            if (!response.user || (!response.user.role && !roleFromJwt)) {
+            if (!data.user || (!data.user.role && !roleFromJwt)) {
                 console.error('❌ No role found in response');
                 setError('User role not found. Please contact administrator.');
                 return;
             }
             
             // Determine redirect based on role
-            const userRole = (roleFromJwt || response.user.role).toLowerCase();
+            const userRole = (roleFromJwt || data.user.role).toLowerCase();
             
             if (userRole === 'admin') {
                 console.log('🎯 Redirecting to admin dashboard');
@@ -188,11 +198,15 @@ const Login = () => {
                 setError('Invalid email or password. Please try again.');
             } else if (err.message.includes('admin')) {
                 setError('Admin access required. Please use an admin account or contact administrator.');
+            } else if (err.message.includes('reCAPTCHA')) {
+                setError('reCAPTCHA verification failed. Please try again.');
             } else {
                 setError(err.message || 'Login failed. Please check your credentials.');
             }
         } finally {
             setLoading(false);
+            // Reset reCAPTCHA after submission
+            setRecaptchaValue(null);
         }
     };
 
@@ -615,6 +629,16 @@ const Login = () => {
                                 required
                                 placeholder="Enter your password"
                                 disabled={loading}
+                            />
+                        </div>
+
+                        {/* reCAPTCHA Widget */}
+                        <div className="form-group recaptcha-container">
+                            <ReCAPTCHA
+                                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                                onChange={(value) => setRecaptchaValue(value)}
+                                onExpired={() => setRecaptchaValue(null)}
+                                onErrored={() => setRecaptchaValue(null)}
                             />
                         </div>
 
