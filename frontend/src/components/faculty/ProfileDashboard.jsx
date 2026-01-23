@@ -1,10 +1,10 @@
 import React, { useState, useContext, useEffect } from 'react';
 import Swal from 'sweetalert2';
-import  AuthContext  from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const ProfileDashboard = () => {
-    const { user, ensureToken } = useContext(AuthContext);
+    const { user, ensureToken, setUser } = useAuth();
     const [profile, setProfile] = useState({
         name: '',
         email: '',
@@ -42,18 +42,6 @@ const ProfileDashboard = () => {
                 bio: user.bio || ''
             });
             loadStats();
-            
-            // Check if profile is complete and show warning if not
-            if (!isProfileComplete()) {
-                Swal.fire({
-                    title: 'Profile Incomplete!',
-                    text: 'Please complete your profile information to access all features.',
-                    icon: 'warning',
-                    confirmButtonColor: '#3498db',
-                    timer: 5000,
-                    timerProgressBar: true
-                });
-            }
         }
     }, [user]);
 
@@ -153,9 +141,14 @@ const loadStats = async () => {
             }
             
             // Split the name into firstName and lastName
-            const nameParts = profile.name.split(' ');
-            const firstName = nameParts[0] || '';
-            const lastName = nameParts.slice(1).join(' ') || '';
+            let firstName = '';
+            let lastName = '';
+            
+            if (profile.name && profile.name.trim() !== '') {
+                const nameParts = profile.name.trim().split(' ');
+                firstName = nameParts[0] || '';
+                lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+            }
             
             // Prepare personal info for the profile dashboard
             const personalInfo = {
@@ -166,6 +159,8 @@ const loadStats = async () => {
                 position: profile.position,
                 office: profile.office
             };
+            
+            console.log('Sending profile update request with data:', { personalInfo, firstName, lastName, email: profile.email, department: profile.department, position: profile.position, phone: profile.phone, office: profile.office, bio: profile.bio });
             
             // Update both the profile dashboard and the user info
             const [profileResponse, userResponse] = await Promise.all([
@@ -188,12 +183,15 @@ const loadStats = async () => {
                         lastName: lastName,
                         email: profile.email,
                         department: profile.department,
+                        position: profile.position,
                         phone: profile.phone,
                         office: profile.office,
                         bio: profile.bio
                     })
                 })
             ]);
+            
+            console.log('Profile response status:', profileResponse.status, 'User response status:', userResponse.status);
             
             if (!profileResponse.ok || !userResponse.ok) {
                 const profileError = profileResponse.status !== 200 ? `Profile update failed (${profileResponse.status})` : null;
@@ -202,8 +200,52 @@ const loadStats = async () => {
                 throw new Error([profileError, userError].filter(Boolean).join(' and '));
             }
             
+            // Parse the responses
             const profileResult = await profileResponse.json();
             const userResult = await userResponse.json();
+            
+            console.log('Profile API response:', profileResult);
+            console.log('User API response:', userResult);
+            
+            // Update the user context with the new data from both responses
+            let updatedUserData = null;
+            
+            // Prefer user API response data if available
+            if (userResult && userResult.user) {
+                console.log('Updating user context with user API response:', userResult.user);
+                updatedUserData = userResult.user;
+            } else if (profileResult && profileResult.profile && profileResult.profile.facultyId) {
+                console.log('Updating user context with profile API response:', profileResult.profile.facultyId);
+                // Combine existing user data with updated fields from profile
+                updatedUserData = {
+                    ...user, // Start with existing user data
+                    ...profileResult.profile.facultyId // Override with updated data
+                };
+            }
+            
+            if (updatedUserData) {
+                // Update the user context with the newly updated user data
+                // This will help ensure that the Layout component recognizes the profile as complete
+                setUser(updatedUserData);
+                
+                // Also update the local profile state to match
+                setProfile({
+                    name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
+                    email: updatedUserData.email || '',
+                    department: updatedUserData.department || '',
+                    position: updatedUserData.position || '',
+                    phone: updatedUserData.phone || '',
+                    office: updatedUserData.office || '',
+                    bio: updatedUserData.bio || ''
+                });
+                
+                // Update localStorage as well to ensure data persists across page refreshes
+                localStorage.setItem('user', JSON.stringify(updatedUserData));
+            } else {
+                console.warn('Could not update user context - no valid user data received from APIs');
+            }
+            
+            console.log('Final profile state after update:', profile);
             
             Swal.fire({
                 title: 'Success!',

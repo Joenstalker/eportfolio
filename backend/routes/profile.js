@@ -7,7 +7,7 @@ const auth = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
     try {
         let profile = await Profile.findOne({ facultyId: req.user.id })
-            .populate('facultyId', 'name email department position');
+            .populate('facultyId', 'firstName lastName email department position');
 
         if (!profile) {
             profile = new Profile({
@@ -37,13 +37,17 @@ router.get('/', auth, async (req, res) => {
 router.put('/', auth, async (req, res) => {
     try {
         const { personalInfo } = req.body;
-        const profile = await Profile.findOneAndUpdate(
+        await Profile.findOneAndUpdate(
             { facultyId: req.user.id },
             { personalInfo },
             { new: true, upsert: true }
         );
-
-        res.json({ message: 'Profile updated successfully', profile });
+        
+        // Fetch the updated profile with populated faculty info
+        const updatedProfile = await Profile.findOne({ facultyId: req.user.id })
+            .populate('facultyId', 'firstName lastName email department position');
+        
+        res.json({ message: 'Profile updated successfully', profile: updatedProfile });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ message: 'Server error' });
