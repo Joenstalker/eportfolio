@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+    position: String,  // Added for user profile
     phone: String,  // Added for user profile
     office: String,  // Added for user profile
     bio: String,     // Added for user profile

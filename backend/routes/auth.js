@@ -27,6 +27,7 @@ router.post('/register', async (req, res) => {
       email,
       password, // Will be hashed by pre-save hook
       department,
+      position: 'Faculty', // Default position
       role: userRole || 'faculty'
     });
     
@@ -123,6 +124,7 @@ router.post('/google/callback', async (req, res) => {
         email,
         password: crypto.randomBytes(20).toString('hex'), // Random password for OAuth users
         role: 'faculty', // Default role for new users
+        position: 'Faculty', // Default position for new users
         department: 'General' // Default department for new users
       });
       
@@ -229,6 +231,7 @@ router.get('/me', auth, async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
+        position: user.position,
         phone: user.phone,
         office: user.office,
         bio: user.bio,
@@ -239,6 +242,82 @@ router.get('/me', auth, async (req, res) => {
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user's own profile information
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { firstName, lastName, email, department, position, phone, office, bio } = req.body;
+    
+    console.log('Received profile update request:', { firstName, lastName, email, department, position, phone, office, bio });
+    
+    // Find the user by the ID from the token
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('Original user data:', {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      department: user.department,
+      position: user.position,
+      phone: user.phone,
+      office: user.office,
+      bio: user.bio
+    });
+    
+    // Update user fields if provided
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (email) user.email = email;
+    if (department) user.department = department;
+    if (position) user.position = position;
+    if (phone) user.phone = phone;
+    if (office) user.office = office;
+    if (bio) user.bio = bio;
+    
+    await user.save();
+    
+    console.log('Updated user data:', {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      department: user.department,
+      position: user.position,
+      phone: user.phone,
+      office: user.office,
+      bio: user.bio
+    });
+    
+    // Return user without password
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: userResponse._id,
+        firstName: userResponse.firstName,
+        lastName: userResponse.lastName,
+        email: userResponse.email,
+        role: userResponse.role,
+        department: userResponse.department,
+        position: userResponse.position,
+        phone: userResponse.phone,
+        office: userResponse.office,
+        bio: userResponse.bio,
+        profilePicture: userResponse.profilePicture,
+        isActive: userResponse.isActive
+      }
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error during profile update' });
   }
 });
 
