@@ -1,16 +1,12 @@
+// Admin routes
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
-const { requireRole } = require('../middleware/role');
 const adminController = require('../controllers/adminController');
-const BackupUtil = require('../utils/backup');
+const auth = require('../middleware/auth');
+const role = require('../middleware/role');
 
-/**
- * All routes in this file are ADMIN‑ONLY.
- * - We first require a valid JWT (auth)
- * - Then we enforce role === 'admin' with requireRole('admin')
- */
-router.use(auth, requireRole('admin'));
+// All routes require authentication and admin role
+router.use(auth, role(['admin']));
 
 // Course routes
 router.get('/courses', adminController.getCourses);
@@ -18,28 +14,28 @@ router.post('/courses', adminController.createCourse);
 router.put('/courses/:id', adminController.updateCourse);
 router.delete('/courses/:id', adminController.deleteCourse);
 
-// Course lock management routes
-router.get('/courses/:id/lock-status', adminController.getLockStatus);
-router.post('/courses/:id/acquire-lock', adminController.acquireLock);
-router.post('/courses/:id/release-lock', adminController.releaseLock);
+// Course lock routes
+router.get('/courses/:id/lock', adminController.getLockStatus);
+router.post('/courses/:id/lock', adminController.acquireLock);
+router.delete('/courses/:id/lock', adminController.releaseLock);
 
 // Course assignment routes
-router.get('/course-assignments', adminController.getCourseAssignments);
-router.post('/course-assignments', adminController.createCourseAssignment);
-router.delete('/course-assignments/:id', adminController.deleteCourseAssignment);
+router.get('/assignments', adminController.getCourseAssignments);
+router.post('/assignments', adminController.createCourseAssignment);
+router.delete('/assignments/:id', adminController.deleteCourseAssignment);
 
-// User management routes
+// User routes
 router.get('/users', adminController.getUsers);
 router.post('/users', adminController.createUser);
 router.put('/users/:id', adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
 
-// Recent uploads
-router.get('/uploads', adminController.getUploads);
-
 // Backup routes
 router.get('/backups', adminController.getBackups);
-router.post('/backups/create', adminController.createBackup);
+router.post('/backups', adminController.createBackup);
 router.post('/backups/restore/:filename', adminController.restoreBackup);
+
+// Upload routes
+router.get('/uploads', adminController.getUploads);
 
 module.exports = router;

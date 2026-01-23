@@ -14,6 +14,14 @@ const ProfileDashboard = () => {
         office: '',
         bio: ''
     });
+
+    // Check if profile is complete
+    const isProfileComplete = () => {
+        return profile.name.trim() !== '' && 
+               profile.email.trim() !== '' && 
+               profile.department.trim() !== '' && 
+               profile.position.trim() !== '';
+    };
     const [stats, setStats] = useState({
         teachingFiles: 0,
         classFiles: 0,
@@ -34,6 +42,18 @@ const ProfileDashboard = () => {
                 bio: user.bio || ''
             });
             loadStats();
+            
+            // Check if profile is complete and show warning if not
+            if (!isProfileComplete()) {
+                Swal.fire({
+                    title: 'Profile Incomplete!',
+                    text: 'Please complete your profile information to access all features.',
+                    icon: 'warning',
+                    confirmButtonColor: '#3498db',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            }
         }
     }, [user]);
 

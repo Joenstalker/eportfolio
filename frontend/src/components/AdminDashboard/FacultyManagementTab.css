@@ -16,6 +16,46 @@
   font-weight: 600;
 }
 
+.admin-dashboard .header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-dashboard .faculty-filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  min-width: 150px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .faculty-filter-select:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
+}
+
+.admin-dashboard .faculty-search-input {
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  min-width: 200px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .faculty-search-input:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
+}
+
 .admin-dashboard .add-faculty-btn {
   background: #000000 !important;
   color: #ffffff !important;

@@ -610,7 +610,7 @@ exports.getUploads = async (req, res) => {
     });
 
     syllabi.forEach(s => {
-      if (s.syllabusFile && (s.syllabusFile.fileUrl || s.syllabusFile.filePath || s.syllabusFile.fileName)) {
+      if (s.syllabusFile && (s.syllabusFile.fileUrl || s.syllabusFile.fileName)) {
         uploads.push({
           source: 'Syllabus',
           title: `${s.subjectCode || ''} ${s.subjectName || ''}`.trim() || s.syllabusFile.fileName || 'Syllabus',
@@ -695,4 +695,3 @@ exports.getUploads = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-

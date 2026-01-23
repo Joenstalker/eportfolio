@@ -75,7 +75,7 @@ function App() {
             {/* Protected Routes with Layout */}
             <Route 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole="faculty">
                   <Layout />
                 </ProtectedRoute>
               }
@@ -95,9 +95,9 @@ function App() {
                 key={path}
                 path={path}
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute requiredRole="admin">
                     <AdminDashboard />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 }
               />
             ))}
