@@ -3,10 +3,10 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const auth = require('../middleware/auth');
-const { requireRole } = require('../middleware/role');
+const role = require('../middleware/role');
 
 // All routes require authentication and admin role
-router.use(auth, requireRole(['admin']));
+router.use(auth, role(['admin']));
 
 // Course routes
 router.get('/courses', adminController.getCourses);
