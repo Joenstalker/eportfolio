@@ -11,16 +11,62 @@ const Layout = () => {
     // Check if profile is complete
     const isProfileComplete = (userData) => {
         if (!userData) return false;
-        return userData.firstName && 
-               userData.lastName && 
-               userData.email && 
-               userData.department && 
-               userData.position &&
-               (userData.firstName.trim() !== '' && 
-                userData.lastName.trim() !== '' && 
-                userData.email.trim() !== '' && 
-                userData.department.trim() !== '' && 
-                userData.position.trim() !== '');
+        
+        // Handle different data structures
+        let firstName = '';
+        let lastName = '';
+        let email = '';
+        let department = '';
+        let position = '';
+        
+        // Check direct fields first
+        if (userData.firstName && userData.lastName) {
+            firstName = userData.firstName;
+            lastName = userData.lastName;
+        } 
+        // Check if name is in personalInfo.fullName
+        else if (userData.personalInfo && userData.personalInfo.fullName) {
+            const nameParts = userData.personalInfo.fullName.trim().split(' ');
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+        }
+        // Check if full name is in a single field that needs splitting
+        else if (userData.name) {
+            const nameParts = userData.name.trim().split(' ');
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+        }
+        
+        // Get other required fields
+        email = userData.email || (userData.personalInfo && userData.personalInfo.email) || '';
+        department = userData.department || (userData.personalInfo && userData.personalInfo.department) || '';
+        position = userData.position || (userData.personalInfo && userData.personalInfo.position) || '';
+        
+        // Validate all required fields are present and not empty
+        const isValid = firstName && 
+                       lastName && 
+                       email && 
+                       department && 
+                       position &&
+                       firstName.trim() !== '' && 
+                       lastName.trim() !== '' && 
+                       email.trim() !== '' && 
+                       department.trim() !== '' && 
+                       position.trim() !== '';
+        
+        // Log for debugging
+        if (!isValid) {
+            console.log('Profile incomplete check - Missing fields:', {
+                firstName: firstName || 'MISSING',
+                lastName: lastName || 'MISSING',
+                email: email || 'MISSING',
+                department: department || 'MISSING',
+                position: position || 'MISSING',
+                userData: userData
+            });
+        }
+        
+        return isValid;
     };
 
     useEffect(() => {
@@ -54,7 +100,7 @@ const Layout = () => {
             <nav className="sidebar">
                 <div className="sidebar-header">
                     <h3>Faculty Portfolio</h3>
-                    <p>Welcome, {user?.personalInfo?.firstName || 'User'}</p>
+                    <p>Welcome, {user?.firstName || (user?.personalInfo?.fullName ? user.personalInfo.fullName.split(' ')[0] : (user?.name ? user.name.split(' ')[0] : 'User'))}</p>
                 </div>
                 
                 <ul className="sidebar-menu">

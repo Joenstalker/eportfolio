@@ -125,18 +125,52 @@ const loadStats = async () => {
 };
 
     const handleSave = async () => {
-        if (!user?._id) return;
+        console.log('🚀 Save button clicked, starting save process...');
+        console.log('Current user data:', user);
+        
+        // Validate user exists and has basic required fields
+        if (!user) {
+            console.error('❌ No user data found');
+            Swal.fire({
+                title: 'Error!',
+                text: 'User data not found. Please log in again.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+        
+        // Basic validation - just ensure we have the essential user data
+        // The APIs use the authenticated user from the token, so we don't need strict ID validation
+        if (!user.email) {
+            console.error('❌ User email missing:', user);
+            Swal.fire({
+                title: 'Error!',
+                text: 'User email not found. Please log in again.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+        
+        console.log('✅ User validated. Email:', user.email);
 
         setLoading(true);
+        console.log('⏳ Setting loading state to true');
+        
         try {
             const token = ensureToken();
+            console.log('🔑 Token retrieved:', token ? 'Present' : 'Missing');
+            
             if (!token) {
+                console.error('❌ No authentication token found');
                 Swal.fire({
                     title: 'Authentication Required!',
                     text: 'Please log in again.',
                     icon: 'warning',
                     confirmButtonColor: '#e74c3c'
                 });
+                setLoading(false);
                 return;
             }
             
@@ -162,7 +196,12 @@ const loadStats = async () => {
             
             console.log('Sending profile update request with data:', { personalInfo, firstName, lastName, email: profile.email, department: profile.department, position: profile.position, phone: profile.phone, office: profile.office, bio: profile.bio });
             
+            console.log('🌐 Making API calls to save profile...');
+            
             // Update both the profile dashboard and the user info
+            console.log('📤 Sending request to /api/profile');
+            console.log('📤 Sending request to /api/auth/profile');
+            
             const [profileResponse, userResponse] = await Promise.all([
                 fetch('http://localhost:5000/api/profile', {
                     method: 'PUT',
@@ -171,6 +210,9 @@ const loadStats = async () => {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ personalInfo })
+                }).catch(error => {
+                    console.error('❌ Profile API call failed:', error);
+                    throw new Error(`Profile API error: ${error.message}`);
                 }),
                 fetch('http://localhost:5000/api/auth/profile', {
                     method: 'PUT',
@@ -188,8 +230,13 @@ const loadStats = async () => {
                         office: profile.office,
                         bio: profile.bio
                     })
+                }).catch(error => {
+                    console.error('❌ Auth API call failed:', error);
+                    throw new Error(`Auth API error: ${error.message}`);
                 })
             ]);
+            
+            console.log('📥 Received responses from APIs');
             
             console.log('Profile response status:', profileResponse.status, 'User response status:', userResponse.status);
             
@@ -245,15 +292,29 @@ const loadStats = async () => {
                 console.warn('Could not update user context - no valid user data received from APIs');
             }
             
+            console.log('✅ Profile save completed successfully!');
             console.log('Final profile state after update:', profile);
             
             Swal.fire({
-                title: 'Success!',
-                text: 'Profile updated successfully!',
+                title: '✅ Profile Saved Successfully!',
+                html: `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 24px; margin-bottom: 15px;">🎉</div>
+                        <div style="font-size: 18px; margin-bottom: 10px; color: #27ae60;">
+                            <strong>Your profile information has been saved!</strong>
+                        </div>
+                        <div style="font-size: 14px; color: #7f8c8d;">
+                            All required fields are now complete.<br/>
+                            You can now access all portfolio features.
+                        </div>
+                    </div>
+                `,
                 icon: 'success',
-                confirmButtonColor: '#3498db',
-                timer: 3000,
-                timerProgressBar: true
+                confirmButtonColor: '#27ae60',
+                confirmButtonText: 'Continue',
+                timer: 4000,
+                timerProgressBar: true,
+                showConfirmButton: true
             });
         } catch (error) {
             console.error('Error updating profile:', error);

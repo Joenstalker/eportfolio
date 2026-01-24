@@ -146,6 +146,7 @@ export const AuthProvider = ({ children }) => {
         logout: logoutUser,
         logoutUser,
         ensureToken, // Add ensureToken function
+        setUser, // Add setUser function for updating user context
     };
 
     return (
