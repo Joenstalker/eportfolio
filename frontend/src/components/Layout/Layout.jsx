@@ -70,23 +70,36 @@ const Layout = () => {
     };
 
     useEffect(() => {
-        if (user && !isProfileComplete(user)) {
-            // Show a persistent reminder about incomplete profile
-            Swal.fire({
-                title: 'Profile Incomplete!',
-                html: 'Your profile is incomplete. Please complete your profile information in the Profile Dashboard to access all features.<br/><br/><b>Required fields:</b> Name, Email, Department, Position',
-                icon: 'warning',
-                confirmButtonColor: '#3498db',
-                confirmButtonText: 'Go to Profile',
-                showCancelButton: true,
-                cancelButtonText: 'Later',
-                allowOutsideClick: false,
-                allowEscapeKey: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    navigate('/dashboard');
-                }
+        if (user) {
+            const profileComplete = isProfileComplete(user);
+            console.log('🔍 Profile completeness check:', {
+                isComplete: profileComplete,
+                user: user,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                department: user.department,
+                position: user.position
             });
+            
+            if (!profileComplete) {
+                // Show a persistent reminder about incomplete profile
+                Swal.fire({
+                    title: 'Profile Incomplete!',
+                    html: 'Your profile is incomplete. Please complete your profile information in the Profile Dashboard to access all features.<br/><br/><b>Required fields:</b> Name, Email, Department, Position',
+                    icon: 'warning',
+                    confirmButtonColor: '#3498db',
+                    confirmButtonText: 'Go to Profile',
+                    showCancelButton: true,
+                    cancelButtonText: 'Later',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/dashboard');
+                    }
+                });
+            }
         }
     }, [user, navigate]);
 

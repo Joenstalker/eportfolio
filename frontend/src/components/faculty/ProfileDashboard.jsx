@@ -198,76 +198,45 @@ const loadStats = async () => {
             
             console.log('🌐 Making API calls to save profile...');
             
-            // Update both the profile dashboard and the user info
-            console.log('📤 Sending request to /api/profile');
+            // Update user profile through the auth endpoint (primary source of truth)
             console.log('📤 Sending request to /api/auth/profile');
             
-            const [profileResponse, userResponse] = await Promise.all([
-                fetch('http://localhost:5000/api/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ personalInfo })
-                }).catch(error => {
-                    console.error('❌ Profile API call failed:', error);
-                    throw new Error(`Profile API error: ${error.message}`);
-                }),
-                fetch('http://localhost:5000/api/auth/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        firstName: firstName,
-                        lastName: lastName,
-                        email: profile.email,
-                        department: profile.department,
-                        position: profile.position,
-                        phone: profile.phone,
-                        office: profile.office,
-                        bio: profile.bio
-                    })
-                }).catch(error => {
-                    console.error('❌ Auth API call failed:', error);
-                    throw new Error(`Auth API error: ${error.message}`);
+            const userResponse = await fetch('http://localhost:5000/api/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: profile.email,
+                    department: profile.department,
+                    position: profile.position,
+                    phone: profile.phone,
+                    office: profile.office,
+                    bio: profile.bio
                 })
-            ]);
+            });
             
-            console.log('📥 Received responses from APIs');
+            console.log('📥 Received response from auth API');
+            console.log('User response status:', userResponse.status);
             
-            console.log('Profile response status:', profileResponse.status, 'User response status:', userResponse.status);
-            
-            if (!profileResponse.ok || !userResponse.ok) {
-                const profileError = profileResponse.status !== 200 ? `Profile update failed (${profileResponse.status})` : null;
-                const userError = userResponse.status !== 200 ? `User profile update failed (${userResponse.status})` : null;
-                
-                throw new Error([profileError, userError].filter(Boolean).join(' and '));
+            if (!userResponse.ok) {
+                const errorText = await userResponse.text();
+                throw new Error(`User profile update failed (${userResponse.status}): ${errorText}`);
             }
             
-            // Parse the responses
-            const profileResult = await profileResponse.json();
+            // Parse the response
             const userResult = await userResponse.json();
-            
-            console.log('Profile API response:', profileResult);
             console.log('User API response:', userResult);
             
-            // Update the user context with the new data from both responses
+            // Update the user context with the new data
             let updatedUserData = null;
             
-            // Prefer user API response data if available
             if (userResult && userResult.user) {
                 console.log('Updating user context with user API response:', userResult.user);
                 updatedUserData = userResult.user;
-            } else if (profileResult && profileResult.profile && profileResult.profile.facultyId) {
-                console.log('Updating user context with profile API response:', profileResult.profile.facultyId);
-                // Combine existing user data with updated fields from profile
-                updatedUserData = {
-                    ...user, // Start with existing user data
-                    ...profileResult.profile.facultyId // Override with updated data
-                };
             }
             
             if (updatedUserData) {
