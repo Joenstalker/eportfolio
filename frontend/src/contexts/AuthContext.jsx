@@ -85,6 +85,58 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
     };
 
+    // Set authentication from token (used by Google OAuth)
+    const setAuthFromToken = async (token) => {
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/verify', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Token verification failed');
+            }
+
+            const data = await response.json();
+            
+            if (data.user) {
+                const getRoleFromToken = (jwtToken) => {
+                    try {
+                        if (!jwtToken || typeof jwtToken !== 'string') return null;
+                        const [, payload] = jwtToken.split('.');
+                        if (!payload) return null;
+                        const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+                        return typeof json.role === 'string' ? json.role.toLowerCase() : null;
+                    } catch {
+                        return null;
+                    }
+                };
+                
+                const roleFromJwt = getRoleFromToken(token);
+                const normalizedUser = {
+                    ...data.user,
+                    role: roleFromJwt || (typeof data.user.role === 'string' ? data.user.role.toLowerCase() : data.user.role),
+                };
+                
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(normalizedUser));
+                setUser(normalizedUser);
+                setToken(token);
+                
+                return data;
+            } else {
+                throw new Error('Invalid token response');
+            }
+        } catch (error) {
+            console.error('Token verification error:', error);
+            logoutUser();
+            throw error;
+        }
+    };
+
     // Ensure token is available (used by components)
     const ensureToken = () => {
         const currentToken = token || localStorage.getItem('token');
@@ -147,6 +199,7 @@ export const AuthProvider = ({ children }) => {
         logoutUser,
         ensureToken, // Add ensureToken function
         setUser, // Add setUser function for updating user context
+        setAuthFromToken, // Add setAuthFromToken function for Google OAuth
     };
 
     return (

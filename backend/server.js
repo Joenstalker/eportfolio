@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://localhost:3001'],
     credentials: true
 }));
 app.use(express.json());
@@ -26,7 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/teaching', require('./routes/teaching'));
+app.use('/api/teaching-portfolio', require('./routes/teaching'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/seminars', require('./routes/seminars'));
 app.use('/api/research', require('./routes/research'));

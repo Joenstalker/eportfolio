@@ -2,10 +2,17 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const role = require('../middleware/role');
+
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${process.env.API_BASE_URL}/api/auth/google/callback`
+);
 
 const router = express.Router();
 
@@ -318,6 +325,172 @@ router.put('/profile', auth, async (req, res) => {
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ message: 'Server error during profile update' });
+  }
+});
+
+// Google OAuth endpoint
+router.get('/google', (req, res) => {
+  const url = googleClient.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['profile', 'email'],
+    redirect_uri: `${process.env.API_BASE_URL}/api/auth/google/callback`,
+    include_granted_scopes: true
+  });
+  console.log('Generated Google auth URL:', url);
+  res.redirect(url);
+});
+
+// Google OAuth callback
+router.get('/google/callback', async (req, res) => {
+  try {
+    console.log('Google OAuth callback initiated');
+    const { code } = req.query;
+    
+    if (!code) {
+      console.log('No code provided in callback');
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_code`);
+    }
+
+    console.log('Exchanging code for tokens...');
+    const { tokens } = await googleClient.getToken({
+      code,
+      redirect_uri: `${process.env.API_BASE_URL}/api/auth/google/callback`
+    });
+    
+    console.log('Verifying ID token...');
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+    console.log('User verified:', email);
+
+    // Find existing user by googleId or email
+    console.log('Searching for existing user...');
+    let user = await User.findOne({ googleId: payload.sub });
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
+    if (user) {
+      console.log('Existing user found, generating token');
+      // Update profile picture if provided
+      if (picture && user.profilePicture !== picture) {
+        user.profilePicture = picture;
+        await user.save();
+      }
+      
+      // Generate JWT token and redirect to frontend
+      const token = jwt.sign(
+        { id: user._id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      console.log('Redirecting to auth callback with token');
+      return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+    }
+
+    console.log('New user, redirecting to role selection');
+    // No existing user: redirect to frontend choose page so the user can select desired role
+    const chooseUrl = new URL(`${process.env.FRONTEND_URL}/auth/choose`);
+    chooseUrl.searchParams.set('email', email);
+    chooseUrl.searchParams.set('name', name);
+    chooseUrl.searchParams.set('googleId', payload.sub);
+    console.log('Redirecting to choose role page');
+    return res.redirect(chooseUrl.toString());
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    console.error('Error details:', error.message, error.code, error.status);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+  }
+});
+
+// Verify token endpoint
+router.get('/verify', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        name: `${user.firstName} ${user.lastName}`,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        department: user.department
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+// Complete Google sign-in for users who chose a role on the frontend
+router.post('/google/complete', async (req, res) => {
+  try {
+    const { googleId, email, name, role } = req.body;
+
+    if (!googleId || !email || !role) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Check again if user exists
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+    if (user) {
+      // If exists, link googleId if missing
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.loginMethod = 'google';
+        await user.save();
+      }
+    } else {
+      // Create new user with chosen role
+      const [firstName, ...ln] = (name || '').split(' ');
+      user = new User({
+        googleId,
+        firstName: firstName || 'User',
+        lastName: ln.join(' ') || '',
+        email,
+        password: await bcrypt.hash(Math.random().toString(36) + Date.now().toString(), 12),
+        role: role === 'admin' ? 'admin' : 'faculty',
+        department: 'General',
+        loginMethod: 'google',
+        isVerified: true
+      });
+      await user.save();
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({ token, user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role
+    }});
+  } catch (error) {
+    console.error('Error completing Google sign-in:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
