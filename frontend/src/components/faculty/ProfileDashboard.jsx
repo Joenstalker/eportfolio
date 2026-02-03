@@ -54,46 +54,34 @@ const loadStats = async () => {
             return;
         }
         
-        // Load teaching portfolio stats
-        const teachingResponse = await fetch('http://localhost:5000/api/teaching', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!teachingResponse.ok) {
-            throw new Error(`HTTP error! status: ${teachingResponse.status}`);
-        }
-        const teachingData = await teachingResponse.json();
-        
-        // Load class portfolio stats - FIXED flatMap issue
-        const classResponse = await fetch('http://localhost:5000/api/class-portfolio', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!classResponse.ok) {
-            throw new Error(`HTTP error! status: ${classResponse.status}`);
-        }
-        const classData = await classResponse.json();
-        
-        // Load research stats
-        const researchResponse = await fetch('http://localhost:5000/api/research', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!researchResponse.ok) {
-            throw new Error(`HTTP error! status: ${researchResponse.status}`);
-        }
-        const researchData = await researchResponse.json();
-        
-        // Load seminars stats
-        const seminarsResponse = await fetch('http://localhost:5000/api/seminars', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!seminarsResponse.ok) {
-            throw new Error(`HTTP error! status: ${seminarsResponse.status}`);
-        }
-        const seminarsData = await seminarsResponse.json();
+        // Load all stats in parallel with individual error handling
+        const [teachingResponse, classResponse, researchResponse, seminarsResponse] = await Promise.all([
+            fetch('http://localhost:5000/api/teaching', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => null),
+            fetch('http://localhost:5000/api/class-portfolio', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => null),
+            fetch('http://localhost:5000/api/research', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => null),
+            fetch('http://localhost:5000/api/seminars', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => null)
+        ]);
 
-        // Fix flatMap issue - handle both array and object responses
+        // Process responses with fallback handling
+        const teachingData = teachingResponse?.ok ? await teachingResponse.json() : { subjects: [] };
+        const classData = classResponse?.ok ? await classResponse.json() : [];
+        const researchData = researchResponse?.ok ? await researchResponse.json() : [];
+        const seminarsData = seminarsResponse?.ok ? await seminarsResponse.json() : [];
+
+        // Calculate stats with proper fallbacks
         let classFilesCount = 0;
         if (Array.isArray(classData)) {
-            classFilesCount = classData.flatMap(portfolio => portfolio.materials || []).length;
+            classFilesCount = classData.reduce((total, portfolio) => 
+                total + (portfolio.materials?.length || 0), 0
+            );
         } else if (classData && classData.materials) {
             classFilesCount = classData.materials.length;
         }
@@ -101,22 +89,23 @@ const loadStats = async () => {
         setStats({
             teachingFiles: teachingData.subjects?.length || 0,
             classFiles: classFilesCount,
-            researchPapers: researchData.researchPapers?.length || 0,
-            seminars: seminarsData.seminars?.length || 0
+            researchPapers: researchData.length || 0,
+            seminars: seminarsData.length || 0
         });
     } catch (error) {
         console.error('Error loading stats:', error);
+        // Set default stats on error
+        setStats({
+            teachingFiles: 0,
+            classFiles: 0,
+            researchPapers: 0,
+            seminars: 0
+        });
+        
         if (error.message.includes('Failed to fetch')) {
             Swal.fire({
                 title: 'Connection Error!',
                 text: 'Unable to connect to server. Please make sure the backend is running.',
-                icon: 'error',
-                confirmButtonColor: '#e74c3c'
-            });
-        } else {
-            Swal.fire({
-                title: 'Error!',
-                text: `Error loading stats: ${error.message}`,
                 icon: 'error',
                 confirmButtonColor: '#e74c3c'
             });
