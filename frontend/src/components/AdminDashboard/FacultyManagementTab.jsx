@@ -129,7 +129,7 @@ const FacultyManagementTab = ({
                   <tbody>
                     {members.map((faculty) => {
                       const status = faculty.isActive ? 'active' : 'inactive';
-                      const fullName = `${faculty.firstName} ${faculty.lastName}`;
+                      const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
                       return (
                       <tr
                         key={faculty._id}
