@@ -467,7 +467,7 @@ const AdminDashboard = () => {
     setLoading(true)
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch('/api/admin/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -529,7 +529,7 @@ const AdminDashboard = () => {
         role: newFaculty.role
       };
 
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -572,7 +572,7 @@ const AdminDashboard = () => {
         role: (editFaculty.role || '').toLowerCase() === 'admin' ? 'admin' : 'faculty'
       };
 
-      const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
+      const response = await fetch(`/api/admin/users/${selectedFaculty._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -622,7 +622,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+      const response = await fetch(`/api/admin/users/${faculty._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -664,7 +664,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+      const response = await fetch(`/api/admin/users/${faculty._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -693,7 +693,7 @@ const AdminDashboard = () => {
   const handleStatusSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${selectedFaculty._id}`, {
+      const response = await fetch(`/api/admin/users/${selectedFaculty._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -742,7 +742,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${faculty._id}`, {
+      const response = await fetch(`/api/admin/users/${faculty._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

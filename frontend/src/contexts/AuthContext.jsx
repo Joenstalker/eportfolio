@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
                 requestBody.recaptchaToken = recaptchaToken;
             }
             
-            const response = await fetch('http://localhost:5000/api/auth/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     // Set authentication from token (used by Google OAuth)
     const setAuthFromToken = async (token) => {
         try {
-            const response = await fetch('http://localhost:5000/api/auth/verify', {
+            const response = await fetch('/api/auth/verify', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
