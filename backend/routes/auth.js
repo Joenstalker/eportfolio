@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'fallback_secret', {
+    const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', {
       expiresIn: '7d',
     });
 
@@ -66,23 +66,33 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(' Login attempt for email:', email);
 
     // Find user by email
     const user = await User.findOne({ email });
+    console.log(' User found:', user ? 'Yes' : 'No');
+    if (user) {
+      console.log(' User details:', { id: user._id, email: user.email, role: user.role });
+    }
+    
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password
+    console.log(' Comparing passwords...');
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log(' Password match:', isMatch ? 'Yes' : 'No');
+    
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'fallback_secret', {
+    const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', {
       expiresIn: '7d',
     });
+    console.log(' Token generated successfully');
 
     res.json({
       token,
@@ -139,7 +149,7 @@ router.post('/google/callback', async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'fallback_secret', {
+    const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', {
       expiresIn: '7d',
     });
 
