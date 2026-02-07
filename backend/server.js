@@ -47,12 +47,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/faculty_portfolio', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB Connected'))
-.catch(err => console.log('❌ MongoDB Error:', err));
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/faculty_portfolio', {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        console.log('✅ MongoDB Connected');
+    } catch (err) {
+        console.log('❌ MongoDB Error:', err);
+        console.log('⚠️ Server continuing without MongoDB connection...');
+    }
+};
+
+connectDB();
 
 // Error handling middleware
 app.use((error, req, res, next) => {
@@ -69,4 +77,16 @@ app.use('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// Handle server errors
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err);
+    process.exit(1);
+});
+
+app.listen(PORT, '127.0.0.1', () => console.log(`🚀 Server running on port ${PORT}`));

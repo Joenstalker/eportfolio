@@ -786,6 +786,186 @@ const AdminDashboard = () => {
           )}
         </main>
       </div>
+
+      {/* Add Faculty Modal */}
+      {showAddModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Add New Faculty</h3>
+              <button className="close-btn" onClick={() => setShowAddModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>First Name *</label>
+                <input
+                  type="text"
+                  value={newFaculty.firstName}
+                  onChange={(e) => setNewFaculty({...newFaculty, firstName: e.target.value})}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Last Name</label>
+                <input
+                  type="text"
+                  value={newFaculty.lastName}
+                  onChange={(e) => setNewFaculty({...newFaculty, lastName: e.target.value})}
+                  placeholder="Enter last name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={newFaculty.email}
+                  onChange={(e) => setNewFaculty({...newFaculty, email: e.target.value})}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="form-group">
+                <label>Password *</label>
+                <input
+                  type="password"
+                  value={newFaculty.password}
+                  onChange={(e) => setNewFaculty({...newFaculty, password: e.target.value})}
+                  placeholder="Enter password"
+                />
+              </div>
+              <div className="form-group">
+                <label>Department *</label>
+                <input
+                  type="text"
+                  value={newFaculty.department}
+                  onChange={(e) => setNewFaculty({...newFaculty, department: e.target.value})}
+                  placeholder="Enter department"
+                />
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <select
+                  value={newFaculty.role}
+                  onChange={(e) => setNewFaculty({...newFaculty, role: e.target.value})}
+                >
+                  <option value="faculty">Faculty</option>
+                  <option value="admin">Admin</option>
+                  <option value="hod">Head of Department</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button 
+                className="save-btn" 
+                onClick={handleAddFaculty}
+                disabled={!isAddFacultyFormValid()}
+              >
+                Add Faculty
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Faculty Modal */}
+      {showEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Edit Faculty</h3>
+              <button className="close-btn" onClick={() => setShowEditModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Name</label>
+                <input
+                  type="text"
+                  value={editFaculty.name || ''}
+                  onChange={(e) => setEditFaculty({...editFaculty, name: e.target.value})}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={editFaculty.email || ''}
+                  onChange={(e) => setEditFaculty({...editFaculty, email: e.target.value})}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="form-group">
+                <label>Department *</label>
+                <input
+                  type="text"
+                  value={editFaculty.department || ''}
+                  onChange={(e) => setEditFaculty({...editFaculty, department: e.target.value})}
+                  placeholder="Enter department"
+                />
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <select
+                  value={editFaculty.role || 'faculty'}
+                  onChange={(e) => setEditFaculty({...editFaculty, role: e.target.value})}
+                >
+                  <option value="faculty">Faculty</option>
+                  <option value="admin">Admin</option>
+                  <option value="hod">Head of Department</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={() => setShowEditModal(false)}>Cancel</button>
+              <button 
+                className="save-btn" 
+                onClick={handleEditSave}
+                disabled={!isEditFacultyFormValid()}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Modal */}
+      {showStatusModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Change Status</h3>
+              <button className="close-btn" onClick={() => setShowStatusModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Faculty Member</label>
+                <input
+                  type="text"
+                  value={statusFaculty.name || ''}
+                  disabled
+                />
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={statusFaculty.status || 'active'}
+                  onChange={(e) => setStatusFaculty({...statusFaculty, status: e.target.value})}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={() => setShowStatusModal(false)}>Cancel</button>
+              <button className="save-btn" onClick={handleStatusSave}>
+                Update Status
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

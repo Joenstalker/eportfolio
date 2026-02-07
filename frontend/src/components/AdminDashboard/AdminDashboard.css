@@ -250,6 +250,63 @@
   flex: 1;
 }
 
+.admin-dashboard .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-dashboard .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--admin-border);
+  margin-top: 16px;
+}
+
+.admin-dashboard .modal-footer .cancel-btn {
+  background: #ffffff;
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9375rem;
+}
+
+.admin-dashboard .modal-footer .cancel-btn:hover {
+  background: var(--admin-surface-2);
+  border-color: var(--admin-text);
+}
+
+.admin-dashboard .modal-footer .save-btn {
+  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9375rem;
+}
+
+.admin-dashboard .modal-footer .save-btn:hover {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-dashboard .modal-footer .save-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .admin-dashboard .modal-content::-webkit-scrollbar {
   width: 8px;
 }
