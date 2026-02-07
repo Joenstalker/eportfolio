@@ -30,6 +30,7 @@ const AdminDashboard = () => {
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState('all')
+  const [filterRole, setFilterRole] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedFile, setSelectedFile] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -267,7 +268,7 @@ const AdminDashboard = () => {
                 <div className="stat-content">
                   <h4>Active Faculty</h4>
                   <div className="stat-number">
-                    {facultyData.filter((f) => f.status === 'active').length}
+                    {facultyData.filter((f) => f.isActive).length}
                   </div>
                   <p>Currently active</p>
                 </div>
@@ -322,6 +323,12 @@ const AdminDashboard = () => {
           facultyData={facultyData}
           filterDept={filterDept}
           setFilterDept={setFilterDept}
+          filterRole={filterRole}
+          setFilterRole={setFilterRole}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
           onAddFacultyClick={() => setShowAddModal(true)}
           onEditClick={handleEditClick}
           onArchiveClick={handleArchiveClick}
@@ -469,7 +476,7 @@ const AdminDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setFacultyData(data);
-        setArchivedFaculty(data.filter(u => u.status === 'inactive'));
+        setArchivedFaculty(data.filter(u => !u.isActive));
       } else {
         throw new Error('Failed to fetch faculty data');
       }

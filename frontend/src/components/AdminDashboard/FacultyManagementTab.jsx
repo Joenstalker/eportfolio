@@ -25,11 +25,13 @@ const FacultyManagementTab = ({
     if (filterRole !== 'all' && f.role !== filterRole) return false;
     
     // Apply status filter
-    if (filterStatus !== 'all' && f.status !== filterStatus) return false;
+    const status = f.isActive ? 'active' : 'inactive';
+    if (filterStatus !== 'all' && status !== filterStatus) return false;
     
     // Apply search term filter
+    const fullName = `${f.firstName} ${f.lastName}`.toLowerCase();
     if (searchTerm && 
-        !f.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !fullName.includes(searchTerm.toLowerCase()) && 
         !f.email.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
@@ -125,16 +127,19 @@ const FacultyManagementTab = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {members.map((faculty) => (
+                    {members.map((faculty) => {
+                      const status = faculty.isActive ? 'active' : 'inactive';
+                      const fullName = `${faculty.firstName} ${faculty.lastName}`;
+                      return (
                       <tr
                         key={faculty._id}
-                        className={faculty.status === 'inactive' ? 'inactive' : ''}
+                        className={status === 'inactive' ? 'inactive' : ''}
                       >
-                        <td>{faculty.name}</td>
+                        <td>{fullName}</td>
                         <td>{faculty.email}</td>
                         <td>{faculty.role}</td>
                         <td>
-                          <span className={`status-badge ${faculty.status}`}>{faculty.status}</span>
+                          <span className={`status-badge ${status}`}>{status}</span>
                         </td>
                         <td>
                           <div className="action-buttons">
@@ -147,14 +152,15 @@ const FacultyManagementTab = ({
                             <button
                               className="status-btn"
                               onClick={() => onArchiveClick(faculty)}
-                              disabled={faculty.status === 'inactive'}
+                              disabled={status === 'inactive'}
                             >
-                              {faculty.status === 'inactive' ? 'Archived' : 'Archive'}
+                              {status === 'inactive' ? 'Archived' : 'Archive'}
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
