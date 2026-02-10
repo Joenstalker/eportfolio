@@ -90,7 +90,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const lockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock`, {
+      const response = await fetch(`/api/courses/${courseId}/lock`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -127,7 +127,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const unlockCourseOnBackend = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/unlock`, {
+      const response = await fetch(`/api/courses/${courseId}/unlock`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -156,7 +156,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const checkCourseLockStatus = async (courseId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/lock-status`, {
+      const response = await fetch(`/api/courses/${courseId}/lock-status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -206,7 +206,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
         throw new Error('No authentication token found');
       }
 
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await fetch('/api/courses', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -253,7 +253,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const fetchCourseAssignments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+      const response = await fetch('/api/admin/course-assignments', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -279,7 +279,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
       const token = localStorage.getItem('token');
       console.log('➕ Adding new course:', newCourse);
       
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await fetch('/api/courses', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -361,7 +361,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
         changes: editCourse
       });
       
-      const response = await fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`, {
+      const response = await fetch(`/api/courses/${selectedCourse._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -433,7 +433,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${course._id}`, {
+      const response = await fetch(`/api/courses/${course._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -469,7 +469,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+      const response = await fetch('/api/admin/course-assignments', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
