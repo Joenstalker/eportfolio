@@ -3,26 +3,19 @@ import Swal from 'sweetalert2';
 import './CourseManagementTab.css';
 
 const CourseManagementTab = ({ user, facultyData }) => {
-  // Generate semester options from 2nd Semester SY 2025-2026 to 2040
+  // Generate semester options matching backend enum
   const generateSemesterOptions = () => {
-    const semesters = [];
-    const startYear = 2025;
-    const endYear = 2040;
-    
-    // Start with Second Semester SY 2025-2026
-    for (let year = startYear; year <= endYear; year++) {
-      semesters.push(`First Semester SY ${year}-${year + 1}`);
-      semesters.push(`Second Semester SY ${year}-${year + 1}`);
-    }
-    
-    // Remove the first semester of 2025-2026 to start with Second Semester
-    semesters.shift();
-    
+    return [
+      'Fall 2024',
+      'Spring 2025', 
+      'Summer 2025',
+      'Fall 2025'
+    ];
     return semesters;
   };
   
   const semesterOptions = generateSemesterOptions();
-  const defaultSemester = 'Second Semester SY 2025-2026';
+  const defaultSemester = 'Fall 2025';
 
   // Course Management State
   const [courses, setCourses] = useState([]);
@@ -206,7 +199,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
         throw new Error('No authentication token found');
       }
 
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await fetch('/api/courses', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -253,7 +246,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const fetchCourseAssignments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+      const response = await fetch('/api/admin/assignments', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -279,7 +272,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
       const token = localStorage.getItem('token');
       console.log('➕ Adding new course:', newCourse);
       
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await fetch('/api/courses', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -462,6 +455,10 @@ const CourseManagementTab = ({ user, facultyData }) => {
   };
 
   const handleAssignFaculty = async () => {
+    console.log('🔍 Assignment form state:', newAssignment);
+    console.log('🔍 Faculty ID:', newAssignment.facultyId);
+    console.log('🔍 Course ID:', newAssignment.courseId);
+    
     if (!newAssignment.facultyId || !newAssignment.courseId) {
       showErrorAlert('Please select both faculty and course');
       return;
@@ -469,7 +466,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/course-assignments', {
+      const response = await fetch('/api/admin/assignments', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -952,9 +949,9 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   onChange={(e) => setNewAssignment(prev => ({ ...prev, facultyId: e.target.value }))}
                 >
                   <option value="">Select Faculty Member</option>
-                  {facultyData.filter(f => f.status === 'active').map(faculty => (
+                  {facultyData.filter(f => f.isActive).map(faculty => (
                     <option key={faculty._id} value={faculty._id}>
-                      {faculty.name} - {faculty.department}
+                      {faculty.firstName} {faculty.lastName} - {faculty.department}
                     </option>
                   ))}
                 </select>
@@ -966,7 +963,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   onChange={(e) => setNewAssignment(prev => ({ ...prev, courseId: e.target.value }))}
                 >
                   <option value="">Select Course</option>
-                  {courses.filter(c => c.status === 'active').map(course => (
+                  {courses.filter(c => c.isActive).map(course => (
                     <option key={course._id} value={course._id}>
                       {course.courseCode} - {course.courseName}
                     </option>

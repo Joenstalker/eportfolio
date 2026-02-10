@@ -200,18 +200,104 @@ exports.getUploads = async (req, res) => {
 exports.getCourseAssignments = async (req, res) => {
   try {
     if (!requireAdmin(req, res)) return;
-    res.json({ message: 'Course assignments endpoint - not implemented' });
+
+    const CourseAssignment = require('../models/CourseAssignment');
+    
+    // Get all assignments with populated faculty and course details
+    const assignments = await CourseAssignment.find()
+      .populate('facultyId', 'firstName lastName email department')
+      .populate('courseId', 'courseCode courseName department')
+      .sort({ assignedAt: -1 });
+
+    console.log('✅ Retrieved course assignments:', assignments.length);
+
+    res.json(assignments);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Get course assignments error:', error);
+    res.status(500).json({ 
+      message: 'Server error fetching assignments',
+      error: error.message 
+    });
   }
 };
 
 exports.createCourseAssignment = async (req, res) => {
   try {
     if (!requireAdmin(req, res)) return;
-    res.json({ message: 'Create course assignment endpoint - not implemented' });
+
+    const { facultyId, courseId, semester, section } = req.body;
+    
+    // Validate required fields
+    if (!facultyId || !courseId) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: facultyId and courseId are required' 
+      });
+    }
+
+    // Check if faculty exists
+    const User = require('../models/User');
+    const faculty = await User.findById(facultyId);
+    if (!faculty) {
+      return res.status(404).json({ message: 'Faculty not found' });
+    }
+
+    // Check if course exists
+    const Course = require('../models/Course');
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check if assignment already exists
+    const CourseAssignment = require('../models/CourseAssignment');
+    const existingAssignment = await CourseAssignment.findOne({
+      facultyId,
+      courseId,
+      semester: semester || 'Fall 2025',
+      section: section || 'A'
+    });
+
+    if (existingAssignment) {
+      return res.status(400).json({ 
+        message: 'Faculty is already assigned to this course for this semester' 
+      });
+    }
+
+    // Create new assignment
+    const newAssignment = new CourseAssignment({
+      facultyId,
+      courseId,
+      semester: semester || 'Fall 2025',
+      section: section || 'A',
+      status: 'active',
+      assignedAt: new Date(),
+      assignedBy: req.user.id
+    });
+
+    await newAssignment.save();
+
+    // Populate the assignment with faculty and course details for response
+    const populatedAssignment = await CourseAssignment.findById(newAssignment._id)
+      .populate('facultyId', 'firstName lastName email')
+      .populate('courseId', 'courseCode courseName department');
+
+    console.log('✅ Course assignment created:', {
+      faculty: faculty.firstName + ' ' + faculty.lastName,
+      course: course.courseCode,
+      semester: semester || 'Fall 2025'
+    });
+
+    res.status(201).json({
+      message: 'Faculty assigned to course successfully',
+      assignment: populatedAssignment
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Create course assignment error:', error);
+    res.status(500).json({ 
+      message: 'Server error creating assignment',
+      error: error.message 
+    });
   }
 };
 
