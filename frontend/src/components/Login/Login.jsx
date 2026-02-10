@@ -637,15 +637,17 @@ const Login = () => {
                             />
                         </div>
 
-                        {/* reCAPTCHA Widget */}
-                        <div className="form-group recaptcha-container">
-                            <ReCAPTCHA
-                                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                                onChange={(value) => setRecaptchaValue(value)}
-                                onExpired={() => setRecaptchaValue(null)}
-                                onErrored={() => setRecaptchaValue(null)}
-                            />
-                        </div>
+                        {/* reCAPTCHA Widget - Only render if site key is available */}
+                        {import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
+                          <div className="form-group recaptcha-container">
+                              <ReCAPTCHA
+                                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                                  onChange={(value) => setRecaptchaValue(value)}
+                                  onExpired={() => setRecaptchaValue(null)}
+                                  onErrored={() => setRecaptchaValue(null)}
+                              />
+                          </div>
+                        )}
 
                         <button 
                             type="submit" 

@@ -7,21 +7,22 @@
 
 /* Design tokens */
 :root {
-  --admin-bg: #ffffff;
+  --admin-bg: #f8fafc;
   --admin-surface: #ffffff;
-  --admin-surface-2: #f8f9fa;
-  --admin-border: #e5e7eb;
-  --admin-text: #0f172a;
-  --admin-muted: #475569;
-  --admin-primary: #111827;
-  --admin-primary-600: #0b1220;
-  --admin-accent: #111827;
-  --admin-success-bg: #ecfdf5;
-  --admin-success: #065f46;
+  --admin-surface-2: #f1f5f9;
+  --admin-border: #e2e8f0;
+  --admin-text: #1e293b;
+  --admin-muted: #64748b;
+  --admin-primary: #3b82f6;
+  --admin-primary-600: #2563eb;
+  --admin-accent: #3b82f6;
+  --admin-success-bg: #f0fdf4;
+  --admin-success: #16a34a;
   --admin-danger-bg: #fef2f2;
-  --admin-danger: #b91c1c;
+  --admin-danger: #dc2626;
   --admin-radius: 12px;
-  --admin-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --admin-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --admin-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --admin-sidebar-width: 280px;
   --admin-sidebar-width-closed: 80px;
 }
@@ -36,12 +37,6 @@
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-}
-
-/* Force black text everywhere */
-.admin-dashboard,
-.admin-dashboard * {
-  color: var(--admin-text) !important;
 }
 
 /* Note: Sidebar styles moved to AdminSidebar.css */
@@ -98,43 +93,17 @@
 .admin-dashboard .welcome-banner h2 {
   font-size: 2rem;
   margin-bottom: 10px;
-  color: #000000 !important;
+  color: var(--admin-primary) !important;
   font-weight: 600;
 }
 
 .admin-dashboard .welcome-banner p {
   opacity: 0.9;
   font-size: 1.1rem;
-  color: #000000 !important;
+  color: var(--admin-primary-600) !important;
 }
 
 /* Faculty Management styles moved to FacultyManagementTab.css (and imported by Faculty/Archive tabs) */
-
-/* Force remove any blue colors */
-.admin-dashboard a,
-.admin-dashboard button,
-.admin-dashboard input,
-.admin-dashboard select,
-.admin-dashboard textarea {
-  color: var(--admin-text) !important;
-}
-
-.admin-dashboard a:visited,
-.admin-dashboard a:active,
-.admin-dashboard a:link {
-  color: var(--admin-text) !important;
-  text-decoration: none;
-}
-
-/* Inputs & selects */
-.admin-dashboard input,
-.admin-dashboard select,
-.admin-dashboard textarea {
-  background: #ffffff !important;
-  border: 1px solid var(--admin-border) !important;
-  border-radius: 8px;
-  padding: 10px 12px;
-}
 
 /* Modal styles */
 .admin-dashboard .modal-overlay {
@@ -195,7 +164,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .admin-dashboard .modal-header h3 {
@@ -283,7 +252,7 @@
 }
 
 .admin-dashboard .modal-footer .save-btn {
-  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #ffffff;
   border: none;
   padding: 10px 20px;
@@ -295,9 +264,9 @@
 }
 
 .admin-dashboard .modal-footer .save-btn:hover {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .admin-dashboard .modal-footer .save-btn:disabled {
