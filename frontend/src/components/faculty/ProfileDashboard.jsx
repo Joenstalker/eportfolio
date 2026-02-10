@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../contexts/AuthContext';
+import { validateProfileCompletion } from '../../utils/validation';
 import './facultyComponents.css';
 
 const ProfileDashboard = () => {
@@ -116,6 +117,35 @@ const loadStats = async () => {
     const handleSave = async () => {
         console.log('🚀 Save button clicked, starting save process...');
         console.log('Current user data:', user);
+        
+        // Validate profile completion before saving
+        const profileValidation = validateProfileCompletion({
+            firstName: profile.name.split(' ')[0] || '',
+            lastName: profile.name.split(' ').slice(1).join(' ') || '',
+            email: profile.email,
+            department: profile.department,
+            position: profile.position
+        });
+
+        if (!profileValidation.isValid) {
+            Swal.fire({
+                title: 'Incomplete Profile!',
+                html: `
+                    <div style="text-align: left; line-height: 1.6;">
+                        <p><strong>⚠️ Cannot Save Profile</strong></p>
+                        <p>${profileValidation.message}</p>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <strong>Missing Required Fields:</strong><br/>
+                            ${profileValidation.missingFields.join(', ')}
+                        </div>
+                    </div>
+                `,
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c',
+                confirmButtonText: 'Complete Profile'
+            });
+            return;
+        }
         
         // Validate user exists and has basic required fields
         if (!user) {

@@ -39,15 +39,30 @@ const FacultyManagementTab = ({
     return true;
   });
 
-  // Group faculty by department after filtering
-  const groupedFaculty = filteredFacultyData.reduce((groups, faculty) => {
+  // Enhanced categorization with status and role grouping
+  const categorizedFaculty = filteredFacultyData.reduce((categories, faculty) => {
     const dept = faculty.department || 'Unassigned';
-    if (!groups[dept]) groups[dept] = [];
-    groups[dept].push(faculty);
-    return groups;
+    const status = faculty.isActive ? 'active' : 'inactive';
+    const role = faculty.role || 'faculty';
+    
+    if (!categories[dept]) {
+      categories[dept] = {
+        active: [],
+        inactive: [],
+        admin: [],
+        faculty: [],
+        staff: []
+      };
+    }
+    
+    // Add to appropriate sub-category
+    categories[dept][status].push(faculty);
+    categories[dept][role].push(faculty);
+    
+    return categories;
   }, {});
 
-  const hasFacultyMembers = Object.keys(groupedFaculty).length > 0;
+  const hasFacultyMembers = Object.keys(categorizedFaculty).length > 0;
 
   return (
     <div className="faculty-management">
@@ -107,62 +122,111 @@ const FacultyManagementTab = ({
       ) : (
         <div className="faculty-table-container">
           {hasFacultyMembers ? (
-            Object.entries(groupedFaculty).map(([department, members]) => (
+            Object.entries(categorizedFaculty).map(([department, categories]) => (
               <div key={department} className="faculty-category">
                 <div className="faculty-category-header">
                   <h4>{department}</h4>
-                  <span className="count-badge">
-                    {members.length} member{members.length !== 1 ? 's' : ''}
-                  </span>
+                  <div className="category-stats">
+                    <span className="count-badge">
+                      {categories.active.length + categories.inactive.length} total
+                    </span>
+                    <div className="status-breakdown">
+                      <span className="active-count">{categories.active.length} active</span>
+                      <span className="inactive-count">{categories.inactive.length} inactive</span>
+                    </div>
+                  </div>
                 </div>
 
-                <table className="faculty-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((faculty) => {
-                      const status = faculty.isActive ? 'active' : 'inactive';
-                      const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
-                      return (
-                      <tr
-                        key={faculty._id}
-                        className={status === 'inactive' ? 'inactive' : ''}
-                      >
-                        <td>{fullName}</td>
-                        <td>{faculty.email}</td>
-                        <td>{faculty.role}</td>
-                        <td>
-                          <span className={`status-badge ${status}`}>{status}</span>
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              className="edit-btn"
-                              onClick={() => onEditClick(faculty)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="status-btn"
-                              onClick={() => onArchiveClick(faculty)}
-                              disabled={status === 'inactive'}
-                            >
-                              {status === 'inactive' ? 'Archived' : 'Archive'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                {/* Active Faculty Table */}
+                {categories.active.length > 0 && (
+                  <div className="faculty-subsection">
+                    <h5>Active Faculty ({categories.active.length})</h5>
+                    <table className="faculty-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {categories.active.map((faculty) => {
+                          const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+                          return (
+                            <tr key={faculty._id}>
+                              <td>{fullName}</td>
+                              <td>{faculty.email}</td>
+                              <td>{faculty.role}</td>
+                              <td>
+                                <div className="action-buttons">
+                                  <button
+                                    className="edit-btn"
+                                    onClick={() => onEditClick(faculty)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="update-btn"
+                                    onClick={() => onArchiveClick(faculty)}
+                                  >
+                                    Update
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Inactive Faculty Table */}
+                {categories.inactive.length > 0 && (
+                  <div className="faculty-subsection">
+                    <h5>Inactive Faculty ({categories.inactive.length})</h5>
+                    <table className="faculty-table inactive">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {categories.inactive.map((faculty) => {
+                          const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+                          return (
+                            <tr key={faculty._id} className="inactive">
+                              <td>{fullName}</td>
+                              <td>{faculty.email}</td>
+                              <td>{faculty.role}</td>
+                              <td>
+                                <div className="action-buttons">
+                                  <button
+                                    className="edit-btn"
+                                    onClick={() => onEditClick(faculty)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="update-btn"
+                                    onClick={() => onArchiveClick(faculty)}
+                                    disabled
+                                  >
+                                    Archived
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             ))
           ) : (
