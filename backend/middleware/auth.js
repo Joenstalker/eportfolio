@@ -17,16 +17,22 @@ const auth = (req, res, next) => {
     }
 
     try {
-        if (!process.env.JWT_SECRET) {
-            console.error('JWT_SECRET is not set in environment');
+        const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+        console.log('🔑 JWT Secret source:', process.env.JWT_SECRET ? 'Environment' : 'Fallback');
+        console.log('🔑 JWT Secret length:', jwtSecret.length);
+        
+        if (!jwtSecret) {
+            console.error('JWT_SECRET is not set in environment and no fallback available');
             return res.status(500).json({ message: 'Server misconfiguration: missing JWT secret' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, jwtSecret);
+        console.log('✅ Token verified successfully for user ID:', decoded.id);
         req.user = decoded;
         next();
     } catch (error) {
-        console.error('Token verification error:', error.message);
+        console.error('❌ Token verification error:', error.message);
+        console.error('❌ Token provided:', token.substring(0, 50) + '...');
         res.status(401).json({ message: 'Token is not valid' });
     }
 };

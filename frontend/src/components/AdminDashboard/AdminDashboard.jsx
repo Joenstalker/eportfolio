@@ -168,7 +168,7 @@ const AdminDashboard = () => {
   const fetchCourses = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await fetch('/api/courses', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -200,7 +200,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${course._id}`, {
+      const response = await fetch(`/api/courses/${course._id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -491,7 +491,7 @@ const AdminDashboard = () => {
   const fetchUploads = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('http://localhost:5000/api/admin/uploads', {
+      const res = await fetch('/api/admin/uploads', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

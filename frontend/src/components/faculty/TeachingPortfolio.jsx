@@ -14,6 +14,37 @@ const TeachingPortfolio = () => {
     });
     const [loading, setLoading] = useState(false);
 
+    // Predefined subjects for dropdown
+    const predefinedSubjects = [
+        'Introduction to Programming',
+        'Data Structures and Algorithms',
+        'Computer Networks',
+        'Database Management Systems',
+        'Web Development',
+        'Mobile Application Development',
+        'Artificial Intelligence',
+        'Machine Learning',
+        'Cybersecurity',
+        'Software Engineering',
+        'Operating Systems',
+        'Computer Architecture',
+        'Discrete Mathematics',
+        'Linear Algebra',
+        'Calculus',
+        'Statistics',
+        'Digital Logic Design',
+        'Compiler Design',
+        'Computer Graphics',
+        'Cloud Computing',
+        'Internet of Things (IoT)',
+        'Blockchain Technology',
+        'DevOps Practices',
+        'Agile Methodologies',
+        'Project Management',
+        'Technical Writing',
+        'Research Methodology'
+    ];
+
     useEffect(() => {
         loadSubjects();
     }, []);
@@ -218,12 +249,18 @@ const TeachingPortfolio = () => {
                         </div>
                         <div className="form-group">
                             <label>Subject Name *</label>
-                            <input
-                                type="text"
-                                placeholder="e.g., Introduction to Programming"
+                            <select
                                 value={newSubject.subjectName}
                                 onChange={(e) => setNewSubject({...newSubject, subjectName: e.target.value})}
-                            />
+                                required
+                            >
+                                <option value="">Select Subject</option>
+                                {predefinedSubjects.map((subject, index) => (
+                                    <option key={index} value={subject}>
+                                        {subject}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="form-group">
                             <label>Section</label>

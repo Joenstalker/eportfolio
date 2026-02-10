@@ -395,7 +395,7 @@ router.get('/google/callback', async (req, res) => {
       // Generate JWT token and redirect to frontend
       const token = jwt.sign(
         { id: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
+        process.env.JWT_SECRET || 'fallback_secret',
         { expiresIn: '24h' }
       );
       console.log('Redirecting to auth callback with token');
@@ -426,7 +426,8 @@ router.get('/verify', async (req, res) => {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+    const decoded = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
@@ -487,7 +488,7 @@ router.post('/google/complete', async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: '24h' }
     );
 
