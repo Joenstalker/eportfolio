@@ -134,6 +134,150 @@ router.post('/:id/unlock', async (req, res) => {
   }
 });
 
+// POST create new course
+router.post('/', async (req, res) => {
+  try {
+    console.log('➕ Creating new course:', req.body);
+    
+    const { courseCode, courseName, description, department, credits, prerequisites, semester, maxStudents } = req.body;
+    
+    // Validate required fields
+    if (!courseCode || !courseName || !department || !semester) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: courseCode, courseName, department, and semester are required' 
+      });
+    }
+    
+    // Check if course code already exists
+    const existingCourse = await Course.findOne({ courseCode: courseCode.trim().toUpperCase() });
+    if (existingCourse) {
+      return res.status(400).json({ 
+        message: 'Course with this code already exists' 
+      });
+    }
+    
+    // Create new course
+    const newCourse = new Course({
+      courseCode: courseCode.trim().toUpperCase(),
+      courseName: courseName.trim(),
+      description: description?.trim() || '',
+      department: department.trim(),
+      credits: credits || 3,
+      prerequisites: prerequisites || [],
+      semester: semester.trim(),
+      maxStudents: maxStudents || 30,
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    await newCourse.save();
+    
+    console.log('✅ Course created successfully:', newCourse.courseCode);
+    
+    res.status(201).json({
+      message: 'Course created successfully',
+      course: newCourse
+    });
+    
+  } catch (error) {
+    console.error('❌ Create course error:', error);
+    res.status(500).json({ 
+      message: 'Server error creating course',
+      error: error.message 
+    });
+  }
+});
+
+// PUT update course
+router.put('/:id', async (req, res) => {
+  try {
+    console.log('📝 Updating course:', req.params.id, req.body);
+    
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    // Check if course is locked by another user
+    const lockStatus = await lockService.checkLock(course._id, 'Course');
+    if (lockStatus.isLocked && lockStatus.lock.userId !== req.user.id) {
+      return res.status(423).json({ 
+        message: 'Course is locked by another user',
+        lockedBy: lockStatus.lock.userName 
+      });
+    }
+    
+    const updates = req.body;
+    const allowedUpdates = ['courseCode', 'courseName', 'description', 'department', 'credits', 'prerequisites', 'status'];
+    const actualUpdates = {};
+    
+    allowedUpdates.forEach(field => {
+      if (updates[field] !== undefined) {
+        actualUpdates[field] = field === 'courseCode' ? updates[field].trim().toUpperCase() : updates[field];
+      }
+    });
+    
+    actualUpdates.updatedAt = new Date();
+    
+    const updatedCourse = await Course.findByIdAndUpdate(
+      req.params.id, 
+      actualUpdates, 
+      { new: true, runValidators: true }
+    );
+    
+    console.log('✅ Course updated successfully:', updatedCourse.courseCode);
+    
+    res.json({
+      message: 'Course updated successfully',
+      course: updatedCourse
+    });
+    
+  } catch (error) {
+    console.error('❌ Update course error:', error);
+    res.status(500).json({ 
+      message: 'Server error updating course',
+      error: error.message 
+    });
+  }
+});
+
+// DELETE/archive course
+router.delete('/:id', async (req, res) => {
+  try {
+    console.log('🗑️ Deleting course:', req.params.id);
+    
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    // Check if course is locked by another user
+    const lockStatus = await lockService.checkLock(course._id, 'Course');
+    if (lockStatus.isLocked && lockStatus.lock.userId !== req.user.id) {
+      return res.status(423).json({ 
+        message: 'Course is locked by another user',
+        lockedBy: lockStatus.lock.userName 
+      });
+    }
+    
+    await Course.findByIdAndDelete(req.params.id);
+    
+    console.log('✅ Course deleted successfully:', course.courseCode);
+    
+    res.json({
+      message: 'Course deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ Delete course error:', error);
+    res.status(500).json({ 
+      message: 'Server error deleting course',
+      error: error.message 
+    });
+  }
+});
+
 // GET lock status endpoint
 router.get('/:id/lock-status', async (req, res) => {
   try {
