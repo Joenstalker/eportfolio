@@ -105,25 +105,25 @@
 
 /* Faculty Management styles moved to FacultyManagementTab.css (and imported by Faculty/Archive tabs) */
 
-/* Modal styles */
+/* Modal styles - Futuristic Design - FORCE APPLIED */
 .admin-dashboard .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-  box-sizing: border-box;
-  animation: fadeIn 0.2s ease;
-  overflow-y: auto;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(59, 130, 246, 0.6)) !important;
+  backdrop-filter: blur(12px) saturate(1.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  animation: fadeIn 0.3s ease !important;
+  overflow-y: auto !important;
 }
 
 @keyframes fadeIn {
@@ -143,28 +143,77 @@
 }
 
 .admin-dashboard .modal {
-  position: relative;
-  width: 100%;
-  max-width: 550px;
-  margin: auto;
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-border);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.3s ease;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 90px !important;
+  margin: auto !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px) saturate(1.5) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  border-radius: 20px !important;
+  box-shadow: 
+    0 0 40px rgba(59, 130, 246, 0.15),
+    0 0 80px rgba(59, 130, 246, 0.1),
+    inset 0 0 20px rgba(255, 255, 255, 0.1),
+    inset 0 0 40px rgba(59, 130, 246, 0.05) !important;
+  max-height: 75vh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@media (min-width: 768px) {
+  .admin-dashboard .modal {
+    max-width: 120px !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .admin-dashboard .modal {
+    max-width: 150px !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .admin-dashboard .modal {
+    max-width: 180px !important;
+  }
 }
 
 .admin-dashboard .modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--admin-border);
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.9) 0%,
+    rgba(37, 99, 235, 0.8) 50%,
+    rgba(29, 78, 216, 0.7) 100%);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-dashboard .modal-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(59, 130, 246, 0.3), 
+    transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
 }
 
 .admin-dashboard .modal-header h3 {
@@ -235,45 +284,85 @@
 }
 
 .admin-dashboard .modal-footer .cancel-btn {
-  background: #ffffff;
-  color: var(--admin-text);
-  border: 1px solid var(--admin-border);
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 500;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.9375rem;
+  backdrop-filter: blur(5px);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .admin-dashboard .modal-footer .cancel-btn:hover {
-  background: var(--admin-surface-2);
-  border-color: var(--admin-text);
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
 }
 
 .admin-dashboard .modal-footer .save-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.9) 0%,
+    rgba(37, 99, 235, 0.8) 50%,
+    rgba(29, 78, 216, 0.7) 100%);
   color: #ffffff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 500;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.9375rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-dashboard .modal-footer .save-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.2), 
+    transparent);
+  animation: buttonShimmer 2s infinite;
+}
+
+@keyframes buttonShimmer {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
 }
 
 .admin-dashboard .modal-footer .save-btn:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, 
+    rgba(37, 99, 235, 0.9) 0%,
+    rgba(29, 78, 216, 0.8) 50%,
+    rgba(59, 130, 246, 0.7) 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 30px rgba(59, 130, 246, 0.6),
+    0 0 60px rgba(59, 130, 246, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.2);
 }
 
 .admin-dashboard .modal-footer .save-btn:disabled {
-  background: #9ca3af;
+  background: rgba(156, 163, 175, 0.3);
+  border-color: rgba(156, 163, 175, 0.2);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  animation: none;
 }
 
 .admin-dashboard .modal-content::-webkit-scrollbar {
@@ -296,8 +385,9 @@
 
 @media (max-width: 768px) {
   .admin-dashboard .modal {
-    max-width: 95vw;
-    margin: 0 10px;
+    max-width: 70vw;
+    margin: 0 15px;
+    max-height: 65vh;
   }
   
   .admin-dashboard .modal-header {
@@ -305,7 +395,55 @@
   }
   
   .admin-dashboard .modal-content {
-    padding: 20px;
+    padding: 16px;
+  }
+  
+  .admin-dashboard .modal-body {
+    gap: 12px;
+  }
+  
+  .admin-dashboard .modal-footer {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  /* Enhanced Form Mobile Styles */
+  .admin-dashboard .form-section {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .admin-dashboard .section-title {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+
+  .admin-dashboard .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .admin-dashboard .form-group {
+    gap: 4px;
+  }
+
+  .admin-dashboard .required-indicator {
+    top: 2px;
+    right: 6px;
+    font-size: 0.8rem;
+  }
+
+  .admin-dashboard .modal .form-group input,
+  .admin-dashboard .modal .form-group select,
+  .admin-dashboard .modal .form-group textarea {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+  }
+
+  .admin-dashboard .modal .form-group select {
+    padding-right: 36px;
+    background-size: 14px;
   }
 }
 
@@ -316,35 +454,40 @@
 }
 
 .admin-dashboard .modal .form-group label {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
-  color: var(--admin-text);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .admin-dashboard .modal .form-group input,
 .admin-dashboard .modal .form-group select,
 .admin-dashboard .modal .form-group textarea {
-  padding: 10px 14px;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
   font-size: 0.9375rem;
-  transition: all 0.2s ease;
-  background: var(--admin-surface-2);
-  color: var(--admin-text);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-weight: 500;
+  backdrop-filter: blur(5px);
 }
 
 .admin-dashboard .modal .form-group input:focus,
 .admin-dashboard .modal .form-group select:focus,
 .admin-dashboard .modal .form-group textarea:focus {
   outline: none;
-  border-color: var(--admin-primary);
-  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
-  background: var(--admin-surface);
-}
-
-.admin-dashboard .modal .form-group textarea {
-  resize: vertical;
-  font-family: inherit;
+  border-color: rgba(59, 130, 246, 0.8);
+  box-shadow: 
+    0 0 20px rgba(59, 130, 246, 0.4),
+    0 0 40px rgba(59, 130, 246, 0.2),
+    inset 0 0 10px rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 .admin-dashboard .modal-actions {
