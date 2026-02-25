@@ -263,10 +263,29 @@ const CourseManagementTab = ({ user, facultyData }) => {
   };
 
   const handleAddCourse = async () => {
-    if (!newCourse.courseCode || !newCourse.courseName || !newCourse.department) {
-      showErrorAlert('Please fill all required fields');
+    // Temporary debug logging
+    console.log('Current form state:', newCourse);
+    
+    // Simple validation - check if required fields have content
+    if (!newCourse.courseCode || newCourse.courseCode.trim() === '') {
+      console.log('Course Code validation failed:', newCourse.courseCode);
+      showErrorAlert('Please fill in the Course Code');
       return;
     }
+    
+    if (!newCourse.courseName || newCourse.courseName.trim() === '') {
+      console.log('Course Name validation failed:', newCourse.courseName);
+      showErrorAlert('Please fill in the Course Name');
+      return;
+    }
+    
+    if (!newCourse.department || newCourse.department.trim() === '') {
+      console.log('Department validation failed:', newCourse.department);
+      showErrorAlert('Please fill in the Department');
+      return;
+    }
+    
+    console.log('All validations passed!');
 
     try {
       const token = localStorage.getItem('token');
@@ -506,9 +525,24 @@ const CourseManagementTab = ({ user, facultyData }) => {
     return courseLocks[courseId] || { isLocked: false, lockedByMe: false, lockedBy: null };
   };
 
+  // Form Management Functions
+  const openAddCourseModal = () => {
+    setNewCourse({
+      courseCode: '',
+      courseName: '',
+      description: '',
+      credits: 3,
+      department: '',
+      semester: defaultSemester,
+      maxStudents: 30,
+      prerequisites: []
+    });
+    setShowCourseModal(true);
+  };
+
   // Validation functions
   const isAddCourseFormValid = () => {
-    return !showCourseModal || (
+    return (
       newCourse.courseCode.trim() !== '' &&
       newCourse.courseName.trim() !== '' &&
       newCourse.department.trim() !== ''
@@ -516,7 +550,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   };
 
   const isEditCourseFormValid = () => {
-    return !showEditCourseModal || (
+    return (
       editCourse.courseCode?.trim() !== '' &&
       editCourse.courseName?.trim() !== '' &&
       editCourse.department?.trim() !== ''
@@ -561,7 +595,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
           <div className="header-actions">
             <button
               className="btn-primary"
-              onClick={() => setShowCourseModal(true)}
+              onClick={() => openAddCourseModal()}
             >
               + Add Course
             </button>
@@ -716,100 +750,468 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
       {/* Add Course Modal */}
       {showCourseModal && (
-        <div className="modal-overlay" onClick={() => {
-          if (isAddCourseFormValid()) {
-            setShowCourseModal(false);
-          } else {
-            showWarningAlert('Please complete all required fields (marked with *) before closing.');
-          }
-        }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Course</h3>
-              <button className="close-btn" onClick={() => {
-                if (isAddCourseFormValid()) {
-                  setShowCourseModal(false);
-                } else {
-                  showWarningAlert('Please complete all required fields (marked with *) before closing.');
-                }
-              }}>×</button>
+        <div 
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+          onClick={() => {
+            if (isAddCourseFormValid()) {
+              setShowCourseModal(false);
+            } else {
+              showWarningAlert('Please complete all required fields (marked with *) before closing.');
+            }
+          }}
+        >
+          <div 
+            className="modal"
+            style={{
+              position: 'relative',
+              width: '100%',
+              minWidth: '550px',
+              maxWidth: '650px',
+              margin: 'auto',
+              background: 'var(--admin-surface)',
+              borderRadius: 'var(--admin-radius)',
+              boxShadow: 'var(--admin-shadow-lg)',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              border: 'none'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              className="modal-header"
+              style={{
+                padding: '24px 28px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'var(--admin-surface)',
+                minHeight: '72px'
+              }}
+            >
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                color: 'var(--admin-text)',
+                letterSpacing: '-0.5px'
+              }}>
+                Add New Course
+              </h3>
+              <button 
+                className="close-btn"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.15s ease',
+                  fontWeight: '400',
+                  lineHeight: '1'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6b7280';
+                }}
+                onClick={() => {
+                  if (isAddCourseFormValid()) {
+                    setShowCourseModal(false);
+                  } else {
+                    showWarningAlert('Please complete all required fields (marked with *) before closing.');
+                  }
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <div className="modal-content">
-              <div className="form-group">
-                <label>Course Code *</label>
+            <div 
+              className="modal-content"
+              style={{
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                overflowY: 'auto',
+                flex: 1,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Course Code *
+                </label>
                 <input
                   type="text"
                   value={newCourse.courseCode}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, courseCode: e.target.value }))}
                   placeholder="e.g., CS101"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Course Name *</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Course Name *
+                </label>
                 <input
                   type="text"
                   value={newCourse.courseName}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, courseName: e.target.value }))}
                   placeholder="e.g., Introduction to Computer Science"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Description</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Description
+                </label>
                 <textarea
                   value={newCourse.description}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Course description"
                   rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '80px',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Credits</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Credits
+                </label>
                 <input
                   type="number"
                   value={newCourse.credits}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, credits: parseInt(e.target.value) || 3 }))}
                   min="1"
                   max="6"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Department *</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Department *
+                </label>
                 <input
                   type="text"
                   value={newCourse.department}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, department: e.target.value }))}
                   placeholder="e.g., Computer Science"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Semester</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Semester
+                </label>
                 <select
                   value={newCourse.semester}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, semester: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   {semesterOptions.map((sem) => (
-                    <option key={sem} value={sem}>{sem}</option>
+                    <option key={sem} value={sem} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>{sem}</option>
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Maximum Students</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Maximum Students
+                </label>
                 <input
                   type="number"
                   value={newCourse.maxStudents}
                   onChange={(e) => setNewCourse(prev => ({ ...prev, maxStudents: parseInt(e.target.value) || 30 }))}
                   min="1"
                   max="100"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowCourseModal(false)}>
+            <div 
+              className="modal-actions"
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '24px 28px',
+                background: 'var(--admin-surface)'
+              }}
+            >
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowCourseModal(false)}
+                style={{
+                  background: 'var(--admin-surface)',
+                  color: 'var(--admin-text)',
+                  border: '1px solid var(--admin-border)',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '120px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-surface-2)';
+                  e.target.style.borderColor = 'var(--admin-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-surface)';
+                  e.target.style.borderColor = 'var(--admin-border)';
+                }}
+              >
                 Cancel
               </button>
               <button 
                 className="btn-primary"
                 onClick={handleAddCourse}
+                style={{
+                  background: 'var(--admin-primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '140px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-primary-600)';
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 8px -1px rgba(37, 99, 235, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-primary)';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                }}
               >
                 Add Course
               </button>
