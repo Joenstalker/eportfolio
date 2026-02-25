@@ -564,5 +564,5 @@ const RBACSettingsTab = ({ user }) => {
     </div>
   );
 };
-
+}
 export default RBACSettingsTab;
