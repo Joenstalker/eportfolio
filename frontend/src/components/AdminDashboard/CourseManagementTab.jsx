@@ -1324,82 +1324,382 @@ const CourseManagementTab = ({ user, facultyData }) => {
       )}
 
       {/* Assign Faculty Modal */}
+      {/* Assign Faculty Modal */}
       {showAssignmentModal && (
-        <div className="modal-overlay" onClick={() => {
-          if (isAssignFacultyFormValid()) {
-            setShowAssignmentModal(false);
-          } else {
-            showWarningAlert('Please select both Faculty and Course (marked with *) before closing.');
-          }
-        }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Assign Faculty to Course</h3>
-              <button className="close-btn" onClick={() => {
-                if (isAssignFacultyFormValid()) {
-                  setShowAssignmentModal(false);
-                } else {
-                  showWarningAlert('Please select both Faculty and Course (marked with *) before closing.');
-                }
-              }}>×</button>
+        <div 
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+          onClick={() => {
+            if (isAssignFacultyFormValid()) {
+              setShowAssignmentModal(false);
+            } else {
+              showWarningAlert('Please select both Faculty and Course (marked with *) before closing.');
+            }
+          }}
+        >
+          <div 
+            className="modal"
+            style={{
+              position: 'relative',
+              width: '100%',
+              minWidth: '550px',
+              maxWidth: '650px',
+              margin: 'auto',
+              background: 'var(--admin-surface)',
+              borderRadius: 'var(--admin-radius)',
+              boxShadow: 'var(--admin-shadow-lg)',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              border: 'none'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              className="modal-header"
+              style={{
+                padding: '24px 28px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'var(--admin-surface)',
+                minHeight: '72px'
+              }}
+            >
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                color: 'var(--admin-text)',
+                letterSpacing: '-0.5px'
+              }}>
+                Assign Faculty to Course
+              </h3>
+              <button 
+                className="close-btn"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.15s ease',
+                  fontWeight: '400',
+                  lineHeight: '1'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6b7280';
+                }}
+                onClick={() => {
+                  if (isAssignFacultyFormValid()) {
+                    setShowAssignmentModal(false);
+                  } else {
+                    showWarningAlert('Please select both Faculty and Course (marked with *) before closing.');
+                  }
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <div className="modal-content">
-              <div className="form-group">
-                <label>Select Faculty *</label>
+            <div 
+              className="modal-content"
+              style={{
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                overflowY: 'auto',
+                flex: 1,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Select Faculty *
+                </label>
                 <select
                   value={newAssignment.facultyId}
                   onChange={(e) => setNewAssignment(prev => ({ ...prev, facultyId: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   <option value="">Select Faculty Member</option>
                   {facultyData.filter(f => f.isActive).map(faculty => (
-                    <option key={faculty._id} value={faculty._id}>
+                    <option key={faculty._id} value={faculty._id} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>
                       {faculty.firstName} {faculty.lastName} - {faculty.department}
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Select Course *</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Select Course *
+                </label>
                 <select
                   value={newAssignment.courseId}
                   onChange={(e) => setNewAssignment(prev => ({ ...prev, courseId: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   <option value="">Select Course</option>
                   {courses.filter(c => c.isActive).map(course => (
-                    <option key={course._id} value={course._id}>
+                    <option key={course._id} value={course._id} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>
                       {course.courseCode} - {course.courseName}
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Semester</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Semester
+                </label>
                 <select
                   value={newAssignment.semester}
                   onChange={(e) => setNewAssignment(prev => ({ ...prev, semester: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   {semesterOptions.map((sem) => (
-                    <option key={sem} value={sem}>{sem}</option>
+                    <option key={sem} value={sem} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>{sem}</option>
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Section</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Section
+                </label>
                 <input
                   type="text"
                   value={newAssignment.section}
                   onChange={(e) => setNewAssignment(prev => ({ ...prev, section: e.target.value }))}
                   placeholder="e.g., A, B, C"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowAssignmentModal(false)}>
+            <div 
+              className="modal-actions"
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '24px 28px',
+                background: 'var(--admin-surface)'
+              }}
+            >
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowAssignmentModal(false)}
+                style={{
+                  background: 'var(--admin-surface)',
+                  color: 'var(--admin-text)',
+                  border: '1px solid var(--admin-border)',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '120px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-surface-2)';
+                  e.target.style.borderColor = 'var(--admin-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-surface)';
+                  e.target.style.borderColor = 'var(--admin-border)';
+                }}
+              >
                 Cancel
               </button>
               <button 
                 className="btn-primary"
                 onClick={handleAssignFaculty}
+                style={{
+                  background: 'var(--admin-primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '140px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-primary-600)';
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 8px -1px rgba(37, 99, 235, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-primary)';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                }}
               >
                 Assign Faculty
               </button>
