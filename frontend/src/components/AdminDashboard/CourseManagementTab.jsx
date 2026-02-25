@@ -751,7 +751,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
       {/* Add Course Modal */}
       {showCourseModal && (
         <div 
-          className="modal-overlay"
           style={{
             position: 'fixed',
             top: 0,
@@ -778,7 +777,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
           }}
         >
           <div 
-            className="modal"
             style={{
               position: 'relative',
               width: '100%',
@@ -798,7 +796,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div 
-              className="modal-header"
               style={{
                 padding: '24px 28px',
                 display: 'flex',
@@ -818,7 +815,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
                 Add New Course
               </h3>
               <button 
-                className="close-btn"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -856,7 +852,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </button>
             </div>
             <div 
-              className="modal-content"
               style={{
                 padding: '28px',
                 display: 'flex',
@@ -1142,7 +1137,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </div>
             </div>
             <div 
-              className="modal-actions"
               style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
@@ -1153,7 +1147,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
               }}
             >
               <button 
-                className="btn-secondary"
                 onClick={() => setShowCourseModal(false)}
                 style={{
                   background: 'var(--admin-surface)',
@@ -1183,7 +1176,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
                 Cancel
               </button>
               <button 
-                className="btn-primary"
                 onClick={handleAddCourse}
                 style={{
                   background: 'var(--admin-primary)',
@@ -1222,99 +1214,475 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
       {/* Edit Course Modal */}
       {showEditCourseModal && selectedCourse && (
-        <div className="modal-overlay" onClick={() => {
-          if (isEditCourseFormValid()) {
-            handleCancelEditCourse();
-          } else {
-            showWarningAlert('Please complete all required fields before closing. The lock will be released.');
-          }
-        }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title-group">
-                <h3>Edit Course</h3>
-                <span className="lock-badge">Editing</span>
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+          onClick={() => {
+            if (isEditCourseFormValid()) {
+              handleCancelEditCourse();
+            } else {
+              showWarningAlert('Please complete all required fields before closing. The lock will be released.');
+            }
+          }}
+        >
+          <div 
+            style={{
+              position: 'relative',
+              width: '100%',
+              minWidth: '550px',
+              maxWidth: '650px',
+              margin: 'auto',
+              background: 'var(--admin-surface)',
+              borderRadius: 'var(--admin-radius)',
+              boxShadow: 'var(--admin-shadow-lg)',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              border: 'none'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              style={{
+                padding: '24px 28px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'var(--admin-surface)',
+                minHeight: '72px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h3 style={{ 
+                  margin: 0, 
+                  fontSize: '1.5rem', 
+                  fontWeight: '700', 
+                  color: 'var(--admin-text)',
+                  letterSpacing: '-0.5px'
+                }}>
+                  Edit Course
+                </h3>
+                <span style={{
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  textTransform: 'uppercase'
+                }}>
+                  Editing
+                </span>
               </div>
-              <button className="close-btn" onClick={() => {
-                if (isEditCourseFormValid()) {
-                  handleCancelEditCourse();
-                } else {
-                  showWarningAlert('Please complete all required fields before closing. The lock will be released.');
-                }
-              }}>×</button>
+              <button 
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.15s ease',
+                  fontWeight: '400',
+                  lineHeight: '1'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6b7280';
+                }}
+                onClick={() => {
+                  if (isEditCourseFormValid()) {
+                    handleCancelEditCourse();
+                  } else {
+                    showWarningAlert('Please complete all required fields before closing. The lock will be released.');
+                  }
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <div className="modal-content">
-              <div className="form-group">
-                <label>Course Code</label>
+            <div 
+              style={{
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                overflowY: 'auto',
+                flex: 1,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Course Code *
+                </label>
                 <input
                   type="text"
                   value={editCourse.courseCode || ''}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, courseCode: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Course Name</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Course Name *
+                </label>
                 <input
                   type="text"
                   value={editCourse.courseName || ''}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, courseName: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Description</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Description
+                </label>
                 <textarea
                   value={editCourse.description || ''}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, description: e.target.value }))}
                   rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '80px',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Credits</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Credits
+                </label>
                 <input
                   type="number"
                   value={editCourse.credits || 3}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, credits: parseInt(e.target.value) || 3 }))}
                   min="1"
                   max="6"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Department</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Department *
+                </label>
                 <input
                   type="text"
                   value={editCourse.department || ''}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, department: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Semester</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Semester
+                </label>
                 <select
                   value={editCourse.semester || defaultSemester}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, semester: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   {semesterOptions.map((sem) => (
-                    <option key={sem} value={sem}>{sem}</option>
+                    <option key={sem} value={sem} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>{sem}</option>
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Maximum Students</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Maximum Students
+                </label>
                 <input
                   type="number"
                   value={editCourse.maxStudents || 30}
                   onChange={(e) => setEditCourse(prev => ({ ...prev, maxStudents: parseInt(e.target.value) || 30 }))}
                   min="1"
                   max="100"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => handleCancelEditCourse()}>
+            <div 
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '24px 28px',
+                background: 'var(--admin-surface)'
+              }}
+            >
+              <button 
+                onClick={() => handleCancelEditCourse()}
+                style={{
+                  background: 'var(--admin-surface)',
+                  color: 'var(--admin-text)',
+                  border: '1px solid var(--admin-border)',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '160px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-surface-2)';
+                  e.target.style.borderColor = 'var(--admin-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-surface)';
+                  e.target.style.borderColor = 'var(--admin-border)';
+                }}
+              >
                 Cancel & Release Lock
               </button>
               <button 
-                className="btn-primary"
                 onClick={handleEditCourse}
+                style={{
+                  background: 'var(--admin-primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '200px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-primary-600)';
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 8px -1px rgba(37, 99, 235, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-primary)';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                }}
               >
                 Save Changes & Release Lock
               </button>
@@ -1324,10 +1692,8 @@ const CourseManagementTab = ({ user, facultyData }) => {
       )}
 
       {/* Assign Faculty Modal */}
-      {/* Assign Faculty Modal */}
       {showAssignmentModal && (
         <div 
-          className="modal-overlay"
           style={{
             position: 'fixed',
             top: 0,
@@ -1354,7 +1720,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
           }}
         >
           <div 
-            className="modal"
             style={{
               position: 'relative',
               width: '100%',
@@ -1374,7 +1739,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div 
-              className="modal-header"
               style={{
                 padding: '24px 28px',
                 display: 'flex',
@@ -1394,7 +1758,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
                 Assign Faculty to Course
               </h3>
               <button 
-                className="close-btn"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -1432,7 +1795,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </button>
             </div>
             <div 
-              className="modal-content"
               style={{
                 padding: '28px',
                 display: 'flex',
@@ -1630,7 +1992,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </div>
             </div>
             <div 
-              className="modal-actions"
               style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
@@ -1641,7 +2002,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
               }}
             >
               <button 
-                className="btn-secondary"
                 onClick={() => setShowAssignmentModal(false)}
                 style={{
                   background: 'var(--admin-surface)',
@@ -1671,7 +2031,6 @@ const CourseManagementTab = ({ user, facultyData }) => {
                 Cancel
               </button>
               <button 
-                className="btn-primary"
                 onClick={handleAssignFaculty}
                 style={{
                   background: 'var(--admin-primary)',
