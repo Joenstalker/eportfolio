@@ -1244,65 +1244,358 @@ const AdminDashboard = () => {
 
       {/* Edit Faculty Modal */}
       {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Edit Faculty</h3>
-              <button className="close-btn" onClick={() => setShowEditModal(false)}>×</button>
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div 
+            style={{
+              position: 'relative',
+              width: '100%',
+              minWidth: '550px',
+              maxWidth: '650px',
+              margin: 'auto',
+              background: 'var(--admin-surface)',
+              borderRadius: 'var(--admin-radius)',
+              boxShadow: 'var(--admin-shadow-lg)',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              border: 'none'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              style={{
+                padding: '24px 28px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'var(--admin-surface)',
+                minHeight: '72px'
+              }}
+            >
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                color: 'var(--admin-text)',
+                letterSpacing: '-0.5px'
+              }}>
+                Edit Faculty
+              </h3>
+              <button 
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.15s ease',
+                  fontWeight: '400',
+                  lineHeight: '1'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6b7280';
+                }}
+                onClick={() => setShowEditModal(false)}
+              >
+                ✕
+              </button>
             </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Name</label>
+            <div 
+              style={{
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                overflowY: 'auto',
+                flex: 1,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Name
+                </label>
                 <input
                   type="text"
                   value={editFaculty.name || ''}
                   onChange={(e) => setEditFaculty({...editFaculty, name: e.target.value})}
                   placeholder="Enter full name"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Email *</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Email *
+                </label>
                 <input
                   type="email"
                   value={editFaculty.email || ''}
                   onChange={(e) => setEditFaculty({...editFaculty, email: e.target.value})}
                   placeholder="Enter email address"
-                  className={editFaculty.email && !isValidEmailDomain(editFaculty.email) ? 'invalid' : ''}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: editFaculty.email && !isValidEmailDomain(editFaculty.email) ? '1px solid var(--admin-danger)' : '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = editFaculty.email && !isValidEmailDomain(editFaculty.email) ? 'var(--admin-danger)' : 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
                 {editFaculty.email && !isValidEmailDomain(editFaculty.email) && (
-                  <small className="error-message">
+                  <div style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'var(--admin-danger)', 
+                    marginTop: '4px' 
+                  }}>
                     Only @gmail.com and @student.buksu.edu.ph email domains are allowed
-                  </small>
+                  </div>
                 )}
-                <small>Only @gmail.com and @student.buksu.edu.ph emails are accepted</small>
+                <div style={{ 
+                  fontSize: '0.75rem', 
+                  color: 'var(--admin-muted)', 
+                  marginTop: '4px' 
+                }}>
+                  Only @gmail.com and @student.buksu.edu.ph emails are accepted
+                </div>
               </div>
-              <div className="form-group">
-                <label>Department *</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Department *
+                </label>
                 <input
                   type="text"
                   value={editFaculty.department || ''}
                   onChange={(e) => setEditFaculty({...editFaculty, department: e.target.value})}
                   placeholder="Enter department"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Role</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Role
+                </label>
                 <select
                   value={editFaculty.role || 'faculty'}
                   onChange={(e) => setEditFaculty({...editFaculty, role: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
-                  <option value="faculty">Faculty</option>
-                  <option value="admin">Admin</option>
-                  <option value="hod">Head of Department</option>
+                  <option value="faculty" style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>Faculty</option>
+                  <option value="admin" style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>Admin</option>
+                  <option value="hod" style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>Head of Department</option>
                 </select>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowEditModal(false)}>Cancel</button>
+            <div 
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '24px 28px',
+                background: 'var(--admin-surface)'
+              }}
+            >
               <button 
-                className="save-btn" 
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  background: 'var(--admin-surface)',
+                  color: 'var(--admin-text)',
+                  border: '1px solid var(--admin-border)',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '120px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-surface-2)';
+                  e.target.style.borderColor = 'var(--admin-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-surface)';
+                  e.target.style.borderColor = 'var(--admin-border)';
+                }}
+              >
+                Cancel
+              </button>
+              <button 
                 onClick={handleEditSave}
                 disabled={!isEditFacultyFormValid()}
+                style={{
+                  background: !isEditFacultyFormValid() ? 'var(--admin-muted)' : 'var(--admin-primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: !isEditFacultyFormValid() ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '140px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: !isEditFacultyFormValid() ? 'none' : '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                  opacity: !isEditFacultyFormValid() ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (isEditFacultyFormValid()) {
+                    e.target.style.background = 'var(--admin-primary-600)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 6px 8px -1px rgba(37, 99, 235, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isEditFacultyFormValid()) {
+                    e.target.style.background = 'var(--admin-primary)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
               >
                 Save Changes
               </button>
@@ -1313,35 +1606,250 @@ const AdminDashboard = () => {
 
       {/* Status Change Modal */}
       {showStatusModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Change Status</h3>
-              <button className="close-btn" onClick={() => setShowStatusModal(false)}>×</button>
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+          onClick={() => setShowStatusModal(false)}
+        >
+          <div 
+            style={{
+              position: 'relative',
+              width: '100%',
+              minWidth: '550px',
+              maxWidth: '650px',
+              margin: 'auto',
+              background: 'var(--admin-surface)',
+              borderRadius: 'var(--admin-radius)',
+              boxShadow: 'var(--admin-shadow-lg)',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              border: 'none'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              style={{
+                padding: '24px 28px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'var(--admin-surface)',
+                minHeight: '72px'
+              }}
+            >
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                color: 'var(--admin-text)',
+                letterSpacing: '-0.5px'
+              }}>
+                Change Status
+              </h3>
+              <button 
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.15s ease',
+                  fontWeight: '400',
+                  lineHeight: '1'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6b7280';
+                }}
+                onClick={() => setShowStatusModal(false)}
+              >
+                ✕
+              </button>
             </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Faculty Member</label>
+            <div 
+              style={{
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                overflowY: 'auto',
+                flex: 1,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Faculty Member
+                </label>
                 <input
                   type="text"
                   value={statusFaculty.name || ''}
                   disabled
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface-2)',
+                    color: 'var(--admin-muted)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'not-allowed'
+                  }}
                 />
               </div>
-              <div className="form-group">
-                <label>Status</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <label style={{ 
+                  fontWeight: '600', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--admin-text)', 
+                  marginBottom: '4px'
+                }}>
+                  Status
+                </label>
                 <select
                   value={statusFaculty.status || 'active'}
                   onChange={(e) => setStatusFaculty({...statusFaculty, status: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    paddingRight: '40px',
+                    border: '1px solid var(--admin-border)',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem',
+                    background: 'var(--admin-surface)',
+                    color: 'var(--admin-text)',
+                    minHeight: '48px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--admin-primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--admin-border)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="active" style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>Active</option>
+                  <option value="inactive" style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>Inactive</option>
                 </select>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowStatusModal(false)}>Cancel</button>
-              <button className="save-btn" onClick={handleStatusSave}>
+            <div 
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '24px 28px',
+                background: 'var(--admin-surface)'
+              }}
+            >
+              <button 
+                onClick={() => setShowStatusModal(false)}
+                style={{
+                  background: 'var(--admin-surface)',
+                  color: 'var(--admin-text)',
+                  border: '1px solid var(--admin-border)',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '120px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-surface-2)';
+                  e.target.style.borderColor = 'var(--admin-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-surface)';
+                  e.target.style.borderColor = 'var(--admin-border)';
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleStatusSave}
+                style={{
+                  background: 'var(--admin-primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  minWidth: '140px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--admin-primary-600)';
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 8px -1px rgba(37, 99, 235, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--admin-primary)';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                }}
+              >
                 Update Status
               </button>
             </div>

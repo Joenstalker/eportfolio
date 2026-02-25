@@ -696,57 +696,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
           </div>
         )}
 
-        <div className="assignments-section">
-          <h4>Course Assignments</h4>
-          <div className="assignments-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Course</th>
-                  <th>Faculty</th>
-                  <th>Semester</th>
-                  <th>Section</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {courseAssignments.map((assignment) => {
-                  const course = courses.find((c) => c._id === assignment.courseId);
-                  const faculty = facultyData.find((f) => f._id === assignment.facultyId);
-                  const isCourseLocked = isCourseLockedByAnotherAdmin(assignment.courseId);
-
-                  return (
-                    <tr key={assignment._id}>
-                      <td>
-                        {course ? `${course.courseCode} - ${course.courseName}` : 'Unknown Course'}
-                        {isCourseLocked && <span className="table-lock-indicator"> (Locked)</span>}
-                      </td>
-                      <td>{faculty ? faculty.name : 'Unknown Faculty'}</td>
-                      <td>{assignment.semester}</td>
-                      <td>{assignment.section}</td>
-                      <td>
-                        <button
-                          className="btn-action delete"
-                          disabled={isCourseLocked}
-                          title={isCourseLocked ? 'Course is locked' : 'Remove assignment'}
-                        >
-                          {isCourseLocked ? 'Locked' : 'Remove'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {courseAssignments.length === 0 && (
-              <div className="empty-state">
-                No course assignments found.
-              </div>
-            )}
-          </div>
         </div>
-      </div>
 
       {/* Add Course Modal */}
       {showCourseModal && (
