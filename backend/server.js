@@ -39,6 +39,10 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/class-portfolio', require('./routes/classPortfolio'));
 app.use('/api/courses', require('./routes/course'));
 app.use('/api/venues', require('./routes/venues'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/activities', require('./routes/activities'));
+app.use('/api/admin/rbac', require('./routes/rbac'));
+app.use('/api/teaching/class-list', require('./routes/classManagement'));
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ 
