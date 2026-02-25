@@ -482,12 +482,30 @@
 .admin-dashboard .modal .form-group textarea:focus {
   outline: none;
   border-color: rgba(59, 130, 246, 0.8);
-  box-shadow: 
-    0 0 20px rgba(59, 130, 246, 0.4),
-    0 0 40px rgba(59, 130, 246, 0.2),
-    inset 0 0 10px rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.admin-dashboard .modal .form-group input.invalid {
+  border-color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.05);
+}
+
+.admin-dashboard .modal .form-group input.invalid:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.admin-dashboard .modal .form-group .error-message {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.admin-dashboard .modal .form-group small {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  margin-top: 4px;
 }
 
 .admin-dashboard .modal-actions {

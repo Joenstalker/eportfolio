@@ -103,6 +103,14 @@ const AdminDashboard = () => {
     showSuccessAlert(`${reportType} report generated successfully!`)
   }
 
+  // ==================== EMAIL VALIDATION ====================
+  
+  const isValidEmailDomain = (email) => {
+    if (!email || email.trim() === '') return false;
+    const trimmedEmail = email.trim().toLowerCase();
+    return trimmedEmail.endsWith('@gmail.com') || trimmedEmail.endsWith('@student.buksu.edu.ph');
+  };
+
   // ==================== BACKEND API FUNCTIONS ====================
 
   // Check if Add Faculty form has all required fields
@@ -110,6 +118,7 @@ const AdminDashboard = () => {
     return !showAddModal || (
       newFaculty.firstName.trim() !== '' &&
       newFaculty.email.trim() !== '' &&
+      isValidEmailDomain(newFaculty.email) &&
       newFaculty.password.trim() !== '' &&
       newFaculty.department.trim() !== ''
     );
@@ -119,6 +128,7 @@ const AdminDashboard = () => {
   const isEditFacultyFormValid = () => {
     return !showEditModal || (
       editFaculty.email?.trim() !== '' &&
+      isValidEmailDomain(editFaculty.email) &&
       editFaculty.department?.trim() !== ''
     );
   };
@@ -828,7 +838,14 @@ const AdminDashboard = () => {
                   value={newFaculty.email}
                   onChange={(e) => setNewFaculty({...newFaculty, email: e.target.value})}
                   placeholder="Enter email address"
+                  className={newFaculty.email && !isValidEmailDomain(newFaculty.email) ? 'invalid' : ''}
                 />
+                {newFaculty.email && !isValidEmailDomain(newFaculty.email) && (
+                  <small className="error-message">
+                    Only @gmail.com and @student.buksu.edu.ph email domains are allowed
+                  </small>
+                )}
+                <small>Only @gmail.com and @student.buksu.edu.ph emails are accepted</small>
               </div>
               <div className="form-group">
                 <label>Password *</label>
@@ -899,7 +916,14 @@ const AdminDashboard = () => {
                   value={editFaculty.email || ''}
                   onChange={(e) => setEditFaculty({...editFaculty, email: e.target.value})}
                   placeholder="Enter email address"
+                  className={editFaculty.email && !isValidEmailDomain(editFaculty.email) ? 'invalid' : ''}
                 />
+                {editFaculty.email && !isValidEmailDomain(editFaculty.email) && (
+                  <small className="error-message">
+                    Only @gmail.com and @student.buksu.edu.ph email domains are allowed
+                  </small>
+                )}
+                <small>Only @gmail.com and @student.buksu.edu.ph emails are accepted</small>
               </div>
               <div className="form-group">
                 <label>Department *</label>

@@ -16,6 +16,14 @@ const ProfileDashboard = () => {
         bio: ''
     });
 
+    // ==================== EMAIL VALIDATION ====================
+    
+    const isValidEmailDomain = (email) => {
+        if (!email || email.trim() === '') return false;
+        const trimmedEmail = email.trim().toLowerCase();
+        return trimmedEmail.endsWith('@gmail.com') || trimmedEmail.endsWith('@student.buksu.edu.ph');
+    };
+
     // Check if profile is complete
     const isProfileComplete = () => {
         return profile.name.trim() !== '' && 
@@ -355,7 +363,14 @@ const loadStats = async () => {
                                 value={profile.email}
                                 onChange={(e) => setProfile({...profile, email: e.target.value})}
                                 placeholder="Enter your email"
+                                className={profile.email && !isValidEmailDomain(profile.email) ? 'invalid' : ''}
                             />
+                            {profile.email && !isValidEmailDomain(profile.email) && (
+                                <small className="error-message">
+                                    Only @gmail.com and @student.buksu.edu.ph email domains are allowed
+                                </small>
+                            )}
+                            <small>Only @gmail.com and @student.buksu.edu.ph emails are accepted</small>
                         </div>
                         <div className="form-group">
                             <label>Department</label>
