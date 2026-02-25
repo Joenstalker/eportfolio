@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const TeachingPortfolio = require('../models/TeachingPortfolio');
+const Course = require('../models/Course');
+const CourseAssignment = require('../models/CourseAssignment');
 const auth = require('../middleware/auth');
 
 // Get teaching portfolio
@@ -19,6 +21,33 @@ router.get('/', auth, async (req, res) => {
         res.json({ subjects: portfolio.subjects });
     } catch (error) {
         console.error('Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get assigned courses for faculty
+router.get('/courses', auth, async (req, res) => {
+    try {
+        const assignments = await CourseAssignment.find({ facultyId: req.user.id })
+            .populate('courseId')
+            .populate('facultyId');
+        
+        const courses = assignments.map(assignment => ({
+            _id: assignment.courseId._id,
+            courseCode: assignment.courseId.courseCode,
+            courseName: assignment.courseId.courseName,
+            description: assignment.courseId.description,
+            credits: assignment.courseId.credits,
+            department: assignment.courseId.department,
+            semester: assignment.semester,
+            section: assignment.section,
+            maxStudents: assignment.courseId.maxStudents,
+            isActive: assignment.courseId.isActive
+        }));
+
+        res.json({ courses });
+    } catch (error) {
+        console.error('Error fetching assigned courses:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
