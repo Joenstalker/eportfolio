@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema({
     bio: String,     // Added for user profile
     resetPasswordCode: String,
     resetPasswordExpires: Date,
+    requirePasswordChange: {
+        type: Boolean,
+        default: false
+    },
+    passwordChangedAt: Date,
     profilePicture: String,
     isActive: {
         type: Boolean,

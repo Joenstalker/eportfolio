@@ -30,6 +30,10 @@ router.post('/users', adminController.createUser);
 router.put('/users/:id', adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
 
+// Password management routes
+router.post('/users/:id/reset-password', adminController.resetUserPassword);
+router.post('/users/:id/change-password', adminController.changeUserPassword);
+
 // Backup routes
 router.get('/backups', adminController.getBackups);
 router.post('/backups', adminController.createBackup);

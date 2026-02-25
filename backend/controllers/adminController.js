@@ -12,6 +12,101 @@ const requireAdmin = (req, res) => {
   return true;
 };
 
+// Password Management
+exports.resetUserPassword = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+
+    const { temporaryPassword } = req.body;
+    const { id } = req.params;
+
+    if (!temporaryPassword || temporaryPassword.length < 6) {
+      return res.status(400).json({ message: 'Temporary password must be at least 6 characters' });
+    }
+
+    // Hash the temporary password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(temporaryPassword, salt);
+
+    // Update user password and set reset flags
+    const user = await User.findByIdAndUpdate(
+      id,
+      { 
+        password: hashedPassword,
+        requirePasswordChange: true,
+        passwordChangedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Log the password reset action
+    console.log(`Admin reset password for user: ${user.email}`);
+
+    res.json({ 
+      message: 'Password reset successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`
+      }
+    });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.changeUserPassword = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+
+    const { newPassword } = req.body;
+    const { id } = req.params;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update user password and clear reset flags
+    const user = await User.findByIdAndUpdate(
+      id,
+      { 
+        password: hashedPassword,
+        requirePasswordChange: false,
+        passwordChangedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Log the password change action
+    console.log(`Admin changed password for user: ${user.email}`);
+
+    res.json({ 
+      message: 'Password changed successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`
+      }
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // User Management
 exports.getUsers = async (req, res) => {
   try {

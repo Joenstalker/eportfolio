@@ -183,11 +183,6 @@ const FacultyDashboard = ({ user, courses }) => {
                 <div className="bar" style={{ width: '20%', background: '#f59e0b' }}></div>
                 <span>20%</span>
               </div>
-              <div className="performance-item">
-                <span>Needs Improvement (<70)</span>
-                <div className="bar" style={{ width: '10%', background: '#ef4444' }}></div>
-                <span>10%</span>
-              </div>
             </div>
           </div>
         </div>

@@ -102,7 +102,8 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        department: user.department
+        department: user.department,
+        requirePasswordChange: user.requirePasswordChange || false
       }
     });
   } catch (error) {

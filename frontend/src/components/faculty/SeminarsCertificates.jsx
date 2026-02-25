@@ -98,6 +98,62 @@ const SeminarsCertificates = () => {
         setNewSeminar({...newSeminar, certificateFile: e.target.files[0]});
     };
 
+    const handleAddVenue = async () => {
+        if (!customVenue.trim()) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please enter a venue name',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        try {
+            const token = ensureToken();
+            const response = await fetch('http://localhost:5000/api/venues', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: customVenue.trim() })
+            });
+            
+            if (response.ok) {
+                // Successfully added venue
+                await loadVenues(); // Reload venues to update dropdown
+                setNewSeminar({...newSeminar, venue: customVenue.trim()});
+                setCustomVenue('');
+                setShowAddVenue(false);
+                Swal.fire({
+                    title: 'Venue Added!',
+                    text: 'The venue has been successfully added.',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db'
+                });
+            } else {
+                const errorData = await response.json();
+                if (errorData.message === 'Venue already exists') {
+                    // Venue already exists, just select it
+                    setNewSeminar({...newSeminar, venue: customVenue.trim()});
+                    setCustomVenue('');
+                    setShowAddVenue(false);
+                } else {
+                    throw new Error(errorData.message || 'Error adding venue');
+                }
+            }
+        } catch (error) {
+            console.error('Error adding venue:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: `Error adding venue: ${error.message}`,
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+        }
+    };
+
     const addSeminar = async () => {
         let finalVenue = newSeminar.venue;
         let venueToAdd = null;
@@ -120,7 +176,10 @@ const SeminarsCertificates = () => {
                     body: JSON.stringify({ name: venueToAdd })
                 });
                 
-                if (!venueResponse.ok) {
+                if (venueResponse.ok) {
+                    // Successfully added venue, reload venues to update dropdown
+                    await loadVenues();
+                } else {
                     const errorData = await venueResponse.json();
                     // If venue already exists, that's okay, we can still proceed
                     if (errorData.message !== 'Venue already exists') {
@@ -283,6 +342,13 @@ const SeminarsCertificates = () => {
                                     placeholder="Enter new venue"
                                     style={{ flex: 1 }}
                                 />
+                                <button 
+                                    className="action-btn edit" 
+                                    onClick={handleAddVenue}
+                                    style={{ padding: '5px' }}
+                                >
+                                    Add
+                                </button>
                                 <button 
                                     className="action-btn delete" 
                                     onClick={() => {
