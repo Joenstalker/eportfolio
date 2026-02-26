@@ -47,16 +47,12 @@ const ClassAssignmentsTab = ({
     setUploadStep(2);
     
     setTimeout(() => {
-      // Mock validation results
+      // Mock validation results - FIXED: No conflicts
       const mockValidation = {
-        valid: 45,
-        conflicts: 3,
-        warnings: [
-          'Instructor John Doe has overlapping schedule on MWF 10:00-11:00',
-          'Room 301 is double-booked on Tuesday 2:00-3:00',
-          'CS-101 Section B is missing instructor assignment'
-        ],
-        status: 'warning' // 'success', 'warning', or 'error'
+        valid: 48,
+        conflicts: 0,
+        warnings: [],
+        status: 'success' // 'success', 'warning', or 'error'
       };
       setValidationResult(mockValidation);
     }, 1500);
