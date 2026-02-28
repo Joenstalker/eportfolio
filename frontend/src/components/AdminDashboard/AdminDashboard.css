@@ -240,10 +240,10 @@
 }
 
 .admin-dashboard .close-btn {
-  background: transparent;
+  background: #fef2f2;
   border: none;
   font-size: 1.75rem;
-  color: #9ca3af;
+  color: #dc2626;
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -256,8 +256,8 @@
 }
 
 .admin-dashboard .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .admin-dashboard .modal-content {

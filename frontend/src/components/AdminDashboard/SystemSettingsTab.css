@@ -150,6 +150,26 @@
   border-top: 2px solid var(--admin-border) !important;
 }
 
+.admin-dashboard .settings-actions button {
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap; /* Prevent text wrapping */
+  text-align: center; /* Center-align text */
+  overflow: hidden; /* Prevent overflow */
+  text-overflow: ellipsis; /* Add ellipsis for long text */
+}
+
+.admin-dashboard .settings-actions button:hover {
+  background: var(--admin-border);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 900px) {
   .admin-dashboard .settings-grid.two-col {
     grid-template-columns: 1fr;

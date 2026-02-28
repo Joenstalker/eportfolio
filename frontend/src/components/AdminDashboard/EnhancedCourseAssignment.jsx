@@ -321,7 +321,7 @@ const EnhancedCourseAssignment = ({ user }) => {
               </button>
             </div>
             <button 
-              className="btn-primary"
+              className="btn-secondary"
               onClick={() => setShowAssignmentModal(true)}
             >
               ➕ New Assignment
@@ -348,10 +348,8 @@ const EnhancedCourseAssignment = ({ user }) => {
               className="filter-select"
             >
               <option value="all">All Semesters</option>
-              <option value="Fall 2024">Fall 2024</option>
-              <option value="Spring 2025">Spring 2025</option>
-              <option value="Summer 2025">Summer 2025</option>
-              <option value="Fall 2025">Fall 2025</option>
+              <option value="First Semester">First Semester</option>
+              <option value="Second Semester">Second Semester</option>
             </select>
           </div>
           
@@ -514,7 +512,7 @@ const EnhancedCourseAssignment = ({ user }) => {
       };
     });
 
-    const semesterStats = ['Fall 2024', 'Spring 2025', 'Summer 2025', 'Fall 2025'].map(semester => {
+    const semesterStats = ['First Semester', 'Second Semester'].map(semester => {
       const semAssignments = filteredAssignments.filter(a => a.semester === semester);
       return {
         semester,
@@ -910,10 +908,8 @@ const AssignmentModal = ({ assignment, courses, faculty, onClose, onSubmit, load
                 required
               >
                 <option value="">Select Semester</option>
-                <option value="Fall 2024">Fall 2024</option>
-                <option value="Spring 2025">Spring 2025</option>
-                <option value="Summer 2025">Summer 2025</option>
-                <option value="Fall 2025">Fall 2025</option>
+                <option value="First Semester">First Semester</option>
+                <option value="Second Semester">Second Semester</option>
               </select>
             </div>
 
@@ -928,7 +924,7 @@ const AssignmentModal = ({ assignment, courses, faculty, onClose, onSubmit, load
             </div>
 
             <div className="form-group">
-              <label>Section</label>
+              <label>Section Code</label>
               <input
                 type="text"
                 value={formData.section}
@@ -986,7 +982,7 @@ const AssignmentModal = ({ assignment, courses, faculty, onClose, onSubmit, load
             <button type="button" className="btn-secondary" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary" disabled={loading}>
+            <button type="submit" className="btn-secondary" disabled={loading}>
               {loading ? 'Saving...' : (assignment ? 'Update' : 'Create')}
             </button>
           </div>

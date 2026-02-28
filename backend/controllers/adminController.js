@@ -318,59 +318,77 @@ exports.getCourseAssignments = async (req, res) => {
 
 exports.createCourseAssignment = async (req, res) => {
   try {
+    console.log('🔍 Create assignment request received');
+    console.log('🔍 User:', req.user);
+    console.log('🔍 Request body:', req.body);
+    
     if (!requireAdmin(req, res)) return;
 
     const { facultyId, courseId, semester, section } = req.body;
     
+    console.log('🔍 Extracted data:', { facultyId, courseId, semester, section });
+    
     // Validate required fields
     if (!facultyId || !courseId) {
+      console.log('❌ Missing required fields');
       return res.status(400).json({ 
         message: 'Missing required fields: facultyId and courseId are required' 
       });
     }
 
+    console.log('🔍 Looking up faculty...');
     // Check if faculty exists
     const User = require('../models/User');
     const faculty = await User.findById(facultyId);
     if (!faculty) {
+      console.log('❌ Faculty not found:', facultyId);
       return res.status(404).json({ message: 'Faculty not found' });
     }
+    console.log('✅ Faculty found:', faculty.firstName, faculty.lastName);
 
+    console.log('🔍 Looking up course...');
     // Check if course exists
     const Course = require('../models/Course');
     const course = await Course.findById(courseId);
     if (!course) {
+      console.log('❌ Course not found:', courseId);
       return res.status(404).json({ message: 'Course not found' });
     }
+    console.log('✅ Course found:', course.courseCode, course.courseName);
 
+    console.log('🔍 Checking for existing assignment...');
     // Check if assignment already exists
     const CourseAssignment = require('../models/CourseAssignment');
     const existingAssignment = await CourseAssignment.findOne({
       facultyId,
       courseId,
-      semester: semester || 'Fall 2025',
-      section: section || 'A'
+      semester: semester || 'First Semester',
+      section: section
     });
 
     if (existingAssignment) {
+      console.log('❌ Assignment already exists');
       return res.status(400).json({ 
         message: 'Faculty is already assigned to this course for this semester' 
       });
     }
 
+    console.log('🔍 Creating new assignment...');
     // Create new assignment
     const newAssignment = new CourseAssignment({
       facultyId,
       courseId,
-      semester: semester || 'Fall 2025',
-      section: section || 'A',
+      semester: semester || 'First Semester',
+      section: section,
       status: 'active',
       assignedAt: new Date(),
       assignedBy: req.user.id
     });
 
     await newAssignment.save();
+    console.log('✅ Assignment saved to database');
 
+    console.log('🔍 Populating assignment data...');
     // Populate the assignment with faculty and course details for response
     const populatedAssignment = await CourseAssignment.findById(newAssignment._id)
       .populate('facultyId', 'firstName lastName email')
@@ -379,7 +397,7 @@ exports.createCourseAssignment = async (req, res) => {
     console.log('✅ Course assignment created:', {
       faculty: faculty.firstName + ' ' + faculty.lastName,
       course: course.courseCode,
-      semester: semester || 'Fall 2025'
+      semester: semester || 'First Semester'
     });
 
     res.status(201).json({
@@ -389,6 +407,7 @@ exports.createCourseAssignment = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Create course assignment error:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({ 
       message: 'Server error creating assignment',
       error: error.message 

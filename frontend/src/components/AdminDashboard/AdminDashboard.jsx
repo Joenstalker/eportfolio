@@ -10,6 +10,7 @@ import FacultyManagementTab from './FacultyManagementTab'
 import ArchivedUsersTab from './ArchivedUsersTab'
 import ArchivedCoursesTab from './ArchivedCoursesTab'
 import ClassAssignmentsTab from './ClassAssignmentsTab'
+import EnhancedCourseAssignment from './EnhancedCourseAssignment'
 import ReportsTab from './ReportsTab'
 import SystemAnalyticsTab from './SystemAnalyticsTab'
 import SystemSettingsTab from './SystemSettingsTab'
@@ -366,6 +367,10 @@ const AdminDashboard = () => {
         />
       )
     },
+    facultyAssignments: {
+      title: 'Faculty Course Assignments',
+      content: <EnhancedCourseAssignment user={user} />
+    },
     reports: {
       title: 'Reports and Analytics',
       content: (
@@ -403,6 +408,7 @@ const AdminDashboard = () => {
       ]
     },
     { id: 'assignments', label: 'CLASS ASSIGNMENTS' },
+    { id: 'facultyAssignments', label: 'FACULTY ASSIGNMENTS' },
     { id: 'reports', label: 'REPORTS' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS' },
     { id: 'settings', label: 'SYSTEM SETTINGS' }
@@ -866,10 +872,10 @@ const AdminDashboard = () => {
               </h3>
               <button 
                 style={{
-                  background: 'transparent',
+                  background: '#fef2f2',
                   border: 'none',
                   fontSize: '1.1rem',
-                  color: '#6b7280',
+                  color: '#dc2626',
                   cursor: 'pointer',
                   padding: '6px',
                   width: '32px',
@@ -887,8 +893,8 @@ const AdminDashboard = () => {
                   e.target.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#6b7280';
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
                 }}
                 onClick={() => setShowAddModal(false)}
               >
@@ -1304,10 +1310,10 @@ const AdminDashboard = () => {
               </h3>
               <button 
                 style={{
-                  background: 'transparent',
+                  background: '#fef2f2',
                   border: 'none',
                   fontSize: '1.1rem',
-                  color: '#6b7280',
+                  color: '#dc2626',
                   cursor: 'pointer',
                   padding: '6px',
                   width: '32px',
@@ -1325,8 +1331,8 @@ const AdminDashboard = () => {
                   e.target.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#6b7280';
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
                 }}
                 onClick={() => setShowEditModal(false)}
               >
@@ -1666,10 +1672,10 @@ const AdminDashboard = () => {
               </h3>
               <button 
                 style={{
-                  background: 'transparent',
+                  background: '#fef2f2',
                   border: 'none',
                   fontSize: '1.1rem',
-                  color: '#6b7280',
+                  color: '#dc2626',
                   cursor: 'pointer',
                   padding: '6px',
                   width: '32px',
@@ -1687,8 +1693,8 @@ const AdminDashboard = () => {
                   e.target.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#6b7280';
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
                 }}
                 onClick={() => setShowStatusModal(false)}
               >

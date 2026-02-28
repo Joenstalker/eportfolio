@@ -47,6 +47,8 @@
   transition: all 0.3s ease;
   border-radius: 8px 8px 0 0;
   white-space: nowrap;
+  text-align: center; /* Center-align text */
+  overflow-wrap: break-word; /* Break long words */
 }
 
 .tab-btn:hover {
@@ -102,13 +104,19 @@
 }
 
 .view-btn {
-  padding: 8px 16px;
-  background: transparent;
-  border: none;
-  color: var(--admin-muted);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  visibility: visible; /* Ensure button is always visible */
+  opacity: 1; /* Remove any transparency */
+  white-space: nowrap; /* Prevent text wrapping */
+  text-align: center; /* Center-align text */
+  overflow: hidden; /* Prevent overflow */
+  text-overflow: ellipsis; /* Add ellipsis for long text */
+  padding: 8px 16px; /* Restore padding for functionality */
+  background: #f3f4f6; /* Restore background color */
+  border: 1px solid #d1d5db; /* Restore border */
+  color: #374151; /* Restore text color */
+  cursor: pointer; /* Restore pointer cursor */
+  transition: all 0.3s ease; /* Restore transition */
+  font-size: 0.9rem; /* Restore font size */
 }
 
 .view-btn.active {
@@ -296,10 +304,10 @@
 .actions-dropdown button {
   width: 100%;
   padding: 10px 15px;
-  background: transparent;
-  border: none;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   text-align: left;
-  color: var(--admin-text);
+  color: #374151;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
@@ -517,13 +525,14 @@
 .btn-edit,
 .btn-status,
 .btn-delete {
-  background: transparent;
-  border: none;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
   padding: 8px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
+  color: #374151;
 }
 
 .btn-edit:hover {
@@ -785,29 +794,60 @@
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-600));
-  color: white;
-  border: none;
+  background: var(--admin-surface-2);
+  color: var(--admin-text); /* Ensure text is visible by default */
+  border: 1px solid var(--admin-border);
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease; /* Add smooth transition */
+  white-space: nowrap; /* Prevent text wrapping */
+  text-align: center; /* Center-align text */
+  overflow: hidden; /* Prevent overflow */
+  text-overflow: ellipsis; /* Add ellipsis for long text */
+  display: flex; /* Ensure proper alignment */
+  align-items: center; /* Vertically center content */
+  justify-content: center; /* Horizontally center content */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add soft shadow */
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.btn-primary:hover {
+  background: var(--admin-primary-light); /* Add hover background color */
+  color: var(--admin-primary); /* Change text color on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhance shadow on hover */
+  transform: translateY(-2px); /* Add hover effect */
 }
 
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+.btn-primary:active {
+  background: var(--admin-primary-dark); /* Add active background color */
+  color: white; /* Ensure text is visible on active */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reduce shadow on active */
+  transform: translateY(0); /* Reset transform on active */
 }
 
 .btn-secondary {
+  background: none; /* Remove background */
+  color: var(--admin-text); /* Ensure text is visible */
+  border: 1px solid var(--admin-border);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap; /* Prevent text wrapping */
+  text-align: center; /* Center-align text */
+  overflow: hidden; /* Prevent overflow */
+  text-overflow: ellipsis; /* Add ellipsis for long text */
+}
+
+.btn-secondary:hover {
+  background: none; /* Remove hover background */
+  color: var(--admin-text); /* Ensure text remains visible on hover */
+  transform: none; /* Remove hover transform */
+}
+
+/* Apply Reset to Defaults button style to all admin buttons */
+.btn-primary, .btn-secondary {
   background: var(--admin-surface-2);
   color: var(--admin-text);
   border: 1px solid var(--admin-border);
@@ -816,11 +856,22 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: normal; /* Allow text wrapping */
+  text-align: center; /* Center-align text */
+  overflow-wrap: break-word; /* Break long words */
+  word-break: break-word; /* Ensure long words break */
 }
 
-.btn-secondary:hover {
+.btn-primary:hover, .btn-secondary:hover {
   background: var(--admin-border);
+  color: var(--admin-primary); /* Ensure text color is visible on hover */
   transform: translateY(-1px);
+}
+
+.btn-primary:active, .btn-secondary:active {
+  background: var(--admin-primary-dark);
+  color: white; /* Ensure text is visible on active */
+  transform: translateY(0);
 }
 
 /* Loading State */
@@ -873,6 +924,60 @@
 .empty-state p {
   margin: 0 0 20px 0;
   font-size: 1rem;
+}
+
+/* Quick Stats Section */
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* Create 4 equal columns */
+  gap: 20px; /* Add equal spacing between blocks */
+  padding: 20px;
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  margin-bottom: 20px;
+  text-align: center; /* Center-align all content */
+}
+
+.quick-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.quick-stats .stat-item h4 {
+  margin: 0;
+  font-size: 0.9rem; /* Smaller, consistent label size */
+  color: var(--admin-muted);
+  font-weight: 600; /* Medium weight for labels */
+  text-transform: uppercase; /* Consistent casing */
+}
+
+.quick-stats .stat-item span {
+  font-size: 1.8rem; /* Slightly reduced number size */
+  font-weight: 700; /* Bold for emphasis */
+  color: var(--admin-primary);
+  margin-top: 5px; /* Add spacing between number and label */
+}
+
+.quick-stats .stat-item .icon {
+  font-size: 1.2rem; /* Icon size */
+  color: var(--admin-primary);
+  margin-bottom: 5px; /* Add spacing below icon */
+}
+
+.quick-stats .stat-item:hover {
+  background: var(--admin-surface-2);
+  border-radius: var(--admin-radius);
+  transition: background 0.3s ease;
+}
+
+.quick-stats .divider {
+  height: 1px;
+  background: var(--admin-border);
+  margin: 10px 0;
 }
 
 /* Responsive Design */

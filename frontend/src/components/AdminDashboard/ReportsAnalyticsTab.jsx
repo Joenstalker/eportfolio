@@ -160,7 +160,7 @@ const ReportsAnalyticsTab = ({ user }) => {
   const calculateCourseStats = () => {
     return {
       totalCourses: courseData.length,
-      activeCourses: courseData.filter(c => c.isActive).length,
+      activeCourses: courseData.filter(c => c.status === 'active').length,
       departmentBreakdown: courseData.reduce((acc, course) => {
         const dept = course.department || 'Unknown';
         acc[dept] = (acc[dept] || 0) + 1;

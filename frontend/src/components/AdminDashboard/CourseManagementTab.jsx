@@ -6,16 +6,14 @@ const CourseManagementTab = ({ user, facultyData }) => {
   // Generate semester options matching backend enum
   const generateSemesterOptions = () => {
     return [
-      'Fall 2024',
-      'Spring 2025', 
-      'Summer 2025',
-      'Fall 2025'
+      'First Semester',
+      'Second Semester'
     ];
     return semesters;
   };
   
   const semesterOptions = generateSemesterOptions();
-  const defaultSemester = 'Fall 2025';
+  const defaultSemester = 'First Semester';
 
   // Course Management State
   const [courses, setCourses] = useState([]);
@@ -40,7 +38,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
     facultyId: '',
     courseId: '',
     semester: defaultSemester,
-    section: 'A'
+    section: ''
   });
   const [courseLocks, setCourseLocks] = useState({});
 
@@ -475,43 +473,90 @@ const CourseManagementTab = ({ user, facultyData }) => {
 
   const handleAssignFaculty = async () => {
     console.log('🔍 Assignment form state:', newAssignment);
-    console.log('🔍 Faculty ID:', newAssignment.facultyId);
-    console.log('🔍 Course ID:', newAssignment.courseId);
     
     if (!newAssignment.facultyId || !newAssignment.courseId) {
+      console.log('❌ Validation failed - missing faculty or course');
       showErrorAlert('Please select both faculty and course');
       return;
     }
 
+    console.log('✅ Form validation passed');
+
     try {
       const token = localStorage.getItem('token');
+      console.log('🔍 Token exists:', !!token);
+      
+      if (!token) {
+        console.log('❌ No authentication token found');
+        showErrorAlert('Please log in again');
+        return;
+      }
+
+      // First test if backend is reachable
+      console.log('🔍 Testing backend connectivity...');
+      try {
+        const testResponse = await fetch('/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        console.log('🔍 Backend test response status:', testResponse.status);
+      } catch (testError) {
+        console.error('❌ Backend connectivity test failed:', testError);
+        showErrorAlert('Cannot connect to backend server');
+        return;
+      }
+
+      const assignmentData = {
+        facultyId: newAssignment.facultyId,
+        courseId: newAssignment.courseId,
+        semester: newAssignment.semester,
+        section: newAssignment.section
+      };
+      
+      console.log('🚀 Sending assignment data:', assignmentData);
+      
       const response = await fetch('/api/admin/assignments', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(newAssignment)
+        body: JSON.stringify(assignmentData)
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const responseText = await response.text();
+      console.log('📡 Raw response:', responseText);
+
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log('📡 Parsed response data:', responseData);
+      } catch (e) {
+        console.log('📡 Response is not JSON, using raw text');
+        responseData = { message: responseText };
+      }
+      
       if (response.ok) {
-        const result = await response.json();
-        setCourseAssignments(prev => [...prev, result.assignment]);
-        setShowAssignmentModal(false);
+        console.log('✅ Assignment created successfully');
         setNewAssignment({
           facultyId: '',
           courseId: '',
           semester: defaultSemester,
-          section: 'A'
+          section: ''
         });
+        setShowAssignmentModal(false);
         showSuccessAlert('Faculty assigned to course successfully!');
+        fetchCourseAssignments();
       } else {
-        const error = await response.json();
-        showErrorAlert(error.message || 'Error assigning faculty');
+        console.error('❌ Backend error:', responseData);
+        showErrorAlert(responseData?.message || `Error ${response.status}: ${responseText}`);
       }
     } catch (error) {
-      console.error('Error assigning faculty:', error);
-      showErrorAlert('Error assigning faculty');
+      console.error('❌ Network error:', error);
+      console.error('❌ Error stack:', error.stack);
+      showErrorAlert('Network error: ' + error.message);
     }
   };
 
@@ -766,10 +811,10 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </h3>
               <button 
                 style={{
-                  background: 'transparent',
+                  background: '#fef2f2',
                   border: 'none',
                   fontSize: '1.1rem',
-                  color: '#6b7280',
+                  color: '#dc2626',
                   cursor: 'pointer',
                   padding: '6px',
                   width: '32px',
@@ -787,8 +832,8 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   e.target.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#6b7280';
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
                 }}
                 onClick={() => {
                   if (isAddCourseFormValid()) {
@@ -1243,10 +1288,10 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </div>
               <button 
                 style={{
-                  background: 'transparent',
+                  background: '#fef2f2',
                   border: 'none',
                   fontSize: '1.1rem',
-                  color: '#6b7280',
+                  color: '#dc2626',
                   cursor: 'pointer',
                   padding: '6px',
                   width: '32px',
@@ -1264,8 +1309,8 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   e.target.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#6b7280';
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
                 }}
                 onClick={() => {
                   if (isEditCourseFormValid()) {
@@ -1709,10 +1754,10 @@ const CourseManagementTab = ({ user, facultyData }) => {
               </h3>
               <button 
                 style={{
-                  background: 'transparent',
+                  background: '#fef2f2',
                   border: 'none',
                   fontSize: '1.1rem',
-                  color: '#6b7280',
+                  color: '#dc2626',
                   cursor: 'pointer',
                   padding: '6px',
                   width: '32px',
@@ -1730,8 +1775,8 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   e.target.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#6b7280';
+                  e.target.style.background = '#fef2f2';
+                  e.target.style.color = '#dc2626';
                 }}
                 onClick={() => {
                   if (isAssignFacultyFormValid()) {
@@ -1848,7 +1893,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   }}
                 >
                   <option value="">Select Course</option>
-                  {courses.filter(c => c.isActive).map(course => (
+                  {courses.filter(c => c.status === 'active').map(course => (
                     <option key={course._id} value={course._id} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>
                       {course.courseCode} - {course.courseName}
                     </option>
@@ -1910,7 +1955,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   color: 'var(--admin-text)', 
                   marginBottom: '4px'
                 }}>
-                  Section
+                  Section Code
                 </label>
                 <input
                   type="text"
