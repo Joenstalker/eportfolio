@@ -1,6 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
+import { FaTrash, FaDownload } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 
 const Research = () => {
     const { user, ensureToken } = useContext(AuthContext);
@@ -146,6 +148,52 @@ const Research = () => {
         }
     };
 
+    const deleteResearchPaper = async (id) => {
+        const confirm = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Delete'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                const token = ensureToken();
+                const response = await fetch(`http://localhost:5000/api/research/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                setResearchPapers(researchPapers.filter(paper => paper._id !== id));
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Research paper has been removed.',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error deleting research paper:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error deleting research paper: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
+        }
+    };
+
     return (
         <div className="faculty-section">
             <div className="section-header">
@@ -239,8 +287,8 @@ const Research = () => {
                 <div className="items-list" style={{marginTop: '2rem'}}>
                     <h3>Your Research Papers</h3>
                     {researchPapers.map(paper => (
-                        <div key={paper._id} className="item-card">
-                            <div className="item-header">
+                        <div key={paper._id} className="item-card" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+                            <div className="item-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <h4>{paper.title}</h4>
                                 <span className={`status-badge ${paper.status}`}>
                                     {paper.status}
@@ -253,11 +301,16 @@ const Research = () => {
                             {paper.abstract && (
                                 <p><strong>Abstract:</strong> {paper.abstract.substring(0, 200)}...</p>
                             )}
-                            {paper.fileUrl && (
-                                <a href={`http://localhost:5000/${paper.fileUrl}`} target="_blank" rel="noopener noreferrer">
-                                    Download Paper
-                                </a>
-                            )}
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                                {paper.fileUrl && (
+                                    <a href={`http://localhost:5000/${paper.fileUrl}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#3498db', textDecoration: 'none' }}>
+                                        <FaDownload style={{ marginRight: '0.5rem' }} /> Download Paper
+                                    </a>
+                                )}
+                                <button onClick={() => deleteResearchPaper(paper._id)} style={{ display: 'flex', alignItems: 'center', backgroundColor: '#e74c3c', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                                    <FaTrash style={{ marginRight: '0.5rem' }} /> Remove
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

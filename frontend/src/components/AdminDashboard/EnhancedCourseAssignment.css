@@ -1055,3 +1055,17 @@
   --admin-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   --admin-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
+
+/* Further reduced the size of the checkbox */
+input[type="checkbox"], .checkbox {
+  width: 12px; /* Reduced width */
+  height: 12px; /* Reduced height */
+  vertical-align: middle; /* Align checkbox with text */
+  margin-right: 8px; /* Add some spacing between checkbox and text */
+}
+
+input[type="checkbox"]:hover, .checkbox:hover {
+  background: none; /* Remove hover background */
+  box-shadow: none; /* Remove hover shadow */
+  transform: none; /* Remove hover transform */
+}

@@ -194,13 +194,24 @@ const ClassPortfolio = () => {
     };
 
     const deleteMaterial = async (materialId) => {
+        if (!materialId) {
+            console.error('❌ Cannot delete material: materialId is undefined');
+            Swal.fire({
+                title: 'Error!',
+                text: 'Material ID is missing. Unable to delete.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
         const result = await Swal.fire({
             title: 'Are you sure?',
             text: 'You won\'t be able to revert this!',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#e74c3c',
-            cancelButtonColor: '#95a5a6',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, delete it!'
         });
         
@@ -208,57 +219,27 @@ const ClassPortfolio = () => {
 
         try {
             const token = getToken();
-            if (!token) {
-                Swal.fire({
-                    title: 'Authentication Required!',
-                    text: 'Please log in again.',
-                    icon: 'warning',
-                    confirmButtonColor: '#e74c3c'
-                });
-                return;
-            }
-            
-            console.log('🗑️ Deleting material:', materialId);
-            const response = await fetch(`http://localhost:5000/api/class-portfolio/materials/${materialId}`, {
+            const response = await fetch(`/api/class-portfolio/materials/${materialId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    Authorization: `Bearer ${token}`
                 }
             });
-
-            console.log('📡 Delete response status:', response.status);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
-            // Remove from local state
-            setMaterials(materials.filter(material => material._id !== materialId));
-            Swal.fire({
-                title: 'Deleted!',
-                text: 'Material deleted successfully!',
-                icon: 'success',
-                timer: 2000,
-                showConfirmButton: false
-            });
+
+            Swal.fire('Deleted!', 'Your material has been deleted.', 'success');
+            loadMaterials();
         } catch (error) {
             console.error('❌ Error deleting material:', error);
-            if (error.message.includes('Failed to fetch')) {
-                Swal.fire({
-                    title: 'Connection Error!',
-                    text: 'Unable to connect to server. Please make sure the backend is running.',
-                    icon: 'error',
-                    confirmButtonColor: '#e74c3c'
-                });
-            } else {
-                Swal.fire({
-                    title: 'Error!',
-                    text: `Error deleting material: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonColor: '#e74c3c'
-                });
-            }
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to delete material. Please try again later.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
         }
     };
 
@@ -408,12 +389,14 @@ const ClassPortfolio = () => {
                                             📥 Download
                                         </a>
                                     )}
-                                    <button 
-                                        className="action-btn delete"
-                                        onClick={() => deleteMaterial(material._id)}
-                                    >
-                                        🗑️ Delete
-                                    </button>
+                                    {material._id && (
+                                        <button 
+                                            className="action-btn delete"
+                                            onClick={() => deleteMaterial(material._id)}
+                                        >
+                                            🗑️ Delete
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))

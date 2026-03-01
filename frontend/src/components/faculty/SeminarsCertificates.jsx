@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
+import { FaTrash } from 'react-icons/fa';
 
 const SeminarsCertificates = () => {
     const { user, ensureToken } = useContext(AuthContext);
@@ -272,6 +273,52 @@ const SeminarsCertificates = () => {
         }
     };
 
+    const deleteSeminar = async (id) => {
+        const confirm = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Delete'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                const token = ensureToken();
+                const response = await fetch(`http://localhost:5000/api/seminars/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                setSeminars(seminars.filter(seminar => seminar._id !== id));
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Seminar has been removed.',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error deleting seminar:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error deleting seminar: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
+        }
+    };
+
     return (
         <div className="faculty-section">
             <div className="section-header">
@@ -389,19 +436,24 @@ const SeminarsCertificates = () => {
                 <div className="items-list" style={{marginTop: '2rem'}}>
                     <h3>Your Seminars</h3>
                     {seminars.map(seminar => (
-                        <div key={seminar._id} className="item-card">
-                            <div className="item-header">
+                        <div key={seminar._id} className="item-card" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+                            <div className="item-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <h4>{seminar.title}</h4>
-                                <span className="section-badge">{seminar.date}</span>
+                                <span className="section-badge" style={{ fontSize: '0.9rem', color: '#888' }}>{seminar.date}</span>
                             </div>
                             <p><strong>Organizer:</strong> {seminar.organizer}</p>
                             <p><strong>Venue:</strong> {seminar.venue}</p>
                             <p><strong>Duration:</strong> {seminar.duration} hours</p>
-                            {seminar.certificateFile?.fileUrl && (
-                                <a href={`http://localhost:5000${seminar.certificateFile.fileUrl}`} target="_blank" rel="noopener noreferrer">
-                                    View Certificate
-                                </a>
-                            )}
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                                {seminar.certificateFile?.fileUrl && (
+                                    <a href={`http://localhost:5000${seminar.certificateFile.fileUrl}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#3498db', textDecoration: 'none' }}>
+                                        View Certificate
+                                    </a>
+                                )}
+                                <button onClick={() => deleteSeminar(seminar._id)} style={{ display: 'flex', alignItems: 'center', backgroundColor: '#e74c3c', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                                    <FaTrash style={{ marginRight: '0.5rem' }} /> Remove
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

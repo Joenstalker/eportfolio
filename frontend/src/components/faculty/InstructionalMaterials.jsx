@@ -1,6 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
+import { FaTrash, FaDownload } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 
 const InstructionalMaterials = () => {
     const { user, ensureToken } = useContext(AuthContext);
@@ -143,6 +145,52 @@ const InstructionalMaterials = () => {
         }
     };
 
+    const deleteMaterial = async (id) => {
+        const confirm = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Delete'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                const token = ensureToken();
+                const response = await fetch(`http://localhost:5000/api/materials/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                setMaterials(materials.filter(material => material._id !== id));
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Material has been deleted.',
+                    icon: 'success',
+                    confirmButtonColor: '#3498db',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error deleting material:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Error deleting material: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
+        }
+    };
+
     const getTypeIcon = (type) => {
         const icons = {
             lecture: '📚',
@@ -251,7 +299,7 @@ const InstructionalMaterials = () => {
                 <div className="materials-grid" style={{marginTop: '2rem'}}>
                     <h3>Your Instructional Materials</h3>
                     {materials.map(material => (
-                        <div key={material._id} className="material-card">
+                        <div key={material._id} className="material-card" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
                             <div className="material-icon">
                                 {getTypeIcon(material.type)}
                             </div>
@@ -262,9 +310,14 @@ const InstructionalMaterials = () => {
                             <span className={`access-badge ${material.accessLevel}`}>
                                 {material.accessLevel}
                             </span>
-                            <a href={`http://localhost:5000${material.file?.fileUrl || material.fileUrl || ''}`} target="_blank" rel="noopener noreferrer">
-                                Download
-                            </a>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                                <a href={`http://localhost:5000${material.file?.fileUrl || material.fileUrl || ''}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#3498db', textDecoration: 'none' }}>
+                                    <FaDownload style={{ marginRight: '0.5rem' }} /> Download
+                                </a>
+                                <button onClick={() => deleteMaterial(material._id)} style={{ display: 'flex', alignItems: 'center', backgroundColor: '#e74c3c', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                                    <FaTrash style={{ marginRight: '0.5rem' }} /> Delete
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
