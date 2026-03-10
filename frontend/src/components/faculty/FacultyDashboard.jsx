@@ -243,7 +243,7 @@ const FacultyDashboard = ({ user, courses }) => {
                 <span className="grade-count">8</span>
               </div>
               <div className="grade-item">
-                <span className="grade-label">F (<60)</span>
+                <span className="grade-label">F (60)</span>
                 <span className="grade-count">3</span>
               </div>
             </div>
