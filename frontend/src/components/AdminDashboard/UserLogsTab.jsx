@@ -67,16 +67,39 @@ const UserLogsTab = ({ user }) => {
         queryParams.append('search', filters.search);
       }
 
-      const response = await fetch(`/api/admin/activities?${queryParams}`);
+      console.log('📤 [UserLogs] Fetch request', {
+        endpoint: `/api/activities?${queryParams.toString()}`,
+        page: pagination.page,
+        limit: pagination.limit,
+        filters,
+        sortBy,
+        sortOrder
+      });
+
+      const response = await fetch(`/api/activities?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📥 [UserLogs] Fetch response', {
+          total: data.total || 0,
+          returned: Array.isArray(data.activities) ? data.activities.length : 0,
+          page: data.page,
+          totalPages: data.totalPages
+        });
         setActivities(data.activities || []);
         setPagination(prev => ({
           ...prev,
           total: data.total || 0
         }));
       } else {
+        console.error('❌ [UserLogs] Non-OK response', {
+          status: response.status,
+          statusText: response.statusText
+        });
         throw new Error('Failed to fetch activities');
       }
     } catch (error) {
@@ -119,7 +142,7 @@ const UserLogsTab = ({ user }) => {
         )
       });
 
-      const response = await fetch(`/api/admin/activities/export?${queryParams}`, {
+      const response = await fetch(`/api/activities?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -159,7 +182,7 @@ const UserLogsTab = ({ user }) => {
       try {
         const token = localStorage.getItem('token');
         
-        const response = await fetch('/api/admin/activities/clear', {
+        const response = await fetch('/api/activities/clear', {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -443,7 +466,9 @@ const UserLogsTab = ({ user }) => {
               ) : (
                 <tr>
                   <td colSpan="8" className="no-activities">
-                    No activities found matching the current filters
+                    {filters.search || filters.action !== 'all' || filters.resourceType !== 'all' || filters.startDate || filters.endDate
+                      ? 'No activities found matching the current filters'
+                      : 'No user logs found yet'}
                   </td>
                 </tr>
               )}

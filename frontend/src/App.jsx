@@ -59,6 +59,7 @@ function App() {
     '/admin-class-assignments',
     '/admin-reports',
     '/admin-system-analytics',
+    '/admin-user-logs',
     '/admin-system-settings'
   ];
 

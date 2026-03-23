@@ -7,6 +7,7 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const role = require('../middleware/role');
+const ActivityLogger = require('../services/activityLogger');
 
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -85,6 +86,7 @@ router.post('/login', async (req, res) => {
     console.log(' Password match:', isMatch ? 'Yes' : 'No');
     
     if (!isMatch) {
+      await ActivityLogger.logLogin(user._id, req.ip, req.get('user-agent'), false, 'Invalid credentials');
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
@@ -93,6 +95,8 @@ router.post('/login', async (req, res) => {
       expiresIn: '7d',
     });
     console.log(' Token generated successfully');
+
+    await ActivityLogger.logLogin(user._id, req.ip, req.get('user-agent'), true);
 
     res.json({
       token,
@@ -190,6 +194,17 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordCode = resetToken;
     user.resetPasswordExpires = resetTokenExpiry;
     await user.save();
+
+    await ActivityLogger.logProfileUpdate(user._id, {
+      firstName,
+      lastName,
+      email,
+      department,
+      position,
+      phone,
+      office,
+      bio
+    }, req.ip);
 
     // In a real application, send email with reset link
     console.log(`Reset token for ${email}: ${resetToken}`); // For testing purposes
@@ -449,6 +464,17 @@ router.get('/verify', async (req, res) => {
   } catch (error) {
     console.error('Token verification error:', error);
     res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+// Logout route (JWT is stateless, so this records the action and lets client clear token)
+router.post('/logout', auth, async (req, res) => {
+  try {
+    await ActivityLogger.logLogout(req.user.id, req.ip, req.get('user-agent'));
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

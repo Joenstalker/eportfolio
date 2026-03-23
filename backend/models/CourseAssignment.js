@@ -14,7 +14,7 @@ const courseAssignmentSchema = new mongoose.Schema({
     semester: {
         type: String,
         required: true,
-        enum: ['Fall 2024', 'Spring 2025', 'Summer 2025', 'Fall 2025']
+        enum: ['First Semester', 'Second Semester', 'Fall 2024', 'Spring 2025', 'Summer 2025', 'Fall 2025']
     },
     section: {
         type: String,

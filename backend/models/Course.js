@@ -49,6 +49,12 @@ const courseSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive', 'archived'],
         default: 'active'
+    },
+    totalStudents: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0
     }
 }, {
     timestamps: true

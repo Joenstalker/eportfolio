@@ -19,11 +19,13 @@ router.get('/', async (req, res) => {
       startDate,
       endDate,
       search,
+      sortBy = 'timestamp',
+      sortOrder = 'desc',
       export: exportFlag
     } = req.query;
 
     console.log('📋 Fetching user activities:', {
-      page, limit, userId, action, resourceType, startDate, endDate, search, exportFlag
+      page, limit, userId, action, resourceType, startDate, endDate, search, sortBy, sortOrder, exportFlag
     });
 
     // Build filters
@@ -46,6 +48,8 @@ router.get('/', async (req, res) => {
     if (exportFlag === 'true') {
       const activities = await ActivityLogger.getActivities({
         ...filters,
+        sortBy,
+        sortOrder,
         limit: 10000 // Large limit for export
       });
 
@@ -60,6 +64,8 @@ router.get('/', async (req, res) => {
     // Get paginated activities
     const activities = await ActivityLogger.getActivities({
       ...filters,
+      sortBy,
+      sortOrder,
       limit: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit)
     });
@@ -97,12 +103,34 @@ router.get('/', async (req, res) => {
 
     console.log('✅ Activities fetched:', {
       total: filteredActivities.length,
+      dbTotal: total,
       page,
       totalPages: Math.ceil(total / parseInt(limit))
     });
 
+    const normalizedActivities = filteredActivities.map((activity) => {
+      const raw = typeof activity.toObject === 'function' ? activity.toObject() : activity;
+      const user = raw.userId
+        ? {
+            id: raw.userId._id,
+            firstName: raw.userId.firstName,
+            lastName: raw.userId.lastName,
+            email: raw.userId.email,
+            role: raw.userId.role,
+            department: raw.userId.department
+          }
+        : null;
+
+      return {
+        ...raw,
+        user,
+        details: raw.description,
+        timestamp: raw.timestamp || raw.createdAt
+      };
+    });
+
     res.json({
-      activities: filteredActivities,
+      activities: normalizedActivities,
       total,
       page: parseInt(page),
       limit: parseInt(limit),

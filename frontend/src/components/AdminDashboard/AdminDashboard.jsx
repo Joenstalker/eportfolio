@@ -14,6 +14,7 @@ import EnhancedCourseAssignment from './EnhancedCourseAssignment'
 import ReportsTab from './ReportsTab'
 import SystemAnalyticsTab from './SystemAnalyticsTab'
 import SystemSettingsTab from './SystemSettingsTab'
+import UserLogsTab from './UserLogsTab'
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth()
@@ -35,7 +36,8 @@ const AdminDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedFile, setSelectedFile] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [reportType, setReportType] = useState('summary')
+  const [reportType, setReportType] = useState('')
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
   const [uploadsList, setUploadsList] = useState([])
   const [newFaculty, setNewFaculty] = useState({
     firstName: '',
@@ -100,8 +102,119 @@ const AdminDashboard = () => {
     }, 550)
   }
 
-  const handleGenerateReport = () => {
-    showSuccessAlert(`${reportType} report generated successfully!`)
+  const handleGenerateReport = async ({ startDate, endDate, format = 'pdf' } = {}) => {
+    if (!reportType || !reportType.trim()) {
+      showErrorAlert('Report type is required');
+      return;
+    }
+
+    if (format !== 'pdf') {
+      showWarningAlert('Only PDF export is currently supported. Please select PDF format.');
+      return;
+    }
+
+    setIsGeneratingReport(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const reportPayload = {
+        reportType,
+        dateRange: {
+          start: startDate || undefined,
+          end: endDate || undefined
+        },
+        faculty: 'all',
+        data: Array.isArray(facultyData) ? facultyData : []
+      };
+
+      console.log('📤 [Reports] Requesting PDF generation', reportPayload);
+
+      const response = await fetch('/api/reports/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/pdf, application/json'
+        },
+        body: JSON.stringify(reportPayload)
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      console.log('📥 [Reports] Response metadata', {
+        status: response.status,
+        ok: response.ok,
+        contentType,
+        contentDisposition
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Failed to generate report (HTTP ${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.message || errorMessage;
+        } catch {
+          const errorText = await response.text();
+          if (errorText) errorMessage = errorText;
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (contentType.includes('application/json')) {
+        const jsonData = await response.json();
+        console.log('📄 [Reports] JSON response payload', jsonData);
+
+        if (jsonData?.fileUrl) {
+          const directLink = document.createElement('a');
+          directLink.href = jsonData.fileUrl;
+          directLink.download = jsonData.fileName || `${reportType}-report.pdf`;
+          document.body.appendChild(directLink);
+          directLink.click();
+          directLink.remove();
+
+          showSuccessAlert('Report generated and download started.');
+          return;
+        }
+
+        throw new Error('Backend returned JSON but no downloadable PDF URL was provided.');
+      }
+
+      const pdfBlob = await response.blob();
+      const pdfSignature = await pdfBlob.slice(0, 4).text();
+      const looksLikePdf = contentType.includes('application/pdf') || pdfSignature === '%PDF';
+
+      console.log('🧪 [Reports] Blob validation', {
+        size: pdfBlob.size,
+        type: pdfBlob.type,
+        signature: pdfSignature,
+        looksLikePdf
+      });
+
+      if (!looksLikePdf) {
+        throw new Error('Server response is not a valid PDF document.');
+      }
+
+      const filenameMatch = contentDisposition.match(/filename\*?=(?:UTF-8''|\")?([^;\"\n]+)/i);
+      const resolvedFilename = filenameMatch
+        ? decodeURIComponent(filenameMatch[1].replace(/\"/g, '').trim())
+        : `${reportType}-report-${new Date().toISOString().split('T')[0]}.pdf`;
+
+      const objectUrl = URL.createObjectURL(pdfBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = objectUrl;
+      downloadLink.download = resolvedFilename;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(objectUrl);
+
+      showSuccessAlert('Report generated and downloaded successfully!');
+    } catch (error) {
+      console.error('❌ [Reports] Generate/download failed:', error);
+      showErrorAlert(error.message || 'Failed to generate report PDF');
+    } finally {
+      setIsGeneratingReport(false);
+    }
   }
 
   // ==================== EMAIL VALIDATION ====================
@@ -150,6 +263,7 @@ const AdminDashboard = () => {
     assignments: '/admin-class-assignments',
     reports: '/admin-reports',
     analytics: '/admin-system-analytics',
+    userLogs: '/admin-user-logs',
     settings: '/admin-system-settings',
   };
 
@@ -378,12 +492,17 @@ const AdminDashboard = () => {
           reportType={reportType}
           setReportType={setReportType}
           handleGenerateReport={handleGenerateReport}
+          isGeneratingReport={isGeneratingReport}
         />
       )
     },
     analytics: {
       title: 'System Analytics',
       content: <SystemAnalyticsTab />
+    },
+    userLogs: {
+      title: 'User Logs',
+      content: <UserLogsTab user={user} />
     },
     settings: {
       title: 'System Settings',
@@ -411,6 +530,7 @@ const AdminDashboard = () => {
     { id: 'facultyAssignments', label: 'FACULTY ASSIGNMENTS' },
     { id: 'reports', label: 'REPORTS' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS' },
+    { id: 'userLogs', label: 'USER LOGS' },
     { id: 'settings', label: 'SYSTEM SETTINGS' }
   ]
 
