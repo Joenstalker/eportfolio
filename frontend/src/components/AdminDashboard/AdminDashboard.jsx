@@ -377,7 +377,8 @@ const AdminDashboard = () => {
       });
 
       if (response.ok) {
-        setArchivedFaculty(prev => prev.filter(f => f._id !== faculty._id));
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         showSuccessAlert('Archived user deleted successfully!');
       } else {
         const error = await response.json();
@@ -483,12 +484,6 @@ const AdminDashboard = () => {
         <FacultyManagementTab
           loading={loading}
           facultyData={facultyData}
-          filterDept={filterDept}
-          setFilterDept={setFilterDept}
-          filterRole={filterRole}
-          setFilterRole={setFilterRole}
-          filterStatus={filterStatus}
-          setFilterStatus={setFilterStatus}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           onAddFacultyClick={() => setShowAddModal(true)}
@@ -649,8 +644,12 @@ const AdminDashboard = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setFacultyData(Array.isArray(data) ? data : []);
-        setArchivedFaculty(Array.isArray(data) ? data.filter(u => !u.isActive) : []);
+        const allUsers = Array.isArray(data) ? data : [];
+        const activeUsers = allUsers.filter(u => u.isActive === true);
+        const inactiveUsers = allUsers.filter(u => u.isActive === false);
+        
+        setFacultyData(activeUsers);
+        setArchivedFaculty(inactiveUsers);
       } else {
         throw new Error('Failed to fetch faculty data');
       }
@@ -714,7 +713,8 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setFacultyData(prev => [...prev, result.user]);
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         setShowAddModal(false);
         setNewFaculty({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'faculty' });
         showSuccessAlert('Faculty added successfully!');
@@ -757,9 +757,8 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setFacultyData(prev => 
-          prev.map(f => f._id === selectedFaculty._id ? result.user : f)
-        );
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         setShowEditModal(false);
         setSelectedFaculty(null);
         setEditFaculty({});
@@ -808,10 +807,8 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setFacultyData(prev => 
-          prev.map(f => f._id === faculty._id ? result.user : f)
-        );
-        setArchivedFaculty(prev => [...prev.filter(f => f._id !== result.user._id), result.user]);
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         showSuccessAlert('User archived successfully!');
       } else {
         const error = await response.json();
@@ -851,10 +848,8 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setFacultyData(prev =>
-          prev.map(f => f._id === faculty._id ? result.user : f)
-        );
-        setArchivedFaculty(prev => prev.filter(f => f._id !== result.user._id));
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         showSuccessAlert('User unarchived successfully!');
       } else {
         const error = await response.json();
@@ -880,14 +875,8 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setFacultyData(prev => 
-          prev.map(f => f._id === selectedFaculty._id ? result.user : f)
-        );
-        setArchivedFaculty(prev =>
-          result.user.status === 'inactive'
-            ? [...prev.filter(f => f._id !== result.user._id), result.user]
-            : prev.filter(f => f._id !== result.user._id)
-        );
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         setShowStatusModal(false);
         setSelectedFaculty(null);
         setStatusFaculty({});
@@ -926,7 +915,8 @@ const AdminDashboard = () => {
       });
 
       if (response.ok) {
-        setFacultyData(prev => prev.filter(f => f._id !== faculty._id));
+        // Refresh data to ensure MongoDB Atlas sync and proper state separation
+        await fetchFacultyData();
         showSuccessAlert('Faculty deleted successfully!');
       } else {
         const error = await response.json();
