@@ -353,6 +353,12 @@ const AdminDashboard = () => {
 
   // Dashboard content (computed after handlers are defined)
   const handleDeleteArchivedClick = async (faculty) => {
+    // Check if user is admin - prevent deleting admin accounts
+    if (faculty.role === 'admin') {
+      showErrorAlert('Cannot delete admin accounts for security reasons');
+      return;
+    }
+
     const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
     const result = await Swal.fire({
       title: 'Delete Archived User?',
@@ -541,7 +547,7 @@ const AdminDashboard = () => {
       title: 'System Settings',
       content: <SystemSettingsTab onNavigate={handleSectionChange} />
     }
-  }
+  };
 
   const adminMenuItems = [
     { id: 'dashboard', label: 'DASHBOARD' },
@@ -780,6 +786,12 @@ const AdminDashboard = () => {
   }
 
   async function handleArchiveClick(faculty) {
+    // Check if user is admin - prevent archiving admin accounts
+    if (faculty.role === 'admin') {
+      showErrorAlert('Cannot archive admin accounts for security reasons');
+      return;
+    }
+
     const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
     const result = await Swal.fire({
       title: 'Archive Faculty?',
@@ -892,6 +904,12 @@ const AdminDashboard = () => {
   }
 
   const handleDeleteClick = async (faculty) => {
+    // Check if user is admin - prevent deleting admin accounts
+    if (faculty.role === 'admin') {
+      showErrorAlert('Cannot delete admin accounts for security reasons');
+      return;
+    }
+
     const result = await Swal.fire({
       title: 'Delete Faculty?',
       text: `Are you sure you want to delete ${faculty.name}? This action cannot be undone.`,
