@@ -12,6 +12,11 @@ const requireAdmin = (req, res) => {
   return true;
 };
 
+const isFacultyArchived = (faculty) => {
+  if (!faculty) return false;
+  return faculty.isArchived === true || faculty.isActive === false;
+};
+
 // Password Management
 exports.resetUserPassword = async (req, res) => {
   try {
@@ -118,6 +123,57 @@ exports.getUsers = async (req, res) => {
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.getFacultyForAssignment = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+
+    const facultyUsers = await User.find(
+      { role: 'faculty' },
+      'firstName lastName email isActive isArchived role'
+    ).sort({ firstName: 1, lastName: 1, createdAt: -1 });
+
+    const seenIds = new Set();
+    const seenEmails = new Set();
+
+    const uniqueFaculty = [];
+
+    for (const faculty of facultyUsers) {
+      const idKey = String(faculty._id);
+      const emailKey = (faculty.email || '').trim().toLowerCase();
+
+      if (seenIds.has(idKey)) {
+        continue;
+      }
+
+      if (emailKey && seenEmails.has(emailKey)) {
+        continue;
+      }
+
+      seenIds.add(idKey);
+      if (emailKey) {
+        seenEmails.add(emailKey);
+      }
+
+      const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+
+      uniqueFaculty.push({
+        _id: faculty._id,
+        firstName: faculty.firstName || '',
+        lastName: faculty.lastName || '',
+        name: fullName || faculty.email,
+        email: faculty.email,
+        isActive: faculty.isActive !== false,
+        isArchived: isFacultyArchived(faculty)
+      });
+    }
+
+    res.json(uniqueFaculty);
+  } catch (error) {
+    console.error('Error fetching faculty for assignment:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -350,11 +406,22 @@ exports.createCourseAssignment = async (req, res) => {
     console.log('🔍 Looking up faculty...');
     // Check if faculty exists
     const User = require('../models/User');
-    const faculty = await User.findById(facultyId);
+    const faculty = await User.findById(facultyId).select('firstName lastName email role isActive isArchived');
     if (!faculty) {
       console.log('❌ Faculty not found:', facultyId);
       return res.status(404).json({ message: 'Faculty not found' });
     }
+
+    if (faculty.role !== 'faculty') {
+      console.log('❌ User is not faculty:', facultyId);
+      return res.status(400).json({ message: 'Selected user is not a faculty member' });
+    }
+
+    if (isFacultyArchived(faculty)) {
+      console.log('❌ Archived faculty cannot be assigned:', facultyId);
+      return res.status(400).json({ message: 'Cannot assign archived faculty' });
+    }
+
     console.log('✅ Faculty found:', faculty.firstName, faculty.lastName);
 
     console.log('🔍 Looking up course...');
@@ -370,11 +437,13 @@ exports.createCourseAssignment = async (req, res) => {
     console.log('🔍 Checking for existing assignment...');
     // Check if assignment already exists
     const CourseAssignment = require('../models/CourseAssignment');
+    const normalizedSection = (section || 'A').trim().toUpperCase();
+
     const existingAssignment = await CourseAssignment.findOne({
       facultyId,
       courseId,
       semester: semester || 'First Semester',
-      section: section
+      section: normalizedSection
     });
 
     if (existingAssignment) {
@@ -390,7 +459,7 @@ exports.createCourseAssignment = async (req, res) => {
       facultyId,
       courseId,
       semester: semester || 'First Semester',
-      section: section,
+      section: normalizedSection,
       status: 'active',
       assignedAt: new Date(),
       assignedBy: req.user.id

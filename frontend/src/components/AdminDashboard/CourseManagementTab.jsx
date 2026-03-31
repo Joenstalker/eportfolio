@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import './CourseManagementTab.css';
 
@@ -7,9 +7,12 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const generateSemesterOptions = () => {
     return [
       'First Semester',
-      'Second Semester'
+      'Second Semester',
+      'Fall 2024',
+      'Spring 2025',
+      'Summer 2025',
+      'Fall 2025'
     ];
-    return semesters;
   };
   
   const semesterOptions = generateSemesterOptions();
@@ -34,6 +37,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const [editCourse, setEditCourse] = useState({});
   const [courseAssignments, setCourseAssignments] = useState([]);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignmentFaculty, setAssignmentFaculty] = useState([]);
   const [newAssignment, setNewAssignment] = useState({
     facultyId: '',
     courseId: '',
@@ -41,6 +45,44 @@ const CourseManagementTab = ({ user, facultyData }) => {
     section: ''
   });
   const [courseLocks, setCourseLocks] = useState({});
+
+  const isFacultyArchived = (faculty) => faculty?.isArchived === true || faculty?.isActive === false;
+
+  const getFacultyDisplayName = (faculty) => {
+    const fullName = `${faculty?.firstName || ''} ${faculty?.lastName || ''}`.trim();
+    return faculty?.name || fullName || faculty?.email || 'Unknown Faculty';
+  };
+
+  const facultyOptions = useMemo(() => {
+    const source = assignmentFaculty.length > 0 ? assignmentFaculty : facultyData;
+    const uniqueFaculty = new Map();
+
+    source.forEach((faculty) => {
+      if (faculty?.role && faculty.role !== 'faculty') {
+        return;
+      }
+
+      const normalized = {
+        ...faculty,
+        email: faculty?.email || '',
+        name: getFacultyDisplayName(faculty),
+        isArchived: isFacultyArchived(faculty),
+        isActive: faculty?.isActive !== false
+      };
+
+      const idKey = normalized?._id ? String(normalized._id) : '';
+      const emailKey = normalized.email.trim().toLowerCase();
+      const dedupeKey = idKey || emailKey;
+
+      if (!dedupeKey || uniqueFaculty.has(dedupeKey)) {
+        return;
+      }
+
+      uniqueFaculty.set(dedupeKey, normalized);
+    });
+
+    return Array.from(uniqueFaculty.values());
+  }, [assignmentFaculty, facultyData]);
 
   // ==================== SWEETALERT HELPER FUNCTIONS ====================
   const showSuccessAlert = (message, title = 'Success') => {
@@ -257,6 +299,25 @@ const CourseManagementTab = ({ user, facultyData }) => {
     } catch (error) {
       console.error('Error fetching course assignments:', error);
       setCourseAssignments([]);
+    }
+  };
+
+  const fetchAssignmentFaculty = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/faculty', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAssignmentFaculty(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching assignment faculty:', error);
+      setAssignmentFaculty([]);
     }
   };
 
@@ -508,6 +569,15 @@ const CourseManagementTab = ({ user, facultyData }) => {
       return;
     }
 
+    const selectedFaculty = facultyOptions.find(
+      (faculty) => String(faculty._id) === String(newAssignment.facultyId)
+    );
+
+    if (selectedFaculty && isFacultyArchived(selectedFaculty)) {
+      showErrorAlert('Archived faculty cannot be assigned to a course');
+      return;
+    }
+
     console.log('✅ Form validation passed');
 
     try {
@@ -641,6 +711,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   useEffect(() => {
     fetchCourses();
     fetchCourseAssignments();
+    fetchAssignmentFaculty();
   }, []);
 
   // Auto-refresh lock statuses
@@ -727,8 +798,8 @@ const CourseManagementTab = ({ user, facultyData }) => {
                           <span className="detail-value">{course.semester}</span>
                         </div>
                         <div className="course-detail">
-                          <span className="detail-label">Max Students:</span>
-                          <span className="detail-value">{course.maxStudents}</span>
+                          <span className="detail-label">Total Students:</span>
+                          <span className="detail-value">{course.totalStudents}</span>
                         </div>
                       </div>
                     </div>
@@ -1871,9 +1942,16 @@ const CourseManagementTab = ({ user, facultyData }) => {
                   }}
                 >
                   <option value="">Select Faculty Member</option>
-                  {facultyData.filter(f => f.isActive).map(faculty => (
-                    <option key={faculty._id} value={faculty._id} style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}>
-                      {faculty.firstName} {faculty.lastName} - {faculty.department}
+                  {facultyOptions.map(faculty => (
+                    <option
+                      key={faculty._id}
+                      value={faculty._id}
+                      disabled={isFacultyArchived(faculty)}
+                      style={{ background: 'var(--admin-surface)', color: 'var(--admin-text)' }}
+                    >
+                      {isFacultyArchived(faculty)
+                        ? `${getFacultyDisplayName(faculty)} (Archived) - ${faculty.email}`
+                        : `${getFacultyDisplayName(faculty)} - ${faculty.email}`}
                     </option>
                   ))}
                 </select>

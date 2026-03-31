@@ -17,13 +17,14 @@ router.get('/', async (req, res) => {
     const courses = await Course.find();
     console.log('📚 Found ' + courses.length + ' courses');
     
-    // Add lock status to each course
-    const coursesWithLocks = await Promise.all(
+    // Add lock status and totalStudents to each course
+    const coursesWithDetails = await Promise.all(
       courses.map(async (course) => {
         try {
           const lockStatus = await lockService.checkLock(course._id, 'Course');
           return {
             ...course.toObject(),
+            totalStudents: course.totalStudents, // Include totalStudents
             lockStatus: lockStatus.isLocked ? {
               isLocked: true,
               lockedBy: lockStatus.lock?.userName || 'Another user',
@@ -38,17 +39,16 @@ router.get('/', async (req, res) => {
           console.error('❌ Error checking lock for course ' + course._id + ':', lockError.message);
           return {
             ...course.toObject(),
-            lockStatus: { isLocked: false }
+            totalStudents: course.totalStudents, // Include totalStudents even on error
           };
         }
       })
     );
     
-    console.log('✅ Returning ' + coursesWithLocks.length + ' courses');
-    res.json(coursesWithLocks);
+    res.json(coursesWithDetails);
   } catch (error) {
-    console.error('❌ Get courses error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('❌ Error fetching courses:', error.message);
+    res.status(500).json({ message: 'Server error fetching courses', error: error.message });
   }
 });
 

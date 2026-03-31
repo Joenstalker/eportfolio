@@ -74,9 +74,35 @@
   border-color: var(--admin-primary);
 }
 
+.admin-dashboard .format-btn.active {
+  background: var(--admin-primary);
+  color: #ffffff;
+  border-color: var(--admin-primary-600);
+}
+
 .admin-dashboard .generate-btn {
   grid-column: 1 / -1;
   padding: 12px;
   font-weight: 500;
+  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-600) 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--admin-primary-600);
+}
+
+.admin-dashboard .generate-btn .generate-btn-text {
+  color: inherit;
+  font-weight: 600;
+}
+
+.admin-dashboard .generate-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  color: #ffffff !important;
+}
+
+.admin-dashboard .generate-btn:disabled {
+  background: #cbd5e1 !important;
+  color: #334155 !important;
+  border-color: #94a3b8;
+  cursor: not-allowed;
 }
 

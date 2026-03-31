@@ -156,6 +156,9 @@ class ActivityLogger {
   static async getActivities(filters = {}) {
     try {
       const query = {};
+      const allowedSortFields = new Set(['timestamp', 'action', 'duration', 'createdAt']);
+      const sortField = allowedSortFields.has(filters.sortBy) ? filters.sortBy : 'timestamp';
+      const sortDirection = String(filters.sortOrder || 'desc').toLowerCase() === 'asc' ? 1 : -1;
       
       if (filters.userId) {
         query.userId = filters.userId;
@@ -179,10 +182,16 @@ class ActivityLogger {
         }
       }
       
-      const activities = await UserActivity.find(query)
+      const activitiesQuery = UserActivity.find(query)
         .populate('userId', 'firstName lastName email department role')
-        .sort({ timestamp: -1 })
-        .limit(filters.limit || 1000);
+        .sort({ [sortField]: sortDirection })
+        .limit(Number(filters.limit) || 1000);
+
+      if (Number.isInteger(Number(filters.skip)) && Number(filters.skip) > 0) {
+        activitiesQuery.skip(Number(filters.skip));
+      }
+
+      const activities = await activitiesQuery;
       
       return activities;
     } catch (error) {

@@ -5,35 +5,64 @@ const fs = require('fs');
 const path = require('path');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/role');
+const ActivityLogger = require('../services/activityLogger');
 
 // All routes require authentication and admin role
 router.use(auth, requireRole('admin'));
 
 // Generate PDF Report
 router.post('/generate-pdf', async (req, res) => {
+  let browser;
+
   try {
-    const { reportType, data, dateRange, faculty } = req.body;
+    const { reportType, data, dateRange = {}, faculty } = req.body;
+    const rawReportType = typeof reportType === 'string' ? reportType.trim() : '';
+
+    if (!rawReportType) {
+      return res.status(400).json({ message: 'Report type is required' });
+    }
+
+    const normalizedReportType = normalizeReportType(rawReportType);
     
-    console.log('📊 Generating PDF report:', { reportType, dateRange, faculty });
+    console.log('📊 Generating PDF report:', {
+      reportType,
+      normalizedReportType,
+      dateRange,
+      faculty,
+      incomingDataCount: Array.isArray(data) ? data.length : 0
+    });
     
     let pdfContent = '';
     let filename = '';
+    let reportData = Array.isArray(data) ? data : [];
     
-    switch (reportType) {
+    switch (normalizedReportType) {
       case 'summary':
-        pdfContent = generateSummaryReport(data, dateRange, faculty);
+        if (reportData.length === 0) {
+          reportData = await getFacultySummaryData(dateRange.start, dateRange.end, faculty);
+        }
+        pdfContent = generateSummaryReport(reportData, dateRange, faculty || 'all');
         filename = 'faculty-portfolio-summary';
         break;
       case 'activities':
-        pdfContent = generateActivitiesReport(data, dateRange, faculty);
+        if (reportData.length === 0) {
+          reportData = await getFacultySummaryData(dateRange.start, dateRange.end, faculty);
+        }
+        pdfContent = generateActivitiesReport(reportData, dateRange, faculty || 'all');
         filename = 'faculty-activities-report';
         break;
       case 'performance':
-        pdfContent = generatePerformanceReport(data, dateRange, faculty);
+        if (reportData.length === 0) {
+          reportData = await getFacultySummaryData(dateRange.start, dateRange.end, faculty);
+        }
+        pdfContent = generatePerformanceReport(reportData, dateRange, faculty || 'all');
         filename = 'faculty-performance-report';
         break;
       case 'seminar-participation':
-        pdfContent = generateSeminarParticipationReport(data, dateRange);
+        if (reportData.length === 0) {
+          reportData = await getSeminarStatsData(dateRange.start, dateRange.end);
+        }
+        pdfContent = generateSeminarParticipationReport(reportData, dateRange);
         filename = 'seminar-participation-report';
         break;
       default:
@@ -41,7 +70,7 @@ router.post('/generate-pdf', async (req, res) => {
     }
     
     // Generate PDF using Puppeteer
-    const browser = await puppeteer.launch({ 
+    browser = await puppeteer.launch({ 
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
@@ -88,13 +117,26 @@ router.post('/generate-pdf', async (req, res) => {
     });
     
     await browser.close();
+    browser = null;
     
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}-${new Date().toISOString().split('T')[0]}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length');
     
-    console.log('✅ PDF report generated successfully:', filename);
+    console.log('✅ PDF report generated successfully:', {
+      filename,
+      bytes: pdfBuffer.length,
+      contentType: 'application/pdf'
+    });
+
+    await ActivityLogger.logReportGeneration(
+      req.user.id,
+      normalizedReportType,
+      req.ip
+    );
+
     res.send(pdfBuffer);
     
   } catch (error) {
@@ -103,6 +145,14 @@ router.post('/generate-pdf', async (req, res) => {
       message: 'Failed to generate PDF report',
       error: error.message 
     });
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('❌ Failed closing Puppeteer browser:', closeError.message);
+      }
+    }
   }
 });
 
@@ -146,9 +196,10 @@ router.get('/data', async (req, res) => {
 // ==================== REPORT GENERATION FUNCTIONS ====================
 
 function generateSummaryReport(facultyData, dateRange, selectedFaculty) {
+  const safeFacultyData = Array.isArray(facultyData) ? facultyData : [];
   const filteredFaculty = selectedFaculty !== 'all' 
-    ? facultyData.filter(f => f._id === selectedFaculty)
-    : facultyData;
+    ? safeFacultyData.filter(f => f._id === selectedFaculty)
+    : safeFacultyData;
   
   const activeFaculty = filteredFaculty.filter(f => f.isActive);
   const departments = [...new Set(filteredFaculty.map(f => f.department))];
@@ -235,9 +286,10 @@ function generateSummaryReport(facultyData, dateRange, selectedFaculty) {
 }
 
 function generateActivitiesReport(facultyData, dateRange, selectedFaculty) {
+  const safeFacultyData = Array.isArray(facultyData) ? facultyData : [];
   const filteredFaculty = selectedFaculty !== 'all' 
-    ? facultyData.filter(f => f._id === selectedFaculty)
-    : facultyData;
+    ? safeFacultyData.filter(f => f._id === selectedFaculty)
+    : safeFacultyData;
   
   return `
     <!DOCTYPE html>
@@ -281,9 +333,10 @@ function generateActivitiesReport(facultyData, dateRange, selectedFaculty) {
 }
 
 function generatePerformanceReport(facultyData, dateRange, selectedFaculty) {
+  const safeFacultyData = Array.isArray(facultyData) ? facultyData : [];
   const filteredFaculty = selectedFaculty !== 'all' 
-    ? facultyData.filter(f => f._id === selectedFaculty)
-    : facultyData;
+    ? safeFacultyData.filter(f => f._id === selectedFaculty)
+    : safeFacultyData;
   
   return `
     <!DOCTYPE html>
@@ -386,6 +439,24 @@ async function getFacultySummaryData(startDate, endDate, facultyId) {
   
   const faculty = await User.find(query).select('firstName lastName email department role isActive updatedAt');
   return faculty;
+}
+
+function normalizeReportType(reportType) {
+  const type = String(reportType || '').trim().toLowerCase();
+  const map = {
+    summary: 'summary',
+    'faculty-portfolio-summary': 'summary',
+    detailed: 'activities',
+    activities: 'activities',
+    activity: 'activities',
+    department: 'performance',
+    performance: 'performance',
+    courses: 'performance',
+    'seminar-participation': 'seminar-participation',
+    seminars: 'seminar-participation'
+  };
+
+  return map[type] || type;
 }
 
 async function getSeminarStatsData(startDate, endDate) {
