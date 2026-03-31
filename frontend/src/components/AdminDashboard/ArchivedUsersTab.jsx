@@ -1,7 +1,7 @@
 import React from 'react';
 import './ArchivedUsersTab.css';
 
-const ArchivedUsersTab = ({ archivedFaculty, onUnarchiveClick }) => {
+const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClick }) => {
   return (
     <div className="faculty-management">
       <div className="section-header">
@@ -18,29 +18,46 @@ const ArchivedUsersTab = ({ archivedFaculty, onUnarchiveClick }) => {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>Status</th>
+                <th>Archived Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {archivedFaculty.map((faculty) => (
-                <tr key={faculty._id} className="inactive">
-                  <td>{faculty.name}</td>
-                  <td>{faculty.email}</td>
-                  <td>{faculty.role}</td>
-                  <td>
-                    <span className="status-badge inactive">inactive</span>
-                  </td>
-                  <td>
-                    <button
-                      className="status-btn"
-                      onClick={() => onUnarchiveClick(faculty)}
-                    >
-                      Unarchive
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {archivedFaculty.map((faculty) => {
+                const fullName = `${faculty?.firstName || ''} ${faculty?.lastName || ''}`.trim();
+                let archivedDate = 'N/A';
+                try {
+                  archivedDate = faculty?.archivedAt ? new Date(faculty.archivedAt).toLocaleDateString() : 'N/A';
+                } catch (error) {
+                  console.error('Error formatting date:', error);
+                }
+                return (
+                  <tr key={faculty?._id || Math.random()} className="inactive">
+                    <td>{fullName}</td>
+                    <td>{faculty?.email}</td>
+                    <td>{faculty?.role}</td>
+                    <td>{archivedDate}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="status-btn"
+                          onClick={() => onUnarchiveClick && onUnarchiveClick(faculty)}
+                        >
+                          Unarchive
+                        </button>
+                        {faculty?.role !== 'admin' && onDeleteClick && (
+                          <button
+                            className="delete-btn"
+                            onClick={() => onDeleteClick(faculty)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

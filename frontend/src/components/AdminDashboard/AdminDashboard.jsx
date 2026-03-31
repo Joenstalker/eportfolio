@@ -238,6 +238,43 @@ const AdminDashboard = () => {
   };
 
   // Dashboard content (computed after handlers are defined)
+  const handleDeleteArchivedClick = async (faculty) => {
+    const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+    const result = await Swal.fire({
+      title: 'Delete Archived User?',
+      text: `Are you sure you want to delete ${fullName}? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/users/${faculty._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setArchivedFaculty(prev => prev.filter(f => f._id !== faculty._id));
+        showSuccessAlert('Archived user deleted successfully!');
+      } else {
+        const error = await response.json();
+        showErrorAlert(error.message || 'Error deleting archived user');
+      }
+    } catch (error) {
+      console.error('Error deleting archived user:', error);
+      showErrorAlert('Error deleting archived user');
+    }
+  };
+
   const dashboardContent = {
     dashboard: {
       title: 'Admin Dashboard',
@@ -352,6 +389,7 @@ const AdminDashboard = () => {
         <ArchivedUsersTab
           archivedFaculty={archivedFaculty}
           onUnarchiveClick={handleUnarchiveClick}
+          onDeleteClick={handleDeleteArchivedClick}
         />
       )
     },
@@ -491,8 +529,8 @@ const AdminDashboard = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setFacultyData(data);
-        setArchivedFaculty(data.filter(u => !u.isActive));
+        setFacultyData(Array.isArray(data) ? data : []);
+        setArchivedFaculty(Array.isArray(data) ? data.filter(u => !u.isActive) : []);
       } else {
         throw new Error('Failed to fetch faculty data');
       }
@@ -623,9 +661,10 @@ const AdminDashboard = () => {
   }
 
   async function handleArchiveClick(faculty) {
+    const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
     const result = await Swal.fire({
       title: 'Archive Faculty?',
-      text: `Archive ${faculty.name}? They will become inactive and cannot log in.`,
+      text: `Archive ${fullName}? They will become inactive and cannot log in.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#111827',
@@ -665,9 +704,10 @@ const AdminDashboard = () => {
   }
 
   async function handleUnarchiveClick(faculty) {
+    const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
     const result = await Swal.fire({
       title: 'Unarchive Faculty?',
-      text: `Unarchive ${faculty.name}? They will become active and can log in again.`,
+      text: `Unarchive ${fullName}? They will become active and can log in again.`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#111827',

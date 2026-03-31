@@ -128,7 +128,8 @@
 }
 
 .admin-dashboard .edit-btn,
-.admin-dashboard .status-btn {
+.admin-dashboard .status-btn,
+.admin-dashboard .delete-btn {
   padding: 6px 12px;
   border: 1px solid var(--admin-border) !important;
   border-radius: 6px;
@@ -146,6 +147,11 @@
 
 .admin-dashboard .status-btn:hover {
   background: #6b7280 !important;
+  color: #ffffff !important;
+}
+
+.admin-dashboard .delete-btn:hover {
+  background: #dc2626 !important;
   color: #ffffff !important;
 }
 

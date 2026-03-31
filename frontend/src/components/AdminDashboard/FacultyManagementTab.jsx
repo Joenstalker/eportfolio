@@ -167,10 +167,10 @@ const FacultyManagementTab = ({
                                     Edit
                                   </button>
                                   <button
-                                    className="update-btn"
+                                    className="archive-btn"
                                     onClick={() => onArchiveClick(faculty)}
                                   >
-                                    Update
+                                    Archive
                                   </button>
                                 </div>
                               </td>

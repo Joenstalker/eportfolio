@@ -163,6 +163,17 @@ exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
+    // Handle status field for compatibility
+    if (updates.status) {
+      updates.isActive = updates.status === 'active';
+      delete updates.status;
+    }
+
+    // If archiving the user, set archivedAt timestamp
+    if (updates.isActive === false) {
+      updates.archivedAt = new Date();
+    }
+
     const user = await User.findByIdAndUpdate(id, updates, { new: true });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

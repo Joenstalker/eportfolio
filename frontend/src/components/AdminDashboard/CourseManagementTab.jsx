@@ -363,12 +363,40 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const handleEditCourse = async () => {
     if (!selectedCourse) return;
 
+    // Validate required fields
+    if (!editCourse.courseCode?.trim()) {
+      showErrorAlert('Course Code is required');
+      return;
+    }
+    if (!editCourse.courseName?.trim()) {
+      showErrorAlert('Course Name is required');
+      return;
+    }
+    if (!editCourse.department?.trim()) {
+      showErrorAlert('Department is required');
+      return;
+    }
+    if (!editCourse.semester?.trim()) {
+      showErrorAlert('Semester is required');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       
+      // Only send allowed fields to avoid sending extra fields like lockStatus
+      const allowedFields = ['courseCode', 'courseName', 'description', 'department', 'credits', 'prerequisites', 'status', 'semester', 'maxStudents'];
+      const updateData = {};
+      
+      allowedFields.forEach(field => {
+        if (editCourse[field] !== undefined && editCourse[field] !== '') {
+          updateData[field] = field === 'maxStudents' ? parseInt(editCourse[field]) || 30 : editCourse[field];
+        }
+      });
+      
       console.log('📝 Updating course:', {
         courseId: selectedCourse._id,
-        changes: editCourse
+        changes: updateData
       });
       
       const response = await fetch(`/api/courses/${selectedCourse._id}`, {
@@ -377,7 +405,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editCourse)
+        body: JSON.stringify(updateData)
       });
 
       if (response.status === 409) {
