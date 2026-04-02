@@ -2,7 +2,20 @@ const express = require('express');
 const router = express.Router();
 const InstructionalMaterial = require('../models/InstructionalMaterial');
 const auth = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { instructionalUpload } = require('../middleware/upload');
+
+const instructionalFileUpload = (req, res, next) => {
+    instructionalUpload.single('file')(req, res, (error) => {
+        if (error) {
+            if (error.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ message: 'Instructional material file must be 10MB or less.' });
+            }
+            return next(error);
+        }
+
+        next();
+    });
+};
 
 // Get all materials
 router.get('/', auth, async (req, res) => {
@@ -23,7 +36,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Upload new material with file
-router.post('/', auth, upload.single('file'), async (req, res) => {
+router.post('/', auth, instructionalFileUpload, async (req, res) => {
     try {
         console.log('POST /api/materials - auth user payload:', req.user);
         const userId = req.user?.id || req.user?._id || null;
@@ -31,7 +44,36 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
             return res.status(400).json({ message: 'Invalid token payload: missing user id' });
         }
 
-        const { subjectCode, subjectName, title, description, type, section, topic, isPublic } = req.body;
+        const { subjectCode, subjectName, courseCode, title, description, type, section, topic, isPublic, tags } = req.body;
+
+        const normalizedTitle = (title || '').trim();
+        if (!normalizedTitle) {
+            return res.status(400).json({ message: 'Title is required.' });
+        }
+
+        const normalizedType = ['lecture', 'assignment', 'quiz', 'exam', 'project', 'presentation', 'handout', 'video', 'other'].includes(type)
+            ? type
+            : 'lecture';
+
+        const normalizedCourseCode = (courseCode || '').trim().toUpperCase();
+        if (!normalizedCourseCode) {
+            return res.status(400).json({ message: 'Course ID is required.' });
+        }
+
+        if (!/^[A-Z]{2,4}\d{3}$/.test(normalizedCourseCode)) {
+            return res.status(400).json({ message: 'Course ID must follow format like IT131 or IT127.' });
+        }
+
+        const normalizedSubjectCode = (subjectCode || '').trim() || normalizedCourseCode;
+        const normalizedSubjectName = (subjectName || '').trim();
+        const normalizedDescription = (description || '').trim();
+        const normalizedSection = (section || '').trim();
+        const normalizedTopic = (topic || '').trim();
+        const normalizedTags = typeof tags === 'string'
+            ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
+            : Array.isArray(tags)
+                ? tags.map(tag => String(tag).trim()).filter(Boolean)
+                : [];
         
         if (!req.file) {
             return res.status(400).json({ message: 'Please select a file to upload' });
@@ -39,14 +81,16 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
         const material = new InstructionalMaterial({
             facultyId: userId,
-            subjectCode,
-            subjectName,
-            title,
-            description,
-            type,
-            section,
-            topic,
+            subjectCode: normalizedSubjectCode,
+            courseCode: normalizedCourseCode,
+            subjectName: normalizedSubjectName,
+            title: normalizedTitle,
+            description: normalizedDescription,
+            type: normalizedType,
+            section: normalizedSection,
+            topic: normalizedTopic,
             isPublic: isPublic === 'true' || isPublic === true,
+            tags: normalizedTags,
             file: {
                 fileName: req.file.originalname,
                 fileUrl: `/uploads/${req.file.filename}`,
@@ -66,6 +110,9 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     } catch (error) {
         console.error('Error uploading material:', error?.message || error, error?.stack || 'no-stack');
+        if (error?.name === 'ValidationError' || error?.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
         res.status(500).json({ message: 'Server error', error: error?.message || String(error) });
     }
 });

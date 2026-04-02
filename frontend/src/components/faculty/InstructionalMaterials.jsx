@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 import { FaTrash, FaDownload } from 'react-icons/fa';
@@ -6,9 +6,11 @@ import Swal from 'sweetalert2';
 
 const InstructionalMaterials = () => {
     const { user, ensureToken } = useContext(AuthContext);
+    const fileInputRef = useRef(null);
     const [materials, setMaterials] = useState([]);
     const [newMaterial, setNewMaterial] = useState({
         title: '',
+        course: '',
         description: '',
         subject: '',
         type: 'lecture',
@@ -20,6 +22,116 @@ const InstructionalMaterials = () => {
     useEffect(() => {
         loadMaterials();
     }, []);
+
+    const confirmFileManagerAccess = async () => {
+        const result = await Swal.fire({
+            title: 'Allow file access?',
+            text: 'Do you allow this app to access your file manager to select a file?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Allow',
+            cancelButtonText: 'Deny',
+            confirmButtonColor: '#3498db',
+            cancelButtonColor: '#95a5a6'
+        });
+
+        return result.isConfirmed;
+    };
+
+    const showDenyPermissionWarning = () => {
+        Swal.fire({
+            title: 'Warning!',
+            text: 'No permissions (cannot upload to this course)',
+            icon: 'warning',
+            confirmButtonColor: '#e74c3c'
+        });
+    };
+
+    const handleSelectFile = async () => {
+        const acceptedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.mp4', '.jpg', '.jpeg', '.png'];
+
+        const allowed = await confirmFileManagerAccess();
+        if (!allowed) {
+            showDenyPermissionWarning();
+            return;
+        }
+
+        // Prefer the File System Access API when available to explicitly request read permission.
+        if (typeof window.showOpenFilePicker === 'function') {
+            try {
+                const [fileHandle] = await window.showOpenFilePicker({
+                    multiple: false,
+                    types: [
+                        {
+                            description: 'Allowed files',
+                            accept: {
+                                'application/pdf': ['.pdf'],
+                                'application/msword': ['.doc'],
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                                'application/vnd.ms-powerpoint': ['.ppt'],
+                                'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+                                'video/mp4': ['.mp4'],
+                                'image/jpeg': ['.jpg', '.jpeg'],
+                                'image/png': ['.png']
+                            }
+                        }
+                    ],
+                    excludeAcceptAllOption: true
+                });
+
+                const file = await fileHandle.getFile();
+                const fileExt = file.name.includes('.') ? `.${file.name.split('.').pop().toLowerCase()}` : '';
+                if (!acceptedExtensions.includes(fileExt)) {
+                    Swal.fire({
+                        title: 'Invalid File Type!',
+                        text: 'Please select a valid file type.',
+                        icon: 'warning',
+                        confirmButtonColor: '#e74c3c'
+                    });
+                    return;
+                }
+
+                setNewMaterial({ ...newMaterial, file });
+                return;
+            } catch (error) {
+                if (error?.name === 'NotAllowedError') {
+                    showDenyPermissionWarning();
+                    return;
+                }
+                if (error?.name === 'AbortError') {
+                    return;
+                }
+                console.error('Error selecting file:', error);
+            }
+        }
+
+        // Fallback for browsers without File System Access API.
+        fileInputRef.current?.click();
+    };
+
+    const handleFileInputChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        if (!file) {
+            return;
+        }
+
+        setNewMaterial({ ...newMaterial, file });
+    };
+
+    const getResponseErrorMessage = async (response) => {
+        try {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                return data.message || data.error || `HTTP error! status: ${response.status}`;
+            }
+
+            const text = await response.text();
+            return text || `HTTP error! status: ${response.status}`;
+        } catch (parseError) {
+            return `HTTP error! status: ${response.status}`;
+        }
+    };
 
     const loadMaterials = async () => {
         try {
@@ -62,10 +174,35 @@ const InstructionalMaterials = () => {
     };
 
     const addMaterial = async () => {
-        if (!newMaterial.title || !newMaterial.file) {
+        const normalizedTitle = (newMaterial.title || '').trim();
+        const normalizedCourseCode = (newMaterial.course || '').trim().toUpperCase();
+        const courseCodePattern = /^[A-Z]{2,4}\d{3}$/;
+
+        if (!normalizedTitle || !normalizedCourseCode || !newMaterial.file) {
             Swal.fire({
                 title: 'Missing Fields!',
-                text: 'Please fill in title and upload a file',
+                text: 'Please fill in title, course ID, and upload a file',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!courseCodePattern.test(normalizedCourseCode)) {
+            Swal.fire({
+                title: 'Invalid Course ID!',
+                text: 'Course ID not found.',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        const maxFileSizeBytes = 10 * 1024 * 1024;
+        if (newMaterial.file.size > maxFileSizeBytes) {
+            Swal.fire({
+                title: 'File Too Large!',
+                text: 'Instructional material file must be 10MB or less.',
                 icon: 'warning',
                 confirmButtonColor: '#e74c3c'
             });
@@ -85,13 +222,14 @@ const InstructionalMaterials = () => {
             }
             
             const formData = new FormData();
-            formData.append('title', newMaterial.title);
-            formData.append('description', newMaterial.description);
+            formData.append('title', normalizedTitle);
+            formData.append('courseCode', normalizedCourseCode);
+            formData.append('description', (newMaterial.description || '').trim());
             // Send both subjectCode and subjectName (using the same value for now)
-            formData.append('subjectCode', newMaterial.subject || 'General');
-            formData.append('subjectName', newMaterial.subject);
+            formData.append('subjectCode', (newMaterial.subject || 'General').trim() || 'General');
+            formData.append('subjectName', (newMaterial.subject || '').trim());
             formData.append('type', newMaterial.type);
-            formData.append('tags', newMaterial.tags);
+            formData.append('tags', (newMaterial.tags || '').trim());
             // Map accessLevel to isPublic (boolean) for the backend
             formData.append('isPublic', newMaterial.accessLevel === 'public');
             if (newMaterial.file) {
@@ -107,13 +245,14 @@ const InstructionalMaterials = () => {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorMessage = await getResponseErrorMessage(response);
+                throw new Error(errorMessage);
             }
             
             const result = await response.json();
             setMaterials([...materials, result.material]);
             setNewMaterial({
-                title: '', description: '', subject: '', type: 'lecture',
+                title: '', course: '', description: '', subject: '', type: 'lecture',
                 tags: '', accessLevel: 'private', file: null
             });
             document.getElementById('material-file').value = '';
@@ -227,6 +366,15 @@ const InstructionalMaterials = () => {
                         />
                     </div>
                     <div className="form-group">
+                        <label>Course ID *</label>
+                        <input
+                            type="text"
+                            value={newMaterial.course}
+                            onChange={(e) => setNewMaterial({...newMaterial, course: e.target.value.toUpperCase()})}
+                            placeholder="Enter course ID (e.g., IT131)"
+                        />
+                    </div>
+                    <div className="form-group">
                         <label>Subject</label>
                         <input
                             type="text"
@@ -283,12 +431,27 @@ const InstructionalMaterials = () => {
                     </div>
                     <div className="form-group">
                         <label>Upload File *</label>
+                        <button
+                            type="button"
+                            className="save-button"
+                            style={{ width: '100%', padding: '0.6rem 0.8rem' }}
+                            onClick={handleSelectFile}
+                        >
+                            Select File
+                        </button>
                         <input
+                            ref={fileInputRef}
                             id="material-file"
                             type="file"
                             accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.jpg,.jpeg,.png"
-                            onChange={(e) => setNewMaterial({...newMaterial, file: e.target.files[0]})}
+                            style={{ display: 'none' }}
+                            onChange={handleFileInputChange}
                         />
+                        {newMaterial.file && (
+                            <small style={{ display: 'block', marginTop: '0.5rem', color: '#555' }}>
+                                Selected: {newMaterial.file.name}
+                            </small>
+                        )}
                     </div>
                 </div>
 
@@ -304,6 +467,7 @@ const InstructionalMaterials = () => {
                                 {getTypeIcon(material.type)}
                             </div>
                             <h4>{material.title}</h4>
+                            <p className="material-subject"><strong>Course:</strong> {material.courseCode || 'N/A'}</p>
                             <p className="material-subject">{material.subject}</p>
                             <p className="material-type">{material.type}</p>
                             <p className="material-description">{material.description}</p>

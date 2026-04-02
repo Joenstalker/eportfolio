@@ -10,6 +10,7 @@ const Research = () => {
     const [newPaper, setNewPaper] = useState({
         title: '',
         authors: '',
+        researchType: '',
         journal: '',
         publicationDate: '',
         doi: '',
@@ -21,6 +22,102 @@ const Research = () => {
     useEffect(() => {
         loadResearchPapers();
     }, []);
+
+    const allowedResearchFileExtensions = ['.pdf', '.doc', '.docx'];
+    const allowedResearchFileMimeTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    const doiUrlPattern = /^https:\/\/doi\.org\/10\.\d{4,9}\/[\w.()\-;/:]+$/i;
+
+    const validateResearchForm = (paper) => {
+        const errors = [];
+        const normalizedTitle = (paper.title || '').trim();
+        const authorEntries = (paper.authors || '')
+            .split(',')
+            .map(author => author.trim())
+            .filter(Boolean);
+        const normalizedAbstract = (paper.abstract || '').trim();
+        const normalizedDoi = (paper.doi || '').trim();
+
+        if (!normalizedTitle) {
+            errors.push('Title is required.');
+        } else {
+            const titleHasValidChars = /^[A-Za-z0-9][A-Za-z0-9 .,:'"()\-\/&]*$/.test(normalizedTitle);
+            if (!titleHasValidChars) {
+                errors.push('Title contains invalid characters.');
+            }
+        }
+
+        if (authorEntries.length === 0) {
+            errors.push('Author is required.');
+        } else {
+            const invalidAuthor = authorEntries.find(author => !/^[A-Za-z][A-Za-z .\-']*$/.test(author));
+            if (invalidAuthor) {
+                errors.push('Author name must contain letters only.');
+            }
+        }
+
+        if (!paper.researchType) {
+            errors.push('Research type is required.');
+        }
+
+        if (!(paper.journal || '').trim()) {
+            errors.push('Journal/Conference is required.');
+        }
+
+        if (!normalizedAbstract) {
+            errors.push('Abstract field is required.');
+        }
+
+        if (normalizedDoi && !doiUrlPattern.test(normalizedDoi)) {
+            errors.push('DOI must be a valid DOI link (e.g., https://doi.org/10.1080/10509585.2015.1092083).');
+        }
+
+        if (paper.publicationDate) {
+            const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(paper.publicationDate);
+            const year = Number.parseInt((paper.publicationDate || '').slice(0, 4), 10);
+            if (!isIsoDate || Number.isNaN(year)) {
+                errors.push('Year must be a valid number.');
+            }
+        }
+
+        if (paper.file) {
+            const fileName = paper.file.name || '';
+            const fileExtension = fileName.includes('.')
+                ? `.${fileName.split('.').pop().toLowerCase()}`
+                : '';
+            const mimeType = paper.file.type || '';
+
+            const isAllowedExtension = allowedResearchFileExtensions.includes(fileExtension);
+            const isAllowedMime = !mimeType || allowedResearchFileMimeTypes.includes(mimeType);
+
+            if (!isAllowedExtension || !isAllowedMime) {
+                errors.push('Only PDF, DOC, and DOCX files are allowed.');
+            }
+        }
+
+        return errors;
+    };
+
+    const getResponseErrorMessage = async (response) => {
+        try {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                if (Array.isArray(data.errors) && data.errors.length > 0) {
+                    return data.errors.join('\n');
+                }
+                return data.message || data.error || `HTTP error! status: ${response.status}`;
+            }
+
+            const text = await response.text();
+            return text || `HTTP error! status: ${response.status}`;
+        } catch (parseError) {
+            return `HTTP error! status: ${response.status}`;
+        }
+    };
 
     const loadResearchPapers = async () => {
         try {
@@ -37,7 +134,8 @@ const Research = () => {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorMessage = await getResponseErrorMessage(response);
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
@@ -66,10 +164,19 @@ const Research = () => {
     };
 
     const addResearchPaper = async () => {
-        if (!newPaper.title || !newPaper.authors) {
+        const normalizedTitle = (newPaper.title || '').trim();
+        const normalizedAuthors = (newPaper.authors || '')
+            .split(',')
+            .map(author => author.trim())
+            .filter(Boolean)
+            .join(', ');
+        const normalizedDoi = (newPaper.doi || '').trim();
+
+        const validationErrors = validateResearchForm(newPaper);
+        if (validationErrors.length > 0) {
             Swal.fire({
-                title: 'Missing Fields!',
-                text: 'Please fill in title and authors',
+                title: 'Validation Error!',
+                html: `<ul style="text-align:left;margin:0;padding-left:1.2rem;">${validationErrors.map(err => `<li>${err}</li>`).join('')}</ul>`,
                 icon: 'warning',
                 confirmButtonColor: '#e74c3c'
             });
@@ -89,13 +196,29 @@ const Research = () => {
             }
             
             const formData = new FormData();
-            formData.append('title', newPaper.title);
-            formData.append('authors', newPaper.authors);
-            formData.append('journal', newPaper.journal);
-            formData.append('publicationDate', newPaper.publicationDate);
-            formData.append('doi', newPaper.doi);
-            formData.append('abstract', newPaper.abstract);
-            formData.append('status', newPaper.status);
+            formData.append('title', normalizedTitle);
+            formData.append('authors', normalizedAuthors);
+
+            if (newPaper.journal?.trim()) {
+                formData.append('journal', newPaper.journal.trim());
+            }
+
+            formData.append('researchType', newPaper.researchType);
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(newPaper.publicationDate)) {
+                formData.append('publicationDate', newPaper.publicationDate);
+            }
+
+            if (normalizedDoi) {
+                formData.append('doi', normalizedDoi);
+            }
+
+            formData.append('abstract', newPaper.abstract.trim());
+
+            if (['draft', 'submitted', 'published', 'in-progress'].includes(newPaper.status)) {
+                formData.append('status', newPaper.status);
+            }
+
             if (newPaper.file) {
                 formData.append('researchFile', newPaper.file);
             }
@@ -109,14 +232,15 @@ const Research = () => {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorMessage = await getResponseErrorMessage(response);
+                throw new Error(errorMessage);
             }
             
             const result = await response.json();
             const added = result.researchPaper || result.research || result;
             setResearchPapers(prev => [...prev, added]);
             setNewPaper({
-                title: '', authors: '', journal: '', publicationDate: '', 
+                title: '', authors: '', researchType: '', journal: '', publicationDate: '', 
                 doi: '', abstract: '', status: 'published', file: null
             });
             document.getElementById('research-file').value = '';
@@ -147,7 +271,6 @@ const Research = () => {
             }
         }
     };
-
     const deleteResearchPaper = async (id) => {
         const confirm = await Swal.fire({
             title: 'Are you sure?',
@@ -206,8 +329,10 @@ const Research = () => {
                 
                 <div className="form-grid">
                     <div className="form-group">
-                        <label>Paper Title *</label>
+                        <label htmlFor="research-title">Paper Title *</label>
                         <input
+                            id="research-title"
+                            name="title"
                             type="text"
                             value={newPaper.title}
                             onChange={(e) => setNewPaper({...newPaper, title: e.target.value})}
@@ -215,8 +340,10 @@ const Research = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Authors *</label>
+                        <label htmlFor="research-authors">Authors *</label>
                         <input
+                            id="research-authors"
+                            name="authors"
                             type="text"
                             value={newPaper.authors}
                             onChange={(e) => setNewPaper({...newPaper, authors: e.target.value})}
@@ -224,8 +351,27 @@ const Research = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Journal/Conference</label>
+                        <label htmlFor="research-type">Research Type *</label>
+                        <select
+                            id="research-type"
+                            name="researchType"
+                            value={newPaper.researchType}
+                            onChange={(e) => setNewPaper({...newPaper, researchType: e.target.value})}
+                        >
+                            <option value="">Select type</option>
+                            <option value="journal-article">Journal Article</option>
+                            <option value="conference-paper">Conference Paper</option>
+                            <option value="book-chapter">Book Chapter</option>
+                            <option value="review-paper">Review Paper</option>
+                            <option value="patent">Patent</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="research-journal">Journal/Conference</label>
                         <input
+                            id="research-journal"
+                            name="journal"
                             type="text"
                             value={newPaper.journal}
                             onChange={(e) => setNewPaper({...newPaper, journal: e.target.value})}
@@ -233,16 +379,20 @@ const Research = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Publication Date</label>
+                        <label htmlFor="research-publication-date">Publication Date</label>
                         <input
+                            id="research-publication-date"
+                            name="publicationDate"
                             type="date"
                             value={newPaper.publicationDate}
                             onChange={(e) => setNewPaper({...newPaper, publicationDate: e.target.value})}
                         />
                     </div>
                     <div className="form-group">
-                        <label>DOI</label>
+                        <label htmlFor="research-doi">DOI</label>
                         <input
+                            id="research-doi"
+                            name="doi"
                             type="text"
                             value={newPaper.doi}
                             onChange={(e) => setNewPaper({...newPaper, doi: e.target.value})}
@@ -250,8 +400,10 @@ const Research = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Status</label>
+                        <label htmlFor="research-status">Status</label>
                         <select 
+                            id="research-status"
+                            name="status"
                             value={newPaper.status}
                             onChange={(e) => setNewPaper({...newPaper, status: e.target.value})}
                         >
@@ -261,8 +413,10 @@ const Research = () => {
                         </select>
                     </div>
                     <div className="form-group full-width">
-                        <label>Abstract</label>
+                        <label htmlFor="research-abstract">Abstract *</label>
                         <textarea
+                            id="research-abstract"
+                            name="abstract"
                             rows="4"
                             value={newPaper.abstract}
                             onChange={(e) => setNewPaper({...newPaper, abstract: e.target.value})}
@@ -270,12 +424,42 @@ const Research = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Upload Paper</label>
+                        <label htmlFor="research-file">Upload Paper</label>
                         <input
                             id="research-file"
+                            name="researchFile"
                             type="file"
                             accept=".pdf,.doc,.docx"
-                            onChange={(e) => setNewPaper({...newPaper, file: e.target.files[0]})}
+                            onChange={(e) => {
+                                const file = e.target.files[0] || null;
+                                if (!file) {
+                                    setNewPaper({ ...newPaper, file: null });
+                                    return;
+                                }
+
+                                const fileName = file.name || '';
+                                const fileExtension = fileName.includes('.')
+                                    ? `.${fileName.split('.').pop().toLowerCase()}`
+                                    : '';
+                                const mimeType = file.type || '';
+
+                                const isAllowedExtension = allowedResearchFileExtensions.includes(fileExtension);
+                                const isAllowedMime = !mimeType || allowedResearchFileMimeTypes.includes(mimeType);
+
+                                if (!isAllowedExtension || !isAllowedMime) {
+                                    Swal.fire({
+                                        title: 'Invalid File Type!',
+                                        text: 'Only PDF, DOC, and DOCX files are allowed.',
+                                        icon: 'warning',
+                                        confirmButtonColor: '#e74c3c'
+                                    });
+                                    e.target.value = '';
+                                    setNewPaper({ ...newPaper, file: null });
+                                    return;
+                                }
+
+                                setNewPaper({ ...newPaper, file });
+                            }}
                         />
                     </div>
                 </div>
@@ -295,6 +479,7 @@ const Research = () => {
                                 </span>
                             </div>
                             <p><strong>Authors:</strong> {paper.authors}</p>
+                            {paper.researchType && <p><strong>Type:</strong> {paper.researchType}</p>}
                             <p><strong>Journal:</strong> {paper.journal}</p>
                             <p><strong>Published:</strong> {paper.publicationDate}</p>
                             {paper.doi && <p><strong>DOI:</strong> {paper.doi}</p>}

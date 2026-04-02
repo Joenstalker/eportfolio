@@ -11,6 +11,12 @@ const researchSchema = new mongoose.Schema({
     authors: [String],
     publicationDate: Date,
     journal: String,
+    doi: String,
+    researchType: {
+        type: String,
+        enum: ['journal-article', 'conference-paper', 'book-chapter', 'review-paper', 'patent', 'other'],
+        required: true
+    },
     file: {
         fileName: String,
         fileUrl: String,
@@ -22,7 +28,7 @@ const researchSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['draft', 'submitted', 'published'],
+        enum: ['draft', 'submitted', 'published', 'in-progress'],
         default: 'draft'
     }
 }, {

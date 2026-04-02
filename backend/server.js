@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const multer = require('multer');
 const path = require('path');
 require('dotenv').config();
 
@@ -71,6 +72,18 @@ connectDB();
 // Error handling middleware
 app.use((error, req, res, next) => {
     console.error('Server error:', error);
+
+    if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: 'File is too large. Maximum allowed size is 50MB.' });
+        }
+        return res.status(400).json({ message: error.message });
+    }
+
+    if (typeof error?.message === 'string' && error.message.toLowerCase().includes('invalid file type')) {
+        return res.status(400).json({ message: error.message });
+    }
+
     res.status(500).json({ 
         message: 'Internal server error',
         ...(process.env.NODE_ENV === 'development' && { error: error.message })

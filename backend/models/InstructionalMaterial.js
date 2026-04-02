@@ -10,6 +10,12 @@ const instructionalMaterialSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    courseCode: {
+        type: String,
+        required: true,
+        trim: true,
+        uppercase: true
+    },
     subjectName: String,
     title: {
         type: String,

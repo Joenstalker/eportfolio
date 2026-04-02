@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 const auth = (req, res, next) => {
     const authHeader = req.header('Authorization');
@@ -27,6 +28,14 @@ const auth = (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, jwtSecret);
+        const userId = decoded?.id || decoded?._id;
+
+        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+            console.error('❌ Token payload missing a valid user id');
+            return res.status(401).json({ message: 'Token is not valid' });
+        }
+
+        decoded.id = String(userId);
         console.log('✅ Token verified successfully for user ID:', decoded.id);
         req.user = decoded;
         next();
