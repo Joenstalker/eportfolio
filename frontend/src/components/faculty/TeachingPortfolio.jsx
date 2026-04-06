@@ -71,8 +71,16 @@ const TeachingPortfolio = () => {
     return (
         <div className="faculty-section">
             <div className="section-header">
-                <h2>Teaching Portfolio</h2>
-                <p>View your assigned courses and manage teaching activities</p>
+                <div>
+                    <h2>Teaching Portfolio</h2>
+                    <p>View your assigned courses and manage teaching activities</p>
+                </div>
+                <button
+                    className="action-btn classlists"
+                    onClick={() => navigate(`/faculty/${user?._id || user?.id}/class-lists`)}
+                >
+                    View Class Lists
+                </button>
             </div>
 
             <div className="content-card">
@@ -100,6 +108,9 @@ const TeachingPortfolio = () => {
                                 )}
                                 <div className="item-actions">
                                     <button className="action-btn view">View Details</button>
+                                    <button className="action-btn classlists" onClick={() => navigate(`/faculty/${user?._id || user?.id}/class-lists`)}>
+                                        View Class List
+                                    </button>
                                     <button className="action-btn edit">Manage</button>
                                 </div>
                             </div>

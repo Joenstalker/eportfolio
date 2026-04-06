@@ -270,6 +270,16 @@
     color: #1976d2;
 }
 
+.action-btn.classlists {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.action-btn.classlists:hover {
+    background: #c8e6c9;
+    transform: translateY(-1px);
+}
+
 .action-btn.view:hover {
     background: #bbdefb;
     transform: translateY(-1px);
@@ -293,6 +303,34 @@
 .action-btn.delete:hover {
     background: #ffcdd2;
     transform: translateY(-1px);
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.classlists-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.classlists-table th,
+.classlists-table td {
+    padding: 1rem 1.2rem;
+    text-align: left;
+    border-bottom: 1px solid #eef2f3;
+}
+
+.classlists-table th {
+    background: #f4f7f6;
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+.classlists-table tr:hover td {
+    background: #f9fbff;
 }
 
 .materials-grid {

@@ -112,6 +112,46 @@ router.get('/courses', auth, async (req, res) => {
     }
 });
 
+// Get class lists summary for a faculty member
+router.get('/class-lists', auth, async (req, res) => {
+    try {
+        const facultyId = req.query.facultyId || req.user.id;
+        if (!facultyId) {
+            return res.status(400).json({ message: 'facultyId is required' });
+        }
+
+        if (String(req.user.id) !== String(facultyId) && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Forbidden: cannot access other faculty data' });
+        }
+
+        const portfolio = await TeachingPortfolio.findOne({ facultyId });
+        const assignments = await CourseAssignment.find({ facultyId }).populate('courseId');
+
+        const classLists = assignments.map((assignment) => {
+            const subject = portfolio?.subjects?.find((subject) => 
+                subject.subjectCode === assignment.courseId.courseCode &&
+                subject.section === assignment.section &&
+                subject.semester === assignment.semester
+            );
+
+            return {
+                assignmentId: assignment._id,
+                courseCode: assignment.courseId.courseCode,
+                courseName: assignment.courseId.courseName,
+                section: assignment.section,
+                semester: assignment.semester,
+                studentCount: subject?.classLists?.length || 0,
+                schedule: 'TBA'
+            };
+        });
+
+        res.json({ classLists });
+    } catch (error) {
+        console.error('Error fetching class lists:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Add subject
 router.post('/subjects', auth, async (req, res) => {
     try {

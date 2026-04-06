@@ -145,12 +145,13 @@ const Login = () => {
         }
 
         console.log('🚀 Login form submitted');
-        console.log('📧 Email:', formData.email);
+        const normalizedEmail = String(formData.email || '').trim().toLowerCase();
+        console.log('📧 Email:', normalizedEmail);
         // Admin vs Faculty is determined by the user's role from the backend/JWT.
 
         try {
             // Call login with reCAPTCHA token through AuthContext
-            const data = await loginUser(formData.email, formData.password, recaptchaValue);
+            const data = await loginUser(normalizedEmail, formData.password, recaptchaValue);
             
             console.log('✅ Login successful in component');
             console.log('👤 Response user object:', data.user);

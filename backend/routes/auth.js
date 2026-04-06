@@ -9,6 +9,10 @@ const auth = require('../middleware/auth');
 const role = require('../middleware/role');
 const ActivityLogger = require('../services/activityLogger');
 
+const normalizeEmail = (email) => {
+  return String(email || '').trim().toLowerCase();
+};
+
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
@@ -21,9 +25,11 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   try {
     const { firstName, lastName, email, password, department, role: userRole } = req.body;
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedRole = typeof userRole === 'string' ? userRole.trim().toLowerCase() : 'faculty';
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -32,11 +38,11 @@ router.post('/register', async (req, res) => {
     const user = new User({
       firstName,
       lastName,
-      email,
+      email: normalizedEmail,
       password, // Will be hashed by pre-save hook
       department,
       position: 'Faculty', // Default position
-      role: userRole || 'faculty'
+      role: normalizedRole === 'admin' ? 'admin' : 'faculty'
     });
     
     await user.save();
@@ -67,10 +73,11 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(' Login attempt for email:', email);
+    const normalizedEmail = normalizeEmail(email);
+    console.log(' Login attempt for email:', normalizedEmail);
 
     // Find user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     console.log(' User found:', user ? 'Yes' : 'No');
     if (user) {
       console.log(' User details:', { id: user._id, email: user.email, role: user.role });
