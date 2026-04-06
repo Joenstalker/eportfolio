@@ -27,6 +27,19 @@ const SeminarsCertificates = () => {
         loadVenues();
     }, []);
 
+    const formatDuration = (durationValue) => {
+        const parsed = Number(durationValue);
+        if (!Number.isNaN(parsed) && parsed > 0) {
+            return `${parsed} hours`;
+        }
+
+        if (typeof durationValue === 'string' && durationValue.trim()) {
+            return `${durationValue.trim()} hours`;
+        }
+
+        return 'N/A';
+    };
+
     const loadSeminars = async () => {
         try {
             const token = ensureToken();
@@ -159,6 +172,8 @@ const SeminarsCertificates = () => {
     const addSeminar = async (uploadType = 'seminar') => {
         let finalVenue = newSeminar.venue;
         let venueToAdd = null;
+        const normalizedCertificateTitle = (newSeminar.certificateTitle || '').trim();
+        const normalizedDuration = Number(newSeminar.duration);
         
         if (showAddVenue && customVenue) {
             finalVenue = customVenue;
@@ -200,7 +215,9 @@ const SeminarsCertificates = () => {
             !newSeminar.organizer ||
             !finalVenue ||
             !newSeminar.duration ||
-            !newSeminar.certificateTitle ||
+            Number.isNaN(normalizedDuration) ||
+            normalizedDuration <= 0 ||
+            !normalizedCertificateTitle ||
             !newSeminar.certificateFile
         ) {
             Swal.fire({
@@ -229,8 +246,8 @@ const SeminarsCertificates = () => {
             formData.append('date', newSeminar.date);
             formData.append('organizer', newSeminar.organizer);
             formData.append('venue', finalVenue);
-            formData.append('duration', newSeminar.duration || '');
-            formData.append('certificateTitle', newSeminar.certificateTitle);
+            formData.append('duration', String(normalizedDuration));
+            formData.append('certificateTitle', normalizedCertificateTitle);
             if (newSeminar.certificateFile) {
                 formData.append('certificate', newSeminar.certificateFile);
             }
@@ -248,7 +265,12 @@ const SeminarsCertificates = () => {
             }
             
             const result = await response.json();
-            setSeminars([...seminars, result.seminar]);
+            const savedSeminar = {
+                ...result.seminar,
+                duration: result?.seminar?.duration ?? normalizedDuration,
+                certificateTitle: result?.seminar?.certificateTitle ?? normalizedCertificateTitle
+            };
+            setSeminars([...seminars, savedSeminar]);
             setNewSeminar({
                 title: '', date: '', organizer: '', venue: '', duration: '', certificateTitle: '', certificateFile: null
             });
@@ -469,8 +491,8 @@ const SeminarsCertificates = () => {
                             </div>
                             <p><strong>Organizer:</strong> {seminar.organizer}</p>
                             <p><strong>Venue:</strong> {seminar.venue}</p>
-                            <p><strong>Duration:</strong> {seminar.duration} hours</p>
-                            <p><strong>Certificate Title:</strong> {seminar.certificateTitle || 'N/A'}</p>
+                            <p><strong>Duration:</strong> {formatDuration(seminar.duration)}</p>
+                            <p><strong>Certificate Title:</strong> {seminar.certificateTitle || seminar.title || 'N/A'}</p>
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                                 {seminar.certificateFile?.fileUrl && (
                                     <a href={`http://localhost:5000${seminar.certificateFile.fileUrl}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#3498db', textDecoration: 'none' }}>
