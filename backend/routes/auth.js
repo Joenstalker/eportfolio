@@ -282,6 +282,35 @@ router.get('/me', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
   try {
     const { firstName, lastName, email, department, position, phone, office, bio } = req.body;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+      return res.status(400).json({ message: 'Invalid email format (check email address)' });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!normalizedEmail.endsWith('@gmail.com') && !normalizedEmail.endsWith('@student.buksu.edu.ph')) {
+      return res.status(400).json({ message: 'Invalid email format (check email address)' });
+    }
+
+    if (!phone || !String(phone).trim()) {
+      return res.status(400).json({ message: 'Phone number required (enter phone details)' });
+    }
+
+    if (!/^09\d{9}$/.test(String(phone).trim())) {
+      return res.status(400).json({ message: 'Invalid phone number (use proper format)' });
+    }
+
+    if (!office || !String(office).trim()) {
+      return res.status(400).json({ message: 'Office location required (enter office details)' });
+    }
+
+    if (!bio || !String(bio).trim()) {
+      return res.status(400).json({ message: 'Bio required (add bio details)' });
+    }
+
+    if (bio && String(bio).length > 500) {
+      return res.status(400).json({ message: 'Bio too long (maximum 500 characters)' });
+    }
     
     console.log('Received profile update request:', { firstName, lastName, email, department, position, phone, office, bio });
     
@@ -289,6 +318,10 @@ router.put('/profile', auth, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(423).json({ message: 'Profile locked (contact administrator)' });
     }
     
     console.log('Original user data:', {

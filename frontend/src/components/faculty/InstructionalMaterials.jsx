@@ -176,28 +176,29 @@ const InstructionalMaterials = () => {
     const addMaterial = async () => {
         const normalizedTitle = (newMaterial.title || '').trim();
         const normalizedCourseCode = (newMaterial.course || '').trim().toUpperCase();
-        const courseCodePattern = /^[A-Z]{2,4}\d{3}$/;
+        const description = (newMaterial.description || '').trim();
+        //const courseCodePattern = /^[A-Z]{2,4}\d{3}$/;
+
+        if (!description) {
+            Swal.fire({
+                title: 'Warning!',
+                text: 'Description required (add material description)',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
 
         if (!normalizedTitle || !normalizedCourseCode || !newMaterial.file) {
             Swal.fire({
                 title: 'Missing Fields!',
-                text: 'Please fill in title, course ID, and upload a file',
+                text: 'Please fill in title, course ID, and upload a file.',
                 icon: 'warning',
                 confirmButtonColor: '#e74c3c'
             });
             return;
         }
-
-        if (!courseCodePattern.test(normalizedCourseCode)) {
-            Swal.fire({
-                title: 'Invalid Course ID!',
-                text: 'Course ID not found.',
-                icon: 'warning',
-                confirmButtonColor: '#e74c3c'
-            });
-            return;
-        }
-
+    
         const maxFileSizeBytes = 10 * 1024 * 1024;
         if (newMaterial.file.size > maxFileSizeBytes) {
             Swal.fire({

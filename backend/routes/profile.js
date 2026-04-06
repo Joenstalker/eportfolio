@@ -40,7 +40,8 @@ router.put('/', auth, async (req, res) => {
         await Profile.findOneAndUpdate(
             { facultyId: req.user.id },
             { personalInfo },
-            { new: true, upsert: true }
+            { new: true, upsert: true },
+            { runValidators: true }
         );
         
         // Fetch the updated profile with populated faculty info

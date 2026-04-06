@@ -3,7 +3,67 @@ const router = express.Router();
 const TeachingPortfolio = require('../models/TeachingPortfolio');
 const Course = require('../models/Course');
 const CourseAssignment = require('../models/CourseAssignment');
+const ClassPortfolio = require('../models/ClassPortfolio');
+const UserActivity = require('../models/UserActivity');
 const auth = require('../middleware/auth');
+
+// Get faculty dashboard stats
+router.get('/dashboard-stats', auth, async (req, res) => {
+    try {
+        const [portfolio, assignments, classPortfolios, activities] = await Promise.all([
+            TeachingPortfolio.findOne({ facultyId: req.user.id }),
+            CourseAssignment.find({ facultyId: req.user.id, status: 'active' }),
+            ClassPortfolio.find({ facultyId: req.user.id }),
+            UserActivity.find({ userId: req.user.id })
+                .sort({ timestamp: -1 })
+                .limit(8)
+                .select('timestamp description')
+        ]);
+
+        const subjects = portfolio?.subjects || [];
+
+        const uniqueStudents = new Set();
+        subjects.forEach((subject) => {
+            (subject.classLists || []).forEach((student) => {
+                const key = student.email || student.studentId || student.studentName;
+                if (key) {
+                    uniqueStudents.add(String(key).toLowerCase());
+                }
+            });
+        });
+
+        const totalStudents = uniqueStudents.size;
+        const activeCourses = assignments.length;
+        const upcomingClasses = subjects.length;
+
+        const totalMaterials = classPortfolios.reduce(
+            (count, classPortfolio) => count + (classPortfolio.materials?.length || 0),
+            0
+        );
+
+        // In the current data model we do not store grade queues or attendance logs,
+        // so these are computed from available portfolio data and default safely.
+        const pendingGrades = Math.max(0, totalStudents - totalMaterials);
+        const averageAttendance = 0;
+
+        const recentActivity = activities.map((activity) => ({
+            timestamp: activity.timestamp,
+            description: activity.description
+        }));
+
+        res.json({
+            totalStudents,
+            activeCourses,
+            pendingGrades,
+            upcomingClasses,
+            averageAttendance,
+            recentActivity
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 // Get teaching portfolio
 router.get('/', auth, async (req, res) => {

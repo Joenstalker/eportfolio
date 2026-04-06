@@ -1,16 +1,20 @@
 import React, { useState, useContext, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 import AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 
 const TeachingPortfolio = () => {
-    const { user, ensureToken } = useContext(AuthContext);
+    const { user, ensureToken, logout } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [assignedCourses, setAssignedCourses] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        loadAssignedCourses();
-    }, []);
+        if (user) {
+            loadAssignedCourses();
+        }
+    }, [user]);
 
     const loadAssignedCourses = async () => {
         try {
@@ -20,11 +24,23 @@ const TeachingPortfolio = () => {
                 return;
             }
             
-            const response = await fetch('http://localhost:5000/api/teaching/courses', {
+            const response = await fetch('/api/teaching/courses', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            if (response.status === 401) {
+                logout?.();
+                await Swal.fire({
+                    title: 'Session Expired',
+                    text: 'Please log in again to continue.',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+                navigate('/login');
+                return;
+            }
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);

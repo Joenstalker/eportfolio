@@ -148,13 +148,27 @@ export const AuthProvider = ({ children }) => {
 
     // Check if user is logged in on app start
     useEffect(() => {
-        const restoreSession = () => {
+        const restoreSession = async () => {
             try {
                 const storedUser = localStorage.getItem('user');
                 const storedToken = localStorage.getItem('token');
                 
                 if (storedUser && storedToken) {
                     const userData = JSON.parse(storedUser);
+                    const verifyResponse = await fetch('/api/auth/verify', {
+                        method: 'GET',
+                        headers: {
+                            Authorization: `Bearer ${storedToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!verifyResponse.ok) {
+                        throw new Error('Stored session token is invalid or expired');
+                    }
+
+                    const verifyData = await verifyResponse.json();
+                    const verifiedUser = verifyData?.user || userData;
                     const getRoleFromToken = (jwtToken) => {
                         try {
                             if (!jwtToken || typeof jwtToken !== 'string') return null;
@@ -168,16 +182,17 @@ export const AuthProvider = ({ children }) => {
                     };
                     const roleFromJwt = getRoleFromToken(storedToken);
                     const normalizedUser = {
-                        ...userData,
-                        role: roleFromJwt || (typeof userData.role === 'string' ? userData.role.toLowerCase() : userData.role),
+                        ...verifiedUser,
+                        role: roleFromJwt || (typeof verifiedUser.role === 'string' ? verifiedUser.role.toLowerCase() : verifiedUser.role),
                     };
-                    console.log('🔄 Restored user from localStorage:', userData);
-                    console.log('🔄 User role from localStorage:', userData.role);
+                    console.log('🔄 Restored and verified user session:', normalizedUser.email);
                     setUser(normalizedUser);
                     setToken(storedToken);
                 }
             } catch (e) {
                 console.error('Error restoring auth session:', e);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 setUser(null);
                 setToken(null);
             } finally {

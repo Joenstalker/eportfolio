@@ -74,6 +74,10 @@ router.post('/', auth, instructionalFileUpload, async (req, res) => {
             : Array.isArray(tags)
                 ? tags.map(tag => String(tag).trim()).filter(Boolean)
                 : [];
+
+        if (!normalizedDescription) {
+            return res.status(400).json({ message: 'Description required (add material description)' });
+        }
         
         if (!req.file) {
             return res.status(400).json({ message: 'Please select a file to upload' });

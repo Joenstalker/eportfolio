@@ -79,14 +79,14 @@ export const validateSeminars = (seminars) => {
     }
 
     const invalidSeminars = seminars.filter(seminar => 
-        !seminar.title || !seminar.date || !seminar.venue || !seminar.organizer
+        !seminar.title || !seminar.date || !seminar.venue || !seminar.organizer || !seminar.duration
     );
 
     return {
         isValid: invalidSeminars.length === 0,
         missingFields: invalidSeminars.length > 0 ? ['seminar details'] : [],
         message: invalidSeminars.length > 0 
-            ? 'Please complete all seminar details (title, date, venue, organizer)'
+            ? 'Please complete all seminar details (title, date, venue, organizer, duration)'
             : 'Seminars & Certificates is complete'
     };
 };

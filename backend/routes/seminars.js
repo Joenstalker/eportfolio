@@ -18,20 +18,41 @@ router.get('/', auth, async (req, res) => {
 // Add seminar
 router.post('/', auth, upload.single('certificate'), async (req, res) => {
     try {
-        const { title, date, organizer, venue } = req.body;
+        const { title, date, organizer, venue, duration, certificateTitle } = req.body;
+
+        if (!title || !date || !organizer || !venue || !duration || !certificateTitle) {
+            return res.status(400).json({
+                message: 'Missing required fields: title, date, organizer, venue, duration, certificateTitle'
+            });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                message: 'Certificate file is required'
+            });
+        }
+
+        const durationNumber = Number(duration);
+        if (Number.isNaN(durationNumber) || durationNumber <= 0) {
+            return res.status(400).json({
+                message: 'Duration must be a positive number'
+            });
+        }
         
-        const filePayload = req.file ? {
+        const filePayload = {
             fileName: req.file.originalname,
             fileUrl: `/uploads/${req.file.filename}`,
             fileType: req.file.mimetype
-        } : undefined;
+        };
         
         const seminar = new SeminarCertificate({
             facultyId: req.user.id,
-            title,
+            title: title.trim(),
             date,
-            organizer,
-            venue,
+            organizer: organizer.trim(),
+            venue: venue.trim(),
+            duration: durationNumber,
+            certificateTitle: certificateTitle.trim(),
             certificateFile: filePayload
         });
 

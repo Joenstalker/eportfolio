@@ -17,6 +17,7 @@ const SeminarsCertificates = () => {
         organizer: '',
         venue: '',
         duration: '',
+        certificateTitle: '',
         certificateFile: null
     });
 
@@ -155,7 +156,7 @@ const SeminarsCertificates = () => {
         }
     };
 
-    const addSeminar = async () => {
+    const addSeminar = async (uploadType = 'seminar') => {
         let finalVenue = newSeminar.venue;
         let venueToAdd = null;
         
@@ -193,10 +194,18 @@ const SeminarsCertificates = () => {
             }
         }
 
-        if (!newSeminar.title || !newSeminar.date || !newSeminar.organizer) {
+        if (
+            !newSeminar.title ||
+            !newSeminar.date ||
+            !newSeminar.organizer ||
+            !finalVenue ||
+            !newSeminar.duration ||
+            !newSeminar.certificateTitle ||
+            !newSeminar.certificateFile
+        ) {
             Swal.fire({
                 title: 'Missing Fields!',
-                text: 'Please fill in all required fields',
+                text: 'Please complete title, date, organizer, venue, duration, certificate title, and certificate file.',
                 icon: 'warning',
                 confirmButtonColor: '#e74c3c'
             });
@@ -221,6 +230,7 @@ const SeminarsCertificates = () => {
             formData.append('organizer', newSeminar.organizer);
             formData.append('venue', finalVenue);
             formData.append('duration', newSeminar.duration || '');
+            formData.append('certificateTitle', newSeminar.certificateTitle);
             if (newSeminar.certificateFile) {
                 formData.append('certificate', newSeminar.certificateFile);
             }
@@ -240,7 +250,7 @@ const SeminarsCertificates = () => {
             const result = await response.json();
             setSeminars([...seminars, result.seminar]);
             setNewSeminar({
-                title: '', date: '', organizer: '', venue: '', duration: '', certificateFile: null
+                title: '', date: '', organizer: '', venue: '', duration: '', certificateTitle: '', certificateFile: null
             });
             setCustomVenue('');
             setShowAddVenue(false);
@@ -248,8 +258,10 @@ const SeminarsCertificates = () => {
             // Reload venues to include any newly added ones
             loadVenues();
             Swal.fire({
-                title: 'Seminar Added!',
-                text: 'Your seminar details have been saved.',
+                title: uploadType === 'certificate' ? 'Certificate Uploaded!' : 'Seminar Added!',
+                text: uploadType === 'certificate'
+                    ? 'Certificate is uploaded and listed.'
+                    : 'Your seminar details have been saved.',
                 icon: 'success',
                 confirmButtonColor: '#3498db'
             });
@@ -358,7 +370,7 @@ const SeminarsCertificates = () => {
                     </div>
                     {/* Implement a dropdown menu for the Venue field under Seminars and Certificates, including an “Add Venue” option for new entries. */}
                     <div className="form-group">
-                        <label>Venue</label>
+                        <label>Venue *</label>
                         {loadingVenues ? (
                             <div>Loading venues...</div>
                         ) : !showAddVenue ? (
@@ -410,16 +422,18 @@ const SeminarsCertificates = () => {
                         )}
                     </div>
                     <div className="form-group">
-                        <label>Duration (hours)</label>
+                        <label>Duration (hours) *</label>
                         <input
                             type="number"
+                            min="0.1"
+                            step="0.1"
                             value={newSeminar.duration}
                             onChange={(e) => setNewSeminar({...newSeminar, duration: e.target.value})}
                             placeholder="Duration in hours"
                         />
                     </div>
                     <div className="form-group">
-                        <label>Certificate</label>
+                        <label>Certificate Picture *</label>
                         <input
                             id="certificate-upload"
                             type="file"
@@ -427,14 +441,26 @@ const SeminarsCertificates = () => {
                             onChange={handleFileChange}
                         />
                     </div>
+                    <div className="form-group">
+                        <label>Certificate Title *</label>
+                        <input
+                            type="text"
+                            value={newSeminar.certificateTitle}
+                            onChange={(e) => setNewSeminar({...newSeminar, certificateTitle: e.target.value})}
+                            placeholder="Enter certificate title"
+                        />
+                    </div>
                 </div>
 
-                <button className="save-button" onClick={addSeminar}>
-                    Add Seminar
+                <button className="save-button" onClick={() => addSeminar('seminar')}>
+                    Upload Seminars
+                </button>
+                <button className="save-button" onClick={() => addSeminar('certificate')} style={{ marginLeft: '10px' }}>
+                    Upload Certificates
                 </button>
 
                 <div className="items-list" style={{marginTop: '2rem'}}>
-                    <h3>Your Seminars</h3>
+                    <h3>Your Seminars and Certificates</h3>
                     {seminars.map(seminar => (
                         <div key={seminar._id} className="item-card" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
                             <div className="item-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -444,6 +470,7 @@ const SeminarsCertificates = () => {
                             <p><strong>Organizer:</strong> {seminar.organizer}</p>
                             <p><strong>Venue:</strong> {seminar.venue}</p>
                             <p><strong>Duration:</strong> {seminar.duration} hours</p>
+                            <p><strong>Certificate Title:</strong> {seminar.certificateTitle || 'N/A'}</p>
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                                 {seminar.certificateFile?.fileUrl && (
                                     <a href={`http://localhost:5000${seminar.certificateFile.fileUrl}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#3498db', textDecoration: 'none' }}>

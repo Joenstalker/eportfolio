@@ -24,6 +24,17 @@ const ProfileDashboard = () => {
         return trimmedEmail.endsWith('@gmail.com') || trimmedEmail.endsWith('@student.buksu.edu.ph');
     };
 
+    const isValidEmailFormat = (email) => {
+        if (!email || email.trim() === '') return false;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    };
+
+    const isValidPhoneNumber = (phone) => {
+        if (!phone || phone.trim() === '') return false;
+        const normalizedPhone = phone.trim();
+        return /^09\d{9}$/.test(normalizedPhone);
+    };
+
     // Check if profile is complete
     const isProfileComplete = () => {
         return profile.name.trim() !== '' && 
@@ -154,6 +165,76 @@ const loadStats = async () => {
             });
             return;
         }
+
+        if (!isValidEmailFormat(profile.email)) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Invalid email format (check email address)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!isValidEmailDomain(profile.email)) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Invalid email format (check email address)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!profile.phone || profile.phone.trim() === '') {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Phone number required (enter phone details)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!isValidPhoneNumber(profile.phone)) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Invalid phone number (use proper format)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!profile.office || profile.office.trim() === '') {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Office location required (enter office details)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!profile.bio || profile.bio.trim() === '') {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Bio required (add bio details)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if ((profile.bio || '').length > 500) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Bio too long (maximum 500 characters)',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
         
         // Validate user exists and has basic required fields
         if (!user) {
@@ -161,6 +242,16 @@ const loadStats = async () => {
             Swal.fire({
                 title: 'Error!',
                 text: 'User data not found. Please log in again.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (user.isActive === false) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Profile locked (contact administrator)',
                 icon: 'error',
                 confirmButtonColor: '#e74c3c'
             });
@@ -250,8 +341,15 @@ const loadStats = async () => {
             console.log('User response status:', userResponse.status);
             
             if (!userResponse.ok) {
-                const errorText = await userResponse.text();
-                throw new Error(`User profile update failed (${userResponse.status}): ${errorText}`);
+                let apiMessage = '';
+                try {
+                    const errorJson = await userResponse.json();
+                    apiMessage = errorJson?.message || '';
+                } catch {
+                    const errorText = await userResponse.text();
+                    apiMessage = errorText || '';
+                }
+                throw new Error(apiMessage || `User profile update failed (${userResponse.status})`);
             }
             
             // Parse the response
@@ -316,8 +414,15 @@ const loadStats = async () => {
             console.error('Error updating profile:', error);
             if (error.message.includes('Failed to fetch')) {
                 Swal.fire({
-                    title: 'Connection Error!',
-                    text: 'Unable to connect to server. Please make sure the backend is running.',
+                    title: 'Error!',
+                    text: 'Update failed (network error)',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else if (error.message.includes('Profile locked (contact administrator)')) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Profile locked (contact administrator)',
                     icon: 'error',
                     confirmButtonColor: '#e74c3c'
                 });
@@ -363,8 +468,13 @@ const loadStats = async () => {
                                 value={profile.email}
                                 onChange={(e) => setProfile({...profile, email: e.target.value})}
                                 placeholder="Enter your email"
-                                className={profile.email && !isValidEmailDomain(profile.email) ? 'invalid' : ''}
+                                className={profile.email && (!isValidEmailFormat(profile.email) || !isValidEmailDomain(profile.email)) ? 'invalid' : ''}
                             />
+                            {profile.email && !isValidEmailFormat(profile.email) && (
+                                <small className="error-message">
+                                    Invalid email format (check email address)
+                                </small>
+                            )}
                             {profile.email && !isValidEmailDomain(profile.email) && (
                                 <small className="error-message">
                                     Only @gmail.com and @student.buksu.edu.ph email domains are allowed
@@ -397,7 +507,13 @@ const loadStats = async () => {
                                 value={profile.phone}
                                 onChange={(e) => setProfile({...profile, phone: e.target.value})}
                                 placeholder="Enter your phone number"
+                                className={profile.phone && !isValidPhoneNumber(profile.phone) ? 'invalid' : ''}
                             />
+                            {profile.phone && !isValidPhoneNumber(profile.phone) && (
+                                <small className="error-message">
+                                    Invalid phone number (use proper format). Use 11 digits starting with 09.
+                                </small>
+                            )}
                         </div>
                         <div className="form-group">
                             <label>Office</label>
@@ -406,7 +522,13 @@ const loadStats = async () => {
                                 value={profile.office}
                                 onChange={(e) => setProfile({...profile, office: e.target.value})}
                                 placeholder="Enter your office location"
+                                className={profile.office !== '' && !profile.office.trim() ? 'invalid' : ''}
                             />
+                            {profile.office !== '' && !profile.office.trim() && (
+                                <small className="error-message">
+                                    Office location required (enter office details)
+                                </small>
+                            )}
                         </div>
                     </div>
 
@@ -417,7 +539,18 @@ const loadStats = async () => {
                             value={profile.bio}
                             onChange={(e) => setProfile({...profile, bio: e.target.value})}
                             placeholder="Write a brief introduction about yourself..."
+                            className={(!profile.bio || !profile.bio.trim() || (profile.bio || '').length > 500) ? 'invalid' : ''}
                         />
+                        {(!profile.bio || !profile.bio.trim()) && (
+                            <small className="error-message">
+                                Bio required (add bio details)
+                            </small>
+                        )}
+                        {(profile.bio || '').length > 500 && (
+                            <small className="error-message">
+                                Bio too long (maximum 500 characters)
+                            </small>
+                        )}
                     </div>
 
                     <button 

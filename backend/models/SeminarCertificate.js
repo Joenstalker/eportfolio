@@ -6,10 +6,34 @@ const seminarSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    title: String,
-    date: Date,
-    organizer: String,
-    venue: String,
+    title: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    date: {
+        type: Date,
+        required: true
+    },
+    organizer: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    venue: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    duration: {
+        type: Number,
+        required: true,
+        min: 0.1
+    },
+    certificateTitle: {
+        type: String,
+        trim: true
+    },
     certificateFile: {
         fileName: String,
         fileUrl: String,

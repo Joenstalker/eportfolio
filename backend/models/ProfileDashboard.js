@@ -10,7 +10,16 @@ const profileDashboardSchema = new mongoose.Schema({
     personalInfo: {
         fullName: String,
         email: String,
-        phone: String,
+        phone: {
+            type: String,
+            required: true,
+            validate: {
+                validator: function(v) {
+                return /^[0-9]+$/.test(v);
+                },
+            message: props => `${props.value} is not a valid phone number! Numbers only.`
+                }
+            },
         department: String,
         position: String,
         office: String
