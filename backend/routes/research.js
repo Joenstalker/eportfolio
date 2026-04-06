@@ -82,6 +82,15 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
             validationErrors.push('Title is required.');
         } else if (!/^[A-Za-z0-9][A-Za-z0-9 .,:;'"()\-/&]*$/.test(normalizedTitle)) {
             validationErrors.push('Title contains invalid characters.');
+        } else {
+            // Check for duplicate title for this faculty member
+            const duplicateTitle = await Research.findOne({
+                facultyId: userId,
+                title: { $regex: `^${normalizedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+            });
+            if (duplicateTitle) {
+                validationErrors.push('A research paper with this title already exists.');
+            }
         }
 
         if (normalizedAuthors.length === 0) {
@@ -160,6 +169,10 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
 
         if (!normalizedResearchType) {
             validationErrors.push('Research type is required.');
+        }
+
+        if (['submitted', 'published'].includes(normalizedStatus) && !req.file) {
+            validationErrors.push('A file upload is required when status is Submitted or Published.');
         }
 
         if (validationErrors.length > 0) {

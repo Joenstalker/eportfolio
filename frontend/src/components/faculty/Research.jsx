@@ -48,6 +48,15 @@ const Research = () => {
             if (!titleHasValidChars) {
                 errors.push('Title contains invalid characters.');
             }
+
+            // Check for duplicate title
+            const isDuplicate = researchPapers.some(existingPaper => 
+                existingPaper.title && 
+                existingPaper.title.trim().toLowerCase() === normalizedTitle.toLowerCase()
+            );
+            if (isDuplicate) {
+                errors.push('A research paper with this title already exists.');
+            }
         }
 
         if (authorEntries.length === 0) {
@@ -96,6 +105,10 @@ const Research = () => {
             if (!isAllowedExtension || !isAllowedMime) {
                 errors.push('Only PDF, DOC, and DOCX files are allowed.');
             }
+        }
+
+        if (['submitted', 'published'].includes((paper.status || '').toLowerCase()) && !paper.file) {
+            errors.push('Please upload the research paper file before submitting.');
         }
 
         return errors;

@@ -51,6 +51,15 @@ router.post('/', auth, instructionalFileUpload, async (req, res) => {
             return res.status(400).json({ message: 'Title is required.' });
         }
 
+        // Check for duplicate title for this faculty member
+        const duplicateTitle = await InstructionalMaterial.findOne({
+            facultyId: userId,
+            title: { $regex: `^${normalizedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+        });
+        if (duplicateTitle) {
+            return res.status(400).json({ message: 'An instructional material with this title already exists.' });
+        }
+
         const normalizedType = ['lecture', 'assignment', 'quiz', 'exam', 'project', 'presentation', 'handout', 'video', 'other'].includes(type)
             ? type
             : 'lecture';
@@ -77,6 +86,10 @@ router.post('/', auth, instructionalFileUpload, async (req, res) => {
 
         if (!normalizedDescription) {
             return res.status(400).json({ message: 'Description required (add material description)' });
+        }
+
+        if (normalizedDescription.length < 10) {
+            return res.status(400).json({ message: 'Description must be at least 10 characters long.' });
         }
         
         if (!req.file) {

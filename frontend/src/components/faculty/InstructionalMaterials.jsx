@@ -189,6 +189,31 @@ const InstructionalMaterials = () => {
             return;
         }
 
+        if (description.length < 10) {
+            Swal.fire({
+                title: 'Warning!',
+                text: 'Description must be at least 10 characters long.',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        // Check for duplicate title
+        const isDuplicate = materials.some(existingMaterial => 
+            existingMaterial.title && 
+            existingMaterial.title.trim().toLowerCase() === normalizedTitle.toLowerCase()
+        );
+        if (isDuplicate) {
+            Swal.fire({
+                title: 'Warning!',
+                text: 'An instructional material with this title already exists.',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
         if (!normalizedTitle || !normalizedCourseCode || !newMaterial.file) {
             Swal.fire({
                 title: 'Missing Fields!',
