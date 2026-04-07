@@ -3,6 +3,8 @@ const router = express.Router();
 const Syllabus = require('../models/Syllabus');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const fs = require('fs');
+const path = require('path');
 
 // Get all syllabi
 router.get('/', auth, async (req, res) => {
@@ -22,6 +24,17 @@ router.post('/', auth, upload.single('syllabusFile'), async (req, res) => {
         
         if (!req.file) {
             return res.status(400).json({ message: 'Please select a syllabus file' });
+        }
+
+        const fileExt = path.extname(req.file.originalname || '').toLowerCase();
+        const isPdfMime = req.file.mimetype === 'application/pdf';
+        const isPdf = isPdfMime || fileExt === '.pdf';
+
+        if (!isPdf) {
+            if (req.file.path && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(400).json({ message: 'Invalid format (PDF only)' });
         }
 
         const syllabus = new Syllabus({

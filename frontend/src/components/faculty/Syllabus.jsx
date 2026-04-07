@@ -59,12 +59,29 @@ const Syllabus = () => {
         }
     };
 
+    const isPdfFile = (file) => {
+        if (!file) return false;
+        const hasPdfMime = file.type === 'application/pdf';
+        const hasPdfExtension = (file.name || '').toLowerCase().endsWith('.pdf');
+        return hasPdfMime || hasPdfExtension;
+    };
+
     const addSyllabus = async () => {
         if (!newSyllabus.subjectCode || !newSyllabus.subjectName || !newSyllabus.file) {
             Swal.fire({
                 title: 'Missing Fields!',
                 text: 'Please fill in all required fields and upload a file',
                 icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        if (!isPdfFile(newSyllabus.file)) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Invalid format (PDF only)',
+                icon: 'error',
                 confirmButtonColor: '#e74c3c'
             });
             return;
@@ -96,12 +113,13 @@ const Syllabus = () => {
                 },
                 body: formData
             });
+
+            const result = await response.json();
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
             }
-            
-            const result = await response.json();
+
             setSyllabi([...syllabi, result.syllabus]);
             setNewSyllabus({
                 subjectCode: '', subjectName: '', academicYear: '', semester: '', file: null
@@ -234,8 +252,22 @@ const Syllabus = () => {
                         <input
                             id="syllabus-file"
                             type="file"
-                            accept=".pdf,.doc,.docx"
-                            onChange={(e) => setNewSyllabus({...newSyllabus, file: e.target.files[0]})}
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            onChange={(e) => {
+                                const selectedFile = e.target.files?.[0] || null;
+                                if (selectedFile && !isPdfFile(selectedFile)) {
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: 'Invalid format (PDF only)',
+                                        icon: 'error',
+                                        confirmButtonColor: '#e74c3c'
+                                    });
+                                    e.target.value = '';
+                                    setNewSyllabus({ ...newSyllabus, file: null });
+                                    return;
+                                }
+                                setNewSyllabus({ ...newSyllabus, file: selectedFile });
+                            }}
                         />
                     </div>
                 </div>

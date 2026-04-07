@@ -44,7 +44,7 @@ const InstructionalMaterials = () => {
             text: 'No permissions (cannot upload to this course)',
             icon: 'warning',
             confirmButtonColor: '#e74c3c'
-        });
+        }); 
     };
 
     const handleSelectFile = async () => {
