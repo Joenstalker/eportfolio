@@ -4,6 +4,47 @@ import './facultyComponents.css';
 import { FaTrash, FaDownload } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
+const VALID_SEMESTERS = ['First Semester', 'Second Semester'];
+
+const validateSyllabusForm = (form) => {
+    const subjectCode = form.subjectCode.trim();
+    const subjectName = form.subjectName.trim();
+    const academicYear = form.academicYear.trim();
+    const semester = form.semester.trim();
+
+    if (!subjectCode || !subjectName || !form.file || !semester) {
+        return 'Please fill in all required fields and upload a file';
+    }
+
+    if (!/^[A-Za-z0-9-]{2,20}$/.test(subjectCode)) {
+        return 'Subject Code format is invalid (use letters, numbers, and hyphen only)';
+    }
+
+    if (!/^[A-Za-z0-9][A-Za-z0-9\s.,&()/-]{2,99}$/.test(subjectName)) {
+        return 'Subject Name format is invalid';
+    }
+
+    if (academicYear) {
+        const yearMatch = academicYear.match(/^(\d{4})-(\d{4})$/);
+        if (!yearMatch) {
+            return 'Academic Year format is invalid (use YYYY-YYYY)';
+        }
+        const firstYear = Number(yearMatch[1]);
+        const secondYear = Number(yearMatch[2]);
+        if (secondYear !== firstYear + 1) {
+            return 'Academic Year range is invalid';
+        }
+    }
+
+    if (!VALID_SEMESTERS.includes(semester)) {
+        return 'Semester value is invalid';
+    }
+
+    return null;
+};
+
+const normalizeText = (value) => (value || '').trim().toLowerCase();
+
 const Syllabus = () => {
     const { user, ensureToken } = useContext(AuthContext);
     const [syllabi, setSyllabi] = useState([]);
@@ -67,10 +108,27 @@ const Syllabus = () => {
     };
 
     const addSyllabus = async () => {
-        if (!newSyllabus.subjectCode || !newSyllabus.subjectName || !newSyllabus.file) {
+        const fieldError = validateSyllabusForm(newSyllabus);
+        if (fieldError) {
             Swal.fire({
-                title: 'Missing Fields!',
-                text: 'Please fill in all required fields and upload a file',
+                title: 'Validation Error!',
+                text: 'Upload failed',
+                icon: 'warning',
+                confirmButtonColor: '#e74c3c'
+            });
+            return;
+        }
+
+        const duplicateLocalEntry = syllabi.some((item) => {
+            const itemSubjectCode = normalizeText(item.subjectCode);
+
+            return itemSubjectCode === normalizeText(newSyllabus.subjectCode);
+        });
+
+        if (duplicateLocalEntry) {
+            Swal.fire({
+                title: 'Warning!',
+                text: 'Syllabus exists (overwrite existing file)',
                 icon: 'warning',
                 confirmButtonColor: '#e74c3c'
             });
@@ -139,6 +197,20 @@ const Syllabus = () => {
                 Swal.fire({
                     title: 'Connection Error!',
                     text: 'Unable to connect to server. Please make sure the backend is running.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else if (error.message === 'Syllabus exists (overwrite existing file)') {
+                Swal.fire({
+                    title: 'Warning!',
+                    text: 'Syllabus exists (overwrite existing file)',
+                    icon: 'warning',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else if (error.message === 'File corrupted (upload failed)') {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'File corrupted (upload failed)',
                     icon: 'error',
                     confirmButtonColor: '#e74c3c'
                 });
@@ -243,6 +315,7 @@ const Syllabus = () => {
                             value={newSyllabus.semester}
                             onChange={(e) => setNewSyllabus({...newSyllabus, semester: e.target.value})}
                         >
+                            <option value="">Select Semester</option>
                             <option value="First Semester">First Semester</option>
                             <option value="Second Semester">Second Semester</option>
                         </select>
