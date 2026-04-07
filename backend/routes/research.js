@@ -13,6 +13,7 @@ const allowedResearchFileMimeTypes = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 const doiUrlPattern = /^https:\/\/doi\.org\/10\.\d{4,9}\/[\w.()\-;/:]+$/i;
+const doiValuePattern = /^10\.\d{4,9}\/[\w.()\-;/:]+$/i;
 
 const getValidatedUserId = (req) => {
     const userId = req.user?.id || req.user?._id || null;
@@ -102,16 +103,12 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
             }
         }
 
-        if (!normalizedAbstract) {
-            validationErrors.push('Abstract field is required.');
-        }
-
         if (!normalizedJournal) {
             validationErrors.push('Journal/Conference is required.');
         }
 
-        if (normalizedDoi && !doiUrlPattern.test(normalizedDoi)) {
-            validationErrors.push('DOI must be a valid DOI link (e.g., https://doi.org/10.1080/10509585.2015.1092083).');
+        if (normalizedDoi && !doiUrlPattern.test(normalizedDoi) && !doiValuePattern.test(normalizedDoi)) {
+            validationErrors.push('DOI must be a valid DOI value or DOI link (e.g., 10.1080/10509585.2015.1092083 or https://doi.org/10.1080/10509585.2015.1092083).');
         }
 
         let normalizedPublicationDate;
@@ -169,10 +166,6 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
 
         if (!normalizedResearchType) {
             validationErrors.push('Research type is required.');
-        }
-
-        if (['submitted', 'published'].includes(normalizedStatus) && !req.file) {
-            validationErrors.push('A file upload is required when status is Submitted or Published.');
         }
 
         if (validationErrors.length > 0) {
