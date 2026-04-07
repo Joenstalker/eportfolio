@@ -16,8 +16,8 @@ const validateSyllabusForm = (form) => {
         return 'Please fill in all required fields and upload a file';
     }
 
-    if (!/^[A-Za-z0-9-]{2,20}$/.test(subjectCode)) {
-        return 'Subject Code format is invalid (use letters, numbers, and hyphen only)';
+    if (!/^(?=.{2,20}$)(?=.*\d)[A-Za-z][A-Za-z0-9-]*$/.test(subjectCode)) {
+        return 'Subject Code format is invalid (use format like CS01)';
     }
 
     if (!/^[A-Za-z0-9][A-Za-z0-9\s.,&()/-]{2,99}$/.test(subjectName)) {
@@ -48,6 +48,7 @@ const normalizeText = (value) => (value || '').trim().toLowerCase();
 const Syllabus = () => {
     const { user, ensureToken } = useContext(AuthContext);
     const [syllabi, setSyllabi] = useState([]);
+    const [storageStatus, setStorageStatus] = useState({ isFull: null, message: 'Checking storage status...' });
     const [newSyllabus, setNewSyllabus] = useState({
         subjectCode: '',
         subjectName: '',
@@ -58,7 +59,37 @@ const Syllabus = () => {
 
     useEffect(() => {
         loadSyllabi();
+        loadStorageStatus();
     }, []);
+
+    const loadStorageStatus = async () => {
+        try {
+            const token = ensureToken();
+            if (!token) {
+                setStorageStatus({ isFull: null, message: 'Storage status unavailable' });
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/syllabus/storage-status', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            setStorageStatus({
+                isFull: typeof result.isFull === 'boolean' ? result.isFull : null,
+                message: result.message || 'Storage status unavailable'
+            });
+        } catch (error) {
+            console.error('Error fetching storage status:', error);
+            setStorageStatus({ isFull: null, message: 'Storage status unavailable' });
+        }
+    };
 
     const loadSyllabi = async () => {
         try {
@@ -112,7 +143,7 @@ const Syllabus = () => {
         if (fieldError) {
             Swal.fire({
                 title: 'Validation Error!',
-                text: 'Upload failed',
+                text: fieldError,
                 icon: 'warning',
                 confirmButtonColor: '#e74c3c'
             });
@@ -179,6 +210,7 @@ const Syllabus = () => {
             }
 
             setSyllabi([...syllabi, result.syllabus]);
+            await loadStorageStatus();
             setNewSyllabus({
                 subjectCode: '', subjectName: '', academicYear: '', semester: '', file: null
             });
@@ -211,6 +243,13 @@ const Syllabus = () => {
                 Swal.fire({
                     title: 'Error!',
                     text: 'File corrupted (upload failed)',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else if (error.message === 'Storage full (contact admin)') {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Storage full (contact admin)',
                     icon: 'error',
                     confirmButtonColor: '#e74c3c'
                 });
@@ -276,6 +315,19 @@ const Syllabus = () => {
             <div className="section-header">
                 <h2>Course Syllabus</h2>
                 <p>Manage your course syllabi</p>
+                <p style={{ marginTop: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            backgroundColor: storageStatus.isFull === null ? '#64748b' : (storageStatus.isFull ? '#dc2626' : '#16a34a')
+                        }}
+                    />
+                    {storageStatus.isFull === null ? 'Storage: Unknown' : (storageStatus.isFull ? 'Storage: Full' : 'Storage: Available')}
+                </p>
+                <p style={{ marginTop: '0.25rem', color: '#475569' }}>{storageStatus.message}</p>
             </div>
 
             <div className="content-card">

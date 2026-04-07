@@ -9,6 +9,8 @@ const upload = require('../middleware/upload');
 const CORRUPTED_FILE_MESSAGE = 'File corrupted (upload failed)';
 const EXISTING_SYLLABUS_MESSAGE = 'Syllabus exists (overwrite existing file)';
 const VALID_SEMESTERS = ['First Semester', 'Second Semester'];
+const STORAGE_FULL_THRESHOLD_MB = Number(process.env.STORAGE_FULL_THRESHOLD_MB || 50);
+const uploadStoragePath = path.join(__dirname, '../uploads');
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -76,8 +78,9 @@ const validateSyllabusFields = (payload) => {
         return 'Subject Code is required';
     }
 
-    if (!/^[A-Za-z0-9-]{2,20}$/.test(subjectCode)) {
-        return 'Subject Code format is invalid (use letters, numbers, and hyphen only)';
+    // Require subject codes like CS01 (must start with letters and include a number).
+    if (!/^(?=.{2,20}$)(?=.*\d)[A-Za-z][A-Za-z0-9-]*$/.test(subjectCode)) {
+        return 'Subject Code format is invalid (use format like CS01)';
     }
 
     if (!subjectName) {
@@ -112,6 +115,70 @@ const validateSyllabusFields = (payload) => {
     return null;
 };
 
+const shouldSimulateStorageFull = () => process.env.SIMULATE_STORAGE_FULL === 'true';
+
+const getUploadStorageStatus = async () => {
+    if (shouldSimulateStorageFull()) {
+        return {
+            isFull: true,
+            message: 'Storage full (contact admin)',
+            freeBytes: 0,
+            thresholdBytes: STORAGE_FULL_THRESHOLD_MB * 1024 * 1024,
+            simulated: true
+        };
+    }
+
+    const thresholdBytes = STORAGE_FULL_THRESHOLD_MB * 1024 * 1024;
+
+    try {
+        const stats = await fs.statfs(uploadStoragePath);
+        const freeBlocks = Number(stats.bavail ?? stats.bfree ?? 0);
+        const blockSize = Number(stats.bsize ?? 0);
+        const freeBytes = freeBlocks * blockSize;
+        const isFull = freeBytes <= thresholdBytes;
+
+        return {
+            isFull,
+            message: isFull ? 'Storage full (contact admin)' : 'Storage available',
+            freeBytes,
+            thresholdBytes,
+            simulated: false
+        };
+    } catch (error) {
+        console.error('Error checking storage status:', error);
+        return {
+            isFull: false,
+            message: 'Storage status unavailable',
+            freeBytes: null,
+            thresholdBytes,
+            simulated: false
+        };
+    }
+};
+
+const syllabusFileUpload = (req, res, next) => {
+    if (shouldSimulateStorageFull()) {
+        return res.status(507).json({ message: 'Storage full (contact admin)' });
+    }
+
+    upload.single('syllabusFile')(req, res, (error) => {
+        if (error) {
+            if (error.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ message: 'File too large (upload failed)' });
+            }
+
+            const isStorageFullError = error.code === 'ENOSPC' || /no space left on device/i.test(error.message || '');
+            if (isStorageFullError) {
+                return res.status(507).json({ message: 'Storage full (contact admin)' });
+            }
+
+            return next(error);
+        }
+
+        next();
+    });
+};
+
 // Get all syllabi
 router.get('/', auth, async (req, res) => {
     try {
@@ -123,8 +190,18 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+router.get('/storage-status', auth, async (req, res) => {
+    try {
+        const status = await getUploadStorageStatus();
+        res.json(status);
+    } catch (error) {
+        console.error('Error fetching storage status:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Upload syllabus with file
-router.post('/', auth, upload.single('syllabusFile'), async (req, res) => {
+router.post('/', auth, syllabusFileUpload, async (req, res) => {
     try {
         const { subjectCode, subjectName, section, semester, version, academicYear } = req.body;
 
@@ -197,6 +274,11 @@ router.post('/', auth, upload.single('syllabusFile'), async (req, res) => {
         console.error('Error uploading syllabus:', error);
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({ message: 'File too large (upload failed)' });
+        }
+
+        const isStorageFullError = error.code === 'ENOSPC' || /no space left on device/i.test(error.message || '');
+        if (isStorageFullError) {
+            return res.status(507).json({ message: 'Storage full (contact admin)' });
         }
 
         res.status(500).json({ message: 'Server error', error: error.message });
