@@ -25,6 +25,7 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
             <tbody>
               {archivedFaculty.map((faculty) => {
                 const fullName = `${faculty?.firstName || ''} ${faculty?.lastName || ''}`.trim();
+                const isAdmin = (faculty?.role || '').toLowerCase() === 'admin';
                 let archivedDate = 'N/A';
                 try {
                   archivedDate = faculty?.archivedAt ? new Date(faculty.archivedAt).toLocaleDateString() : 'N/A';
@@ -41,6 +42,8 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
                       <div className="action-buttons">
                         <button
                           className="status-btn"
+                          disabled={isAdmin}
+                          title={isAdmin ? 'Admin account status cannot be changed' : 'Unarchive user'}
                           onClick={() => onUnarchiveClick && onUnarchiveClick(faculty)}
                         >
                           Unarchive

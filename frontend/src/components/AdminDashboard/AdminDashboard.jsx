@@ -326,7 +326,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/courses/${course._id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -833,6 +833,11 @@ const AdminDashboard = () => {
   }
 
   async function handleUnarchiveClick(faculty) {
+    if (faculty?.role === 'admin') {
+      showErrorAlert('Admin account status cannot be changed.');
+      return;
+    }
+
     const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
     const result = await Swal.fire({
       title: 'Unarchive Faculty?',

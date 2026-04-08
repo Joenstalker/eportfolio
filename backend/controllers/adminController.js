@@ -218,6 +218,17 @@ exports.updateUser = async (req, res) => {
 
     const { id } = req.params;
     const updates = req.body;
+    const targetUser = await User.findById(id).select('role');
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isUnarchiveRequest = updates.status === 'active' || updates.isActive === true;
+    const isArchiveRequest = updates.status === 'inactive' || updates.isActive === false;
+    if (targetUser.role === 'admin' && (isArchiveRequest || isUnarchiveRequest)) {
+      return res.status(403).json({ message: 'Admin account status cannot be changed.' });
+    }
 
     // Handle status field for compatibility
     if (updates.status) {
@@ -231,9 +242,6 @@ exports.updateUser = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(id, updates, { new: true });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
 
     res.json({ message: 'User updated successfully', user });
   } catch (error) {

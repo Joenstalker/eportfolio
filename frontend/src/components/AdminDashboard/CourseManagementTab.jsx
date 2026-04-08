@@ -3,6 +3,13 @@ import Swal from 'sweetalert2';
 import './CourseManagementTab.css';
 
 const CourseManagementTab = ({ user, facultyData }) => {
+  const COURSE_CODE_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9-]{3,15}$/;
+
+  const isValidCourseCode = (value) => {
+    const normalized = (value || '').trim().toUpperCase();
+    return COURSE_CODE_PATTERN.test(normalized);
+  };
+
   // Generate semester options matching backend enum
   const generateSemesterOptions = () => {
     return [
@@ -37,6 +44,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const [editCourse, setEditCourse] = useState({});
   const [courseAssignments, setCourseAssignments] = useState([]);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [courseSearchTerm, setCourseSearchTerm] = useState('');
   const [assignmentFaculty, setAssignmentFaculty] = useState([]);
   const [newAssignment, setNewAssignment] = useState({
     facultyId: '',
@@ -331,6 +339,11 @@ const CourseManagementTab = ({ user, facultyData }) => {
       showErrorAlert('Please fill in the Course Code');
       return;
     }
+
+    if (!isValidCourseCode(newCourse.courseCode)) {
+      showErrorAlert('Invalid course code format. Use 3-15 characters with at least one letter and one number.');
+      return;
+    }
     
     if (!newCourse.courseName || newCourse.courseName.trim() === '') {
       console.log('Course Name validation failed:', newCourse.courseName);
@@ -427,6 +440,10 @@ const CourseManagementTab = ({ user, facultyData }) => {
     // Validate required fields
     if (!editCourse.courseCode?.trim()) {
       showErrorAlert('Course Code is required');
+      return;
+    }
+    if (!isValidCourseCode(editCourse.courseCode)) {
+      showErrorAlert('Invalid course code format. Use 3-15 characters with at least one letter and one number.');
       return;
     }
     if (!editCourse.courseName?.trim()) {
@@ -687,6 +704,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const isAddCourseFormValid = () => {
     return (
       newCourse.courseCode.trim() !== '' &&
+      isValidCourseCode(newCourse.courseCode) &&
       newCourse.courseName.trim() !== '' &&
       newCourse.department.trim() !== ''
     );
@@ -695,6 +713,7 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const isEditCourseFormValid = () => {
     return (
       editCourse.courseCode?.trim() !== '' &&
+      isValidCourseCode(editCourse.courseCode) &&
       editCourse.courseName?.trim() !== '' &&
       editCourse.department?.trim() !== ''
     );
@@ -731,6 +750,24 @@ const CourseManagementTab = ({ user, facultyData }) => {
     return () => clearInterval(interval);
   }, [courses]);
 
+  const visibleCourses = useMemo(() => {
+    const term = courseSearchTerm.trim().toLowerCase();
+    const activeCourses = courses.filter((course) => course.status !== 'archived');
+
+    if (!term) {
+      return activeCourses;
+    }
+
+    return activeCourses.filter((course) => {
+      const code = (course.courseCode || '').toLowerCase();
+      const name = (course.courseName || '').toLowerCase();
+      const department = (course.department || '').toLowerCase();
+      const semester = (course.semester || '').toLowerCase();
+
+      return code.includes(term) || name.includes(term) || department.includes(term) || semester.includes(term);
+    });
+  }, [courses, courseSearchTerm]);
+
   return (
     <>
       <div className="course-management">
@@ -752,12 +789,22 @@ const CourseManagementTab = ({ user, facultyData }) => {
           </div>
         </div>
 
+        <div className="course-search-row">
+          <input
+            type="text"
+            value={courseSearchTerm}
+            onChange={(e) => setCourseSearchTerm(e.target.value)}
+            placeholder="Search by course code, name, department, or semester"
+            className="course-search-input"
+          />
+        </div>
+
         {courseLoading ? (
           <div className="loading-state">Loading courses...</div>
         ) : (
           <div className="courses-container">
             <div className="courses-grid">
-              {courses.filter(c => c.status !== 'archived').map((course) => {
+              {visibleCourses.map((course) => {
                 const lockInfo = getCourseLockStatus(course._id);
                 const isLocked = lockInfo.isLocked;
                 const isLockedByMe = lockInfo.lockedByMe;
@@ -832,9 +879,9 @@ const CourseManagementTab = ({ user, facultyData }) => {
               })}
             </div>
 
-            {courses.filter(c => c.status !== 'archived').length === 0 && (
+            {visibleCourses.length === 0 && (
               <div className="empty-state">
-                No courses found. Click "Add Course" to create one.
+                {courseSearchTerm.trim() ? 'Course not found for the entered search value.' : 'No courses found. Click "Add Course" to create one.'}
               </div>
             )}
           </div>

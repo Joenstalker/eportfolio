@@ -23,6 +23,27 @@
   gap: 20px; /* Spacing between buttons */
 }
 
+.course-management .course-search-row {
+  margin-bottom: 20px;
+}
+
+.course-management .course-search-input {
+  width: 100%;
+  max-width: 460px;
+  padding: 10px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--admin-text);
+  background: var(--admin-surface);
+}
+
+.course-management .course-search-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
 .admin-dashboard .courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

@@ -15,6 +15,13 @@ const allowedResearchFileMimeTypes = [
 const doiUrlPattern = /^https:\/\/doi\.org\/10\.\d{4,9}\/[\w.()\-;/:]+$/i;
 const doiValuePattern = /^10\.\d{4,9}\/[\w.()\-;/:]+$/i;
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeWhitespace = (value = '') => value.trim().replace(/\s+/g, ' ');
+const normalizeDoiForComparison = (value = '') => {
+    const trimmed = value.trim().toLowerCase();
+    return trimmed.replace(/^https?:\/\/doi\.org\//i, '');
+};
+
 const getValidatedUserId = (req) => {
     const userId = req.user?.id || req.user?._id || null;
 
@@ -69,10 +76,11 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
         const { title, abstract, authors, publicationDate, journal, doi, status, researchType } = req.body;
         const validationErrors = [];
 
-        const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+        const normalizedTitle = typeof title === 'string' ? normalizeWhitespace(title) : '';
         const normalizedAbstract = typeof abstract === 'string' ? abstract.trim() : '';
         const normalizedJournal = typeof journal === 'string' ? journal.trim() : '';
         const normalizedDoi = typeof doi === 'string' ? doi.trim() : '';
+        const normalizedDoiKey = normalizeDoiForComparison(normalizedDoi);
         const normalizedAuthors = Array.isArray(authors)
             ? authors.map(a => String(a || '').trim()).filter(Boolean)
             : (typeof authors === 'string'
@@ -85,12 +93,13 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
             validationErrors.push('Title contains invalid characters.');
         } else {
             // Check for duplicate title for this faculty member
+            const titlePattern = `^${escapeRegex(normalizedTitle).replace(/\s+/g, '\\s+')}$`;
             const duplicateTitle = await Research.findOne({
                 facultyId: userId,
-                title: { $regex: `^${normalizedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+                title: { $regex: titlePattern, $options: 'i' }
             });
             if (duplicateTitle) {
-                validationErrors.push('A research paper with this title already exists.');
+                validationErrors.push('Research already exists (duplicate research entry).');
             }
         }
 
@@ -109,6 +118,23 @@ router.post('/', auth, researchFileUpload, async (req, res) => {
 
         if (normalizedDoi && !doiUrlPattern.test(normalizedDoi) && !doiValuePattern.test(normalizedDoi)) {
             validationErrors.push('DOI must be a valid DOI value or DOI link (e.g., 10.1080/10509585.2015.1092083 or https://doi.org/10.1080/10509585.2015.1092083).');
+        }
+
+        if (normalizedDoiKey) {
+            const normalizedDoiRegex = `^${escapeRegex(normalizedDoiKey)}$`;
+            const normalizedDoiUrlRegex = `^https?:\\/\\/doi\\.org\\/${escapeRegex(normalizedDoiKey)}$`;
+
+            const duplicateDoi = await Research.findOne({
+                facultyId: userId,
+                $or: [
+                    { doi: { $regex: normalizedDoiRegex, $options: 'i' } },
+                    { doi: { $regex: normalizedDoiUrlRegex, $options: 'i' } }
+                ]
+            });
+
+            if (duplicateDoi) {
+                validationErrors.push('Research already exists (duplicate research entry).');
+            }
         }
 
         let normalizedPublicationDate;
