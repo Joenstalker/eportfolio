@@ -735,12 +735,27 @@ const AdminDashboard = () => {
   }
 
   function handleEditClick(faculty) {
+    // Check if profile is locked or inactive
+    if (faculty.isLocked === true || faculty.isActive === false) {
+      showErrorAlert('This profile is locked and cannot be edited. Please contact the system administrator for assistance.');
+      return;
+    }
+    
     setSelectedFaculty(faculty);
     setEditFaculty({ ...faculty });
     setShowEditModal(true);
   }
 
   const handleEditSave = async () => {
+    // Additional check for locked profile during save
+    if (selectedFaculty && (selectedFaculty.isLocked === true || selectedFaculty.isActive === false)) {
+      showErrorAlert('This profile is locked and cannot be updated. Please contact the system administrator for assistance.');
+      setShowEditModal(false);
+      setSelectedFaculty(null);
+      setEditFaculty({});
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const [fn, ...lnParts] = (editFaculty.name || '').trim().split(' ');
@@ -780,6 +795,12 @@ const AdminDashboard = () => {
   }
 
   const handleStatusClick = (faculty) => {
+    // Check if profile is locked or inactive
+    if (faculty.isLocked === true || faculty.isActive === false) {
+      showErrorAlert('This profile is locked and its status cannot be changed. Please contact the system administrator for assistance.');
+      return;
+    }
+    
     setSelectedFaculty(faculty)
     setStatusFaculty({ ...faculty })
     setShowStatusModal(true)
@@ -789,6 +810,12 @@ const AdminDashboard = () => {
     // Check if user is admin - prevent archiving admin accounts
     if (faculty.role === 'admin') {
       showErrorAlert('Cannot archive admin accounts for security reasons');
+      return;
+    }
+
+    // Check if profile is already locked or inactive
+    if (faculty.isLocked === true || faculty.isActive === false) {
+      showErrorAlert('This profile is already locked or inactive and cannot be archived again.');
       return;
     }
 
