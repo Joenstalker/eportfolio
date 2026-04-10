@@ -3,6 +3,8 @@ const User = require('../models/User');
 const Course = require('../models/Course');
 const path = require('path');
 
+const isTextOnly = (value) => /^[A-Za-z\s]+$/.test(String(value || '').trim());
+
 // Helper to ensure the requester is an admin
 const requireAdmin = (req, res) => {
   if (!req.user || req.user.role !== 'admin') {
@@ -183,6 +185,14 @@ exports.createUser = async (req, res) => {
     if (!requireAdmin(req, res)) return;
 
     const { firstName, lastName, email, password, role, department } = req.body;
+
+    if (!firstName || !email || !password || !department) {
+      return res.status(400).json({ message: 'Missing required fields (firstName, email, password, department)' });
+    }
+
+    if (!isTextOnly(firstName) || !isTextOnly(department) || (String(lastName || '').trim() && !isTextOnly(lastName))) {
+      return res.status(400).json({ message: 'First name, last name, and department must contain letters and spaces only' });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });

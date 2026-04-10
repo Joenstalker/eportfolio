@@ -24,8 +24,22 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
             </thead>
             <tbody>
               {archivedFaculty.map((faculty) => {
-                const fullName = `${faculty?.firstName || ''} ${faculty?.lastName || ''}`.trim();
-                const isAdmin = (faculty?.role || '').toLowerCase() === 'admin';
+                const getFacultyFullName = (faculty) => {
+                  if (!faculty) return '';
+                  const rawName = faculty.name && String(faculty.name).trim()
+                    ? String(faculty.name).trim()
+                    : `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+                  const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+                  if (!normalizedName) return '';
+                  const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+                  const nameParts = normalizedName.split(' ');
+                  const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+                  if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+                    return nameParts.slice(0, -1).join(' ');
+                  }
+                  return normalizedName;
+                };
+                const fullName = getFacultyFullName(faculty);
                 let archivedDate = 'N/A';
                 try {
                   archivedDate = faculty?.archivedAt ? new Date(faculty.archivedAt).toLocaleDateString() : 'N/A';

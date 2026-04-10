@@ -225,16 +225,43 @@ const AdminDashboard = () => {
     return trimmedEmail.endsWith('@gmail.com') || trimmedEmail.endsWith('@student.buksu.edu.ph');
   };
 
+  const isTextOnly = (value) => /^[A-Za-z\s]+$/.test((value || '').trim());
+
+  const sanitizeTextOnlyInput = (value) => value.replace(/[^A-Za-z\s]/g, '');
+
+  const getFacultyFullName = (faculty) => {
+    if (!faculty) return '';
+    const rawName = faculty.name && String(faculty.name).trim()
+      ? String(faculty.name).trim()
+      : `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+
+    const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+    if (!normalizedName) return '';
+
+    const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+    const nameParts = normalizedName.split(' ');
+    const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+
+    if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+      return nameParts.slice(0, -1).join(' ');
+    }
+
+    return normalizedName;
+  };
+
   // ==================== BACKEND API FUNCTIONS ====================
 
   // Check if Add Faculty form has all required fields
   const isAddFacultyFormValid = () => {
     return !showAddModal || (
       newFaculty.firstName.trim() !== '' &&
+      isTextOnly(newFaculty.firstName) &&
       newFaculty.email.trim() !== '' &&
       isValidEmailDomain(newFaculty.email) &&
       newFaculty.password.trim() !== '' &&
-      newFaculty.department.trim() !== ''
+      newFaculty.department.trim() !== '' &&
+      isTextOnly(newFaculty.department) &&
+      (!newFaculty.lastName.trim() || isTextOnly(newFaculty.lastName))
     );
   };
 
@@ -405,7 +432,7 @@ const AdminDashboard = () => {
             <div className="banner-content">
               <h2>System Administration Panel</h2>
               <p>
-                Welcome back, {user?.name || user?.firstName || 'Admin'}. Manage the entire
+                Welcome back, {getFacultyFullName(user) || 'Admin'}. Manage the entire
                 e-portfolio system.
               </p>
             </div>
@@ -416,7 +443,7 @@ const AdminDashboard = () => {
               </div>
               <div className="mini-stat">
                 <span className="mini-label">Current Admin</span>
-                <span className="mini-value">{user?.email || user?.name || 'Admin'}</span>
+                <span className="mini-value">{user?.email || getFacultyFullName(user) || 'Admin'}</span>
               </div>
             </div>
           </div>
@@ -697,6 +724,11 @@ const AdminDashboard = () => {
       return;
     }
 
+    if (!isTextOnly(newFaculty.firstName) || !isTextOnly(newFaculty.department) || (newFaculty.lastName?.trim() && !isTextOnly(newFaculty.lastName))) {
+      showErrorAlert('First name, last name, and department must contain letters and spaces only');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const payload = {
@@ -736,7 +768,10 @@ const AdminDashboard = () => {
 
   function handleEditClick(faculty) {
     setSelectedFaculty(faculty);
-    setEditFaculty({ ...faculty });
+    setEditFaculty({
+      ...faculty,
+      name: getFacultyFullName(faculty)
+    });
     setShowEditModal(true);
   }
 
@@ -1098,7 +1133,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={newFaculty.firstName}
-                  onChange={(e) => setNewFaculty({...newFaculty, firstName: e.target.value})}
+                  onChange={(e) => setNewFaculty({...newFaculty, firstName: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter first name"
                   style={{
                     width: '100%',
@@ -1136,7 +1171,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={newFaculty.lastName}
-                  onChange={(e) => setNewFaculty({...newFaculty, lastName: e.target.value})}
+                  onChange={(e) => setNewFaculty({...newFaculty, lastName: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter last name"
                   style={{
                     width: '100%',
@@ -1266,7 +1301,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={newFaculty.department}
-                  onChange={(e) => setNewFaculty({...newFaculty, department: e.target.value})}
+                  onChange={(e) => setNewFaculty({...newFaculty, department: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter department"
                   style={{
                     width: '100%',
@@ -1536,7 +1571,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={editFaculty.name || ''}
-                  onChange={(e) => setEditFaculty({...editFaculty, name: e.target.value})}
+                  onChange={(e) => setEditFaculty({...editFaculty, name: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter full name"
                   style={{
                     width: '100%',
@@ -1628,7 +1663,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={editFaculty.department || ''}
-                  onChange={(e) => setEditFaculty({...editFaculty, department: e.target.value})}
+                  onChange={(e) => setEditFaculty({...editFaculty, department: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter department"
                   style={{
                     width: '100%',

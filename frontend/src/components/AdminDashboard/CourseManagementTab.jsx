@@ -57,8 +57,22 @@ const CourseManagementTab = ({ user, facultyData }) => {
   const isFacultyArchived = (faculty) => faculty?.isArchived === true || faculty?.isActive === false;
 
   const getFacultyDisplayName = (faculty) => {
-    const fullName = `${faculty?.firstName || ''} ${faculty?.lastName || ''}`.trim();
-    return faculty?.name || fullName || faculty?.email || 'Unknown Faculty';
+    const getFacultyFullName = (faculty) => {
+      if (!faculty) return '';
+      const rawName = faculty.name && String(faculty.name).trim()
+        ? String(faculty.name).trim()
+        : `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+      const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+      if (!normalizedName) return '';
+      const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+      const nameParts = normalizedName.split(' ');
+      const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+      if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+        return nameParts.slice(0, -1).join(' ');
+      }
+      return normalizedName;
+    };
+    return getFacultyFullName(faculty) || faculty?.email || 'Unknown Faculty';
   };
 
   const facultyOptions = useMemo(() => {
