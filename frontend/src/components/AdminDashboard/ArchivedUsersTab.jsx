@@ -1,7 +1,10 @@
 import React from 'react';
 import './ArchivedUsersTab.css';
 
-const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClick }) => {
+const ArchivedUsersTab = ({ archivedFaculty, onUnarchiveClick, onDeleteClick }) => {
+  // Defensive: always treat as array
+  const users = Array.isArray(archivedFaculty) ? archivedFaculty : [];
+
   return (
     <div className="faculty-management">
       <div className="section-header">
@@ -9,8 +12,8 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
       </div>
 
       <div className="faculty-table-container">
-        {archivedFaculty.length === 0 ? (
-          <div className="empty-state">No archived users.</div>
+        {users.length === 0 ? (
+          <div className="empty-state">No archived users found.</div>
         ) : (
           <table className="faculty-table">
             <thead>
@@ -23,7 +26,7 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
               </tr>
             </thead>
             <tbody>
-              {archivedFaculty.map((faculty) => {
+              {users.map((faculty) => {
                 const getFacultyFullName = (faculty) => {
                   if (!faculty) return '';
                   const rawName = faculty.name && String(faculty.name).trim()
@@ -46,6 +49,7 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
                 } catch (error) {
                   console.error('Error formatting date:', error);
                 }
+                const isAdmin = faculty?.role === 'admin';
                 return (
                   <tr key={faculty?._id || Math.random()} className="inactive">
                     <td>{fullName}</td>
@@ -58,11 +62,11 @@ const ArchivedUsersTab = ({ archivedFaculty = [], onUnarchiveClick, onDeleteClic
                           className="status-btn"
                           disabled={isAdmin}
                           title={isAdmin ? 'Admin account status cannot be changed' : 'Unarchive user'}
-                          onClick={() => onUnarchiveClick && onUnarchiveClick(faculty)}
+                          onClick={() => !isAdmin && onUnarchiveClick && onUnarchiveClick(faculty)}
                         >
                           Unarchive
                         </button>
-                        {faculty?.role !== 'admin' && onDeleteClick && (
+                        {!isAdmin && onDeleteClick && (
                           <button
                             className="delete-btn"
                             onClick={() => onDeleteClick(faculty)}

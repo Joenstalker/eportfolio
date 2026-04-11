@@ -27,6 +27,7 @@ function App() {
     '/admin-class-assignments',
     '/admin-reports',
     '/admin-system-analytics',
+    '/admin-evidence-review',
     '/admin-user-logs',
     '/admin-system-settings'
   ];

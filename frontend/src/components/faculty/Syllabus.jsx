@@ -3,6 +3,7 @@ import  AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
 import { FaTrash, FaDownload } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import SyllabusSections from './SyllabusSections';
 
 const VALID_SEMESTERS = ['First Semester', 'Second Semester'];
 
@@ -48,6 +49,7 @@ const normalizeText = (value) => (value || '').trim().toLowerCase();
 const Syllabus = () => {
     const { user, ensureToken } = useContext(AuthContext);
     const [syllabi, setSyllabi] = useState([]);
+    const [assignedCourses, setAssignedCourses] = useState([]);
     const [storageStatus, setStorageStatus] = useState({ isFull: null, message: 'Checking storage status...' });
     const [newSyllabus, setNewSyllabus] = useState({
         subjectCode: '',
@@ -60,6 +62,7 @@ const Syllabus = () => {
     useEffect(() => {
         loadSyllabi();
         loadStorageStatus();
+        loadAssignedCourses();
     }, []);
 
     const loadStorageStatus = async () => {
@@ -88,6 +91,44 @@ const Syllabus = () => {
         } catch (error) {
             console.error('Error fetching storage status:', error);
             setStorageStatus({ isFull: null, message: 'Storage status unavailable' });
+        }
+    };
+
+    const loadAssignedCourses = async () => {
+        try {
+            const token = ensureToken();
+            if (!token) {
+                return;
+            }
+
+            const response = await fetch('/api/teaching/courses', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const courseList = Array.isArray(data?.courses) ? data.courses : [];
+            const uniqueCourses = [];
+            const seen = new Set();
+
+            courseList.forEach((course) => {
+                const key = String(course?._id || '');
+                if (!key || seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                uniqueCourses.push(course);
+            });
+
+            setAssignedCourses(uniqueCourses);
+        } catch (error) {
+            console.error('Error loading assigned courses for syllabus view:', error);
+            setAssignedCourses([]);
         }
     };
 
@@ -313,21 +354,10 @@ const Syllabus = () => {
     return (
         <div className="faculty-section">
             <div className="section-header">
-                <h2>Course Syllabus</h2>
-                <p>Manage your course syllabi</p>
-                <p style={{ marginTop: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span
-                        style={{
-                            display: 'inline-block',
-                            width: '10px',
-                            height: '10px',
-                            borderRadius: '50%',
-                            backgroundColor: storageStatus.isFull === null ? '#64748b' : (storageStatus.isFull ? '#dc2626' : '#16a34a')
-                        }}
-                    />
-                    {storageStatus.isFull === null ? 'Storage: Unknown' : (storageStatus.isFull ? 'Storage: Full' : 'Storage: Available')}
-                </p>
-                <p style={{ marginTop: '0.25rem', color: '#475569' }}>{storageStatus.message}</p>
+                <div>
+                    <h2>Syllabus</h2>
+                    <p>Manage your syllabus, sections, and activities</p>
+                </div>
             </div>
 
             <div className="content-card">
@@ -422,6 +452,11 @@ const Syllabus = () => {
                     ))}
                 </div>
             </div>
+            <SyllabusSections
+                courses={assignedCourses}
+                facultyId={user?._id || user?.id}
+                ensureToken={ensureToken}
+            />
         </div>
     );
 };

@@ -47,6 +47,9 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/activities', require('./routes/activities'));
 app.use('/api/admin/rbac', require('./routes/rbac'));
 app.use('/api/teaching/class-list', require('./routes/classManagement'));
+app.use('/api/sections', require('./routes/sections'));
+app.use('/api/section-activities', require('./routes/sectionActivities'));
+app.use('/api/section-portfolios', require('./routes/sectionPortfolios'));
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ 

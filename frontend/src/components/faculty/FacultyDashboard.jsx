@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdvancedClassManagement from './AdvancedClassManagement';
 import './FacultyDashboard.css';
+import TeachingActivities from './TeachingActivities';
 
 const FacultyDashboard = ({ user, courses }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -297,6 +298,12 @@ const FacultyDashboard = ({ user, courses }) => {
     </div>
   );
 
+  const renderTeachingActivities = () => (
+    <div className="faculty-teaching-activities">
+      <TeachingActivities facultyId={user?._id} />
+    </div>
+  );
+
   return (
     <div className="faculty-dashboard">
       <div className="dashboard-header">
@@ -318,33 +325,17 @@ const FacultyDashboard = ({ user, courses }) => {
           📚 My Courses
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'class-management' ? 'active' : ''}`}
-          onClick={() => setActiveTab('class-management')}
+          className={`tab-btn ${activeTab === 'teaching' ? 'active' : ''}`}
+          onClick={() => setActiveTab('teaching')}
         >
-          👥 Class Management
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-          onClick={() => setActiveTab('analytics')}
-        >
-          📈 Analytics
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('reports')}
-        >
-          📄 Reports
+          👥 Teaching Activities
         </button>
       </div>
 
       <div className="tab-content">
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'courses' && renderCourses()}
-        {activeTab === 'class-management' && (
-          <AdvancedClassManagement user={user} courses={courses} />
-        )}
-        {activeTab === 'analytics' && renderAnalytics()}
-        {activeTab === 'reports' && renderReports()}
+        {activeTab === 'teaching' && renderTeachingActivities()}
       </div>
     </div>
   );

@@ -3,8 +3,29 @@ const router = express.Router();
 const ActivityLogger = require('../services/activityLogger');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/role');
+const upload = require('../middleware/upload');
+const activityController = require('../controllers/activityController');
+const sectionActivityController = require('../controllers/sectionActivityController');
 
-// All routes require authentication and admin role
+// ==================== SECTION ACTIVITIES (FACULTY/ADMIN) ====================
+// POST /api/activities
+router.post(
+  '/',
+  auth,
+  requireRole('faculty', 'admin'),
+  upload.single('instructionsFile'),
+  sectionActivityController.createActivity
+);
+
+// GET /api/activities/:sectionId
+router.get(
+  '/:sectionId([0-9a-fA-F]{24})',
+  auth,
+  requireRole('faculty', 'admin'),
+  sectionActivityController.getActivitiesBySection
+);
+
+// ==================== ADMIN USER ACTIVITY LOGS ====================
 router.use(auth, requireRole('admin'));
 
 // Get user activities with filtering and pagination
@@ -227,6 +248,18 @@ router.get('/user/:userId', async (req, res) => {
     });
   }
 });
+
+// --- TEACHING ACTIVITIES FEATURE ---
+
+// Create activity (with file uploads)
+router.post(
+  '/teaching',
+  upload.fields([{ name: 'instructionsFile' }, { name: 'rubricFile' }]),
+  activityController.createActivity
+);
+
+// Get activities per course & section
+router.get('/teaching/:courseId/:section', activityController.getActivitiesBySection);
 
 // ==================== HELPER FUNCTIONS ====================
 
