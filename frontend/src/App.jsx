@@ -13,7 +13,8 @@ import FacultyClassLists from './components/faculty/FacultyClassLists';
 import ClassPortfolio from './components/faculty/ClassPortfolio';
 import SeminarsCertificates from './components/faculty/SeminarsCertificates';
 import Research from './components/faculty/Research';
-import Syllabus from './components/faculty/Syllabus';
+// Use the new modern syllabus dashboard
+import Syllabus from './components/faculty/SyllabusDashboard';
 import InstructionalMaterials from './components/faculty/InstructionalMaterials';
 import './App.css';
 

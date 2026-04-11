@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
 const Syllabus = require('../models/Syllabus');
+const Course = require('../models/Course');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
@@ -264,6 +265,31 @@ router.post('/', auth, syllabusFileUpload, async (req, res) => {
         });
 
         await syllabus.save();
+
+        // Ensure a Course record exists for this subject code so the frontend
+        // can show the course in Assigned Courses and allow creating sections.
+        try {
+            const normalizedCourseCode = String(normalizedSubjectCode || '').toUpperCase().trim();
+            const existingCourse = await Course.findOne({ courseCode: normalizedCourseCode });
+            if (!existingCourse) {
+                const courseDoc = new Course({
+                    courseCode: normalizedCourseCode,
+                    courseName: normalizedSubjectName || normalizedCourseCode,
+                    department: 'Unassigned',
+                    semester: normalizedSemester || 'TBD'
+                });
+
+                // Ignore any errors creating the course (e.g., race conditions)
+                try {
+                    await courseDoc.save();
+                    console.log('Created course for syllabus:', courseDoc.courseCode);
+                } catch (createErr) {
+                    console.error('Failed to create course for syllabus:', createErr?.message || createErr);
+                }
+            }
+        } catch (e) {
+            console.error('Error ensuring course exists for syllabus:', e?.message || e);
+        }
 
         console.log('Syllabus uploaded successfully:', syllabus);
         res.json({

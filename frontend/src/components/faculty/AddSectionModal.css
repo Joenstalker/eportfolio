@@ -1,0 +1,120 @@
+/* Compact, modern modal for Add Section */
+.asm-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1200;
+  padding: 20px;
+}
+
+.asm-content {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.15);
+  padding: 20px 20px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.asm-header {
+  margin-bottom: 4px;
+}
+
+.asm-title {
+  margin: 0;
+  font-size: 18px;
+  color: #072146;
+  font-weight: 600;
+}
+
+.asm-subtitle {
+  margin: 4px 0 0 0;
+  color: #556677;
+  font-size: 13px;
+}
+
+.asm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.asm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.asm-label {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.asm-input,
+.asm-select {
+  height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #e6edf3;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.asm-input:focus,
+.asm-select:focus {
+  border-color: #2b6cb0;
+  box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.08);
+}
+
+.asm-help {
+  font-size: 12px;
+  color: #6b7a8a;
+}
+
+.asm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.btn {
+  min-width: 100px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  padding: 0 14px;
+}
+
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #2b6cb0 0%, #1e4f86 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(43,108,176,0.18);
+}
+
+/* Responsive: ensure modal looks good on small screens */
+@media (max-width: 480px) {
+  .asm-content { max-width: 96%; padding: 16px; }
+  .btn { min-width: 88px; height: 38px; }
+}

@@ -2,6 +2,8 @@ const Section = require('../models/Section');
 const Course = require('../models/Course');
 const CourseAssignment = require('../models/CourseAssignment');
 const ClassPortfolio = require('../models/ClassPortfolio');
+const Syllabus = require('../models/Syllabus');
+const SectionPortfolio = require('../models/SectionPortfolio');
 const mongoose = require('mongoose');
 
 const VALID_SEMESTERS = ['First Semester', 'Second Semester'];
@@ -38,34 +40,62 @@ exports.createSection = async (req, res) => {
     }
 
     if (req.user?.role !== 'admin') {
-      const assignment = await CourseAssignment.findOne({
-        facultyId,
-        courseId,
-        semester,
-        status: 'active'
-      }).select('_id');
+      // Development override: allow faculty to create sections without assignment
+      // when the env var ALLOW_FACULTY_CREATE_SECTION_WITHOUT_ASSIGNMENT is set to 'true'.
+      const allowUnassigned = String(process.env.ALLOW_FACULTY_CREATE_SECTION_WITHOUT_ASSIGNMENT || '').toLowerCase() === 'true';
+      if (!allowUnassigned) {
+        const assignment = await CourseAssignment.findOne({
+          facultyId,
+          courseId,
+          semester,
+          status: 'active'
+        }).select('_id');
 
-      let hasClassPortfolioForCourse = false;
-      if (!assignment) {
-        const courseRef = await Course.findById(courseId).select('courseCode courseName');
-        if (courseRef) {
-          const normalizedCode = String(courseRef.courseCode || '').trim();
-          const normalizedName = String(courseRef.courseName || '').trim();
+        let hasClassPortfolioForCourse = false;
+        if (!assignment) {
+          const courseRef = await Course.findById(courseId).select('courseCode courseName');
+          if (courseRef) {
+            const normalizedCode = String(courseRef.courseCode || '').trim();
+            const normalizedName = String(courseRef.courseName || '').trim();
 
-          const classPortfolio = await ClassPortfolio.findOne({
-            facultyId,
-            $or: [
-              { subjectCode: { $regex: new RegExp(`^${normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
-              { subjectName: { $regex: new RegExp(`^${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
-            ]
-          }).select('_id');
+            const classPortfolio = await ClassPortfolio.findOne({
+              facultyId,
+              $or: [
+                { subjectCode: { $regex: new RegExp(`^${normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                { subjectName: { $regex: new RegExp(`^${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+              ]
+            }).select('_id');
 
-          hasClassPortfolioForCourse = Boolean(classPortfolio);
+            hasClassPortfolioForCourse = Boolean(classPortfolio);
+
+            // Fallback: if no ClassPortfolio exists, allow creating sections when
+            // the faculty has previously uploaded a matching syllabus. This helps
+            // workflows where a syllabus was uploaded (which may have created a
+            // Course record) but no class portfolio was created yet.
+            if (!hasClassPortfolioForCourse) {
+              try {
+                const syllabusMatch = await Syllabus.findOne({
+                  facultyId,
+                  $or: [
+                    { subjectCode: { $regex: new RegExp(`^${normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                    { subjectName: { $regex: new RegExp(`^${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+                  ]
+                }).select('_id');
+
+                if (syllabusMatch) {
+                  hasClassPortfolioForCourse = true;
+                }
+              } catch (e) {
+                // Non-fatal: log and continue (fallback only helps permissiveness)
+                console.error('Error checking syllabus fallback for section creation:', e?.message || e);
+              }
+            }
+          }
         }
-      }
 
-      if (!assignment && !hasClassPortfolioForCourse) {
-        return res.status(403).json({ message: 'Not assigned to this course/semester and no matching class portfolio subject found' });
+        if (!assignment && !hasClassPortfolioForCourse) {
+          return res.status(403).json({ message: 'Not assigned to this course/semester and no matching class portfolio subject found' });
+        }
       }
     }
 
@@ -77,6 +107,36 @@ exports.createSection = async (req, res) => {
     });
 
     await section.save();
+    // Ensure a SectionPortfolio with 4 standard slots exists for this section
+    try {
+      const defaultSlots = [1, 2, 3, 4].map((n) => ({
+        slotNumber: n,
+        courseOutcomeNumber: n,
+        activityNumber: n,
+        title: `Course Outcome ${n} / Activity ${n}`,
+        notes: '',
+        instructions: null,
+        studentOutputs: [],
+        ratedRubrics: [],
+        status: 'not_started',
+        updatedAt: new Date()
+      }));
+
+      const existingPortfolio = await SectionPortfolio.findOne({ sectionId: section._id });
+      if (!existingPortfolio) {
+        const portfolio = new SectionPortfolio({
+          facultyId,
+          courseId,
+          sectionId: section._id,
+          semester,
+          slots: defaultSlots
+        });
+        await portfolio.save();
+      }
+    } catch (e) {
+      // Non-fatal: portfolio creation failure should not block section creation
+      console.error('Error ensuring SectionPortfolio for new section:', e?.message || e);
+    }
     res.status(201).json(section);
   } catch (err) {
     if (err?.code === 11000) {

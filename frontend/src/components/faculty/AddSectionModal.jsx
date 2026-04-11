@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
+import './AddSectionModal.css';
 
 const VALID_SEMESTERS = ['First Semester', 'Second Semester'];
 
@@ -76,23 +77,62 @@ export default function AddSectionModal({ courseId, facultyId, defaultSemester =
   };
 
   return (
-    <div className="modal">
-      <form className="modal-content" onSubmit={handleSubmit}>
-        <h4>Add Section</h4>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Section Name (e.g., BSIT 2A)"
-          required
-        />
-        <select value={semester} onChange={(e) => setSemester(e.target.value)} required>
-          <option value="">Select Semester</option>
-          <option value="First Semester">First Semester</option>
-          <option value="Second Semester">Second Semester</option>
-        </select>
-        <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-          <button type="button" onClick={onClose} disabled={loading}>Cancel</button>
+    <div className="asm-modal" role="dialog" aria-modal="true" aria-labelledby="asm-title">
+      <form className="asm-content" onSubmit={handleSubmit}>
+        <div className="asm-header">
+          <h3 id="asm-title" className="asm-title">Add Section</h3>
+          <p className="asm-subtitle">Create a section for this course</p>
+        </div>
+
+        <div className="asm-body">
+          <div className="asm-field">
+            <label className="asm-label" htmlFor="section-name">Section Name</label>
+            <input
+              id="section-name"
+              className="asm-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., BSIT 2A or BSCS 1B"
+              required
+              aria-required="true"
+            />
+            <div className="asm-help">Example: BSIT 2A, BSCS 1B</div>
+          </div>
+
+          <div className="asm-field">
+            <label className="asm-label" htmlFor="section-semester">Semester</label>
+            <select
+              id="section-semester"
+              className="asm-select"
+              value={semester}
+              onChange={(e) => setSemester(e.target.value)}
+              required
+              aria-required="true"
+            >
+              <option value="">Select Semester</option>
+              <option value="First Semester">First Semester</option>
+              <option value="Second Semester">Second Semester</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="asm-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save Section'}
+          </button>
         </div>
       </form>
     </div>

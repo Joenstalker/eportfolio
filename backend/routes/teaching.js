@@ -8,6 +8,7 @@ const Syllabus = require('../models/Syllabus');
 const UserActivity = require('../models/UserActivity');
 const auth = require('../middleware/auth');
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeCode = (value = '') => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 // Get faculty dashboard stats
 router.get('/dashboard-stats', auth, async (req, res) => {
@@ -176,19 +177,33 @@ router.get('/courses', auth, async (req, res) => {
 
         let inferredCourses = [];
         if (courseCodeCandidates.size > 0 || courseNameCandidates.size > 0) {
-            const courseCodeRegex = Array.from(courseCodeCandidates)
-                .filter(Boolean)
-                .map((code) => new RegExp(`^${escapeRegex(code)}$`, 'i'));
+            // Normalize candidate codes (strip non-alphanumerics and uppercase)
+            const normalizedCandidates = new Set(
+                Array.from(courseCodeCandidates)
+                    .map((c) => normalizeCode(c))
+                    .filter(Boolean)
+            );
+
             const courseNameRegex = Array.from(courseNameCandidates)
                 .filter(Boolean)
                 .map((name) => new RegExp(`^${escapeRegex(name)}$`, 'i'));
 
-            inferredCourses = await Course.find({
-                $or: [
-                    { courseCode: { $in: courseCodeRegex } },
-                    { courseName: { $in: courseNameRegex } }
-                ]
-            }).select('_id courseCode courseName description credits department semester maxStudents isActive');
+            // Fetch potential courses and perform normalized matching in JS to handle
+            // minor formatting differences (spaces, dashes, leading zeros, case).
+            const potentialCourses = await Course.find({}).select('_id courseCode courseName description credits department semester maxStudents isActive');
+
+            inferredCourses = potentialCourses.filter((course) => {
+                const normalizedCourseCode = normalizeCode(course.courseCode || '');
+                if (normalizedCourseCode && normalizedCandidates.has(normalizedCourseCode)) {
+                    return true;
+                }
+
+                if (courseNameRegex.length > 0 && course.courseName) {
+                    return courseNameRegex.some((rx) => rx.test(course.courseName));
+                }
+
+                return false;
+            });
         }
 
         const inferredMapped = inferredCourses

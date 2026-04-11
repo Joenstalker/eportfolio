@@ -194,6 +194,85 @@ router.patch('/section/:sectionId/slot/:slotNumber', requireRole('faculty', 'adm
 });
 
 router.post(
+  '/section/:sectionId/bulk-upload',
+  requireRole('faculty', 'admin'),
+  upload.any(),
+  async (req, res) => {
+    try {
+      const { sectionId } = req.params;
+      const { section, error } = await getSectionAndAuthorize(sectionId, req);
+      if (error) return res.status(error.status).json({ message: error.message });
+
+      // Expect files to be sent with fieldnames like 'slot-1-instructions', 'slot-2-studentOutputs', etc.
+      const files = Array.isArray(req.files) ? req.files : [];
+      const portfolio = await ensurePortfolio(section);
+
+      const filesBySlotAndType = {};
+      for (const file of files) {
+        const parts = String(file.fieldname || '').split('-');
+        // expected: ['slot', '1', 'instructions'] or ['slot', '2', 'studentOutputs']
+        if (parts.length >= 3 && parts[0] === 'slot') {
+          const slotNumber = Number(parts[1]) || 0;
+          const evidenceType = parts.slice(2).join('-');
+          if (!filesBySlotAndType[slotNumber]) filesBySlotAndType[slotNumber] = {};
+          if (!filesBySlotAndType[slotNumber][evidenceType]) filesBySlotAndType[slotNumber][evidenceType] = [];
+          filesBySlotAndType[slotNumber][evidenceType].push(file);
+        }
+      }
+
+      const facultyName = `${section.facultyId?.firstName || ''} ${section.facultyId?.lastName || ''}`.trim();
+      const subjectCode = section.courseId?.courseCode || section.courseId?.courseName || 'subject';
+      const sectionName = section.name || 'section';
+
+      const storedMap = {};
+      for (const [slotNumStr, types] of Object.entries(filesBySlotAndType)) {
+        const slotNumber = Number(slotNumStr);
+        storedMap[slotNumber] = storedMap[slotNumber] || {};
+        for (const [evidenceType, fileArray] of Object.entries(types)) {
+          const storedFiles = [];
+          for (const file of fileArray) {
+            const stored = await storeEvidenceFile({
+              file,
+              facultyName,
+              subjectCode,
+              sectionName,
+              slotNumber,
+              evidenceType
+            });
+            storedFiles.push(stored);
+          }
+          storedMap[slotNumber][evidenceType] = storedFiles;
+        }
+      }
+
+      // Apply stored files to portfolio slots
+      for (const slot of portfolio.slots) {
+        const slotNumber = slot.slotNumber;
+        const changes = storedMap[slotNumber] || {};
+        if (changes.instructions && changes.instructions.length) {
+          slot.instructions = changes.instructions[0];
+        }
+        if (changes.studentOutputs && changes.studentOutputs.length) {
+          slot.studentOutputs = [...(slot.studentOutputs || []), ...changes.studentOutputs];
+        }
+        if (changes.ratedRubrics && changes.ratedRubrics.length) {
+          slot.ratedRubrics = [...(slot.ratedRubrics || []), ...changes.ratedRubrics];
+        }
+        slot.updatedAt = new Date();
+        slot.status = computeSlotStatus(slot);
+      }
+
+      refreshCompletionSummary(portfolio);
+      await portfolio.save();
+
+      res.status(201).json({ message: 'Bulk upload successful', portfolio });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
   '/section/:sectionId/slot/:slotNumber/upload',
   requireRole('faculty', 'admin'),
   upload.array('files', 20),

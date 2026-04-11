@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import AddSectionModal from './AddSectionModal';
 
@@ -25,7 +25,36 @@ const fileLooksLikePreviewable = (file) => {
 
 const blankDraft = () => ({ title: '', notes: '' });
 
-function SyllabusSections({ courses = [], facultyId, ensureToken }) {
+const toStatusLabel = (status) =>
+  String(status || 'not_started')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const getDefaultSlotTitle = (slotNumber) => `Course Outcome ${slotNumber} / Activity ${slotNumber}`;
+
+const hasCustomTitle = (slot) => {
+  const title = String(slot?.title || '').trim();
+  if (!title) return false;
+  return title.toLowerCase() !== getDefaultSlotTitle(slot?.slotNumber).toLowerCase();
+};
+
+const slotHasActivity = (slot) => {
+  const hasNotes = Boolean(String(slot?.notes || '').trim());
+  const hasInstructions = Boolean(slot?.instructions);
+  const hasOutputs = Array.isArray(slot?.studentOutputs) && slot.studentOutputs.length > 0;
+  const hasRubrics = Array.isArray(slot?.ratedRubrics) && slot.ratedRubrics.length > 0;
+  return hasCustomTitle(slot) || hasNotes || hasInstructions || hasOutputs || hasRubrics;
+};
+
+function SyllabusSections({
+  courses = [],
+  facultyId,
+  ensureToken,
+  selectedCourseId: externalSelectedCourseId,
+  selectedSectionId: externalSelectedSectionId,
+  onSelectCourse,
+  onSelectSection
+}) {
   const [expandedCourseId, setExpandedCourseId] = useState('');
   const [expandedSectionId, setExpandedSectionId] = useState('');
   const [sectionsByCourse, setSectionsByCourse] = useState({});
@@ -37,6 +66,24 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
   const [sectionsErrorByCourse, setSectionsErrorByCourse] = useState({});
   const [portfolioErrorBySection, setPortfolioErrorBySection] = useState({});
   const [activeAddSectionCourse, setActiveAddSectionCourse] = useState(null);
+  const [editorOpenBySection, setEditorOpenBySection] = useState({});
+
+  const currentCourseId = externalSelectedCourseId ?? expandedCourseId;
+  const currentSectionId = externalSelectedSectionId ?? expandedSectionId;
+
+  useEffect(() => {
+    if (currentCourseId) {
+      loadSections(currentCourseId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCourseId]);
+
+  useEffect(() => {
+    if (currentSectionId) {
+      loadPortfolio(currentSectionId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSectionId]);
 
   const getAuthHeaders = () => {
     const token = ensureToken?.() || localStorage.getItem('token');
@@ -84,16 +131,18 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
     setSectionsErrorByCourse((prev) => ({ ...prev, [courseId]: '' }));
 
     try {
-      const res = await fetch(`/api/sections/${courseId}`, { headers: getAuthHeaders() });
-      const payload = await res.json();
-      if (!res.ok) {
-        throw new Error(payload?.message || 'Failed to load sections');
-      }
+      const response = await fetch(`/api/sections/${courseId}`, { headers: getAuthHeaders() });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || 'Failed to load sections');
+
       const sections = normalizeArray(payload, 'sections');
       setSectionsByCourse((prev) => ({ ...prev, [courseId]: sections }));
     } catch (error) {
       setSectionsByCourse((prev) => ({ ...prev, [courseId]: [] }));
-      setSectionsErrorByCourse((prev) => ({ ...prev, [courseId]: error.message || 'Failed to load sections' }));
+      setSectionsErrorByCourse((prev) => ({
+        ...prev,
+        [courseId]: error.message || 'Failed to load sections'
+      }));
     } finally {
       setSectionsLoadingFor('');
     }
@@ -102,15 +151,29 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
   const loadPortfolio = async (sectionId) => {
     setPortfolioLoadingFor(sectionId);
     setPortfolioErrorBySection((prev) => ({ ...prev, [sectionId]: '' }));
+
     try {
-      const res = await fetch(`/api/section-portfolios/section/${sectionId}`, {
+      const response = await fetch(`/api/section-portfolios/section/${sectionId}`, {
         headers: getAuthHeaders()
       });
-      const payload = await res.json();
-      if (!res.ok) {
-        throw new Error(payload?.message || 'Failed to load activity slots');
-      }
-      const portfolio = payload?.portfolio || null;
+
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || 'Failed to load activity slots');
+
+      const portfolio = payload?.portfolio || {
+        slots: Array.from({ length: 4 }).map((_, idx) => ({
+          slotNumber: idx + 1,
+          courseOutcomeNumber: idx + 1,
+          activityNumber: idx + 1,
+          title: '',
+          notes: '',
+          instructions: null,
+          studentOutputs: [],
+          ratedRubrics: [],
+          status: 'not_started'
+        }))
+      };
+
       setSectionPortfolios((prev) => ({ ...prev, [sectionId]: portfolio }));
 
       const nextDrafts = {};
@@ -120,52 +183,30 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
           notes: slot.notes || ''
         };
       });
-      setSlotDrafts((prev) => ({
-        ...prev,
-        [sectionId]: nextDrafts
-      }));
+      setSlotDrafts((prev) => ({ ...prev, [sectionId]: nextDrafts }));
     } catch (error) {
-      setPortfolioErrorBySection((prev) => ({ ...prev, [sectionId]: error.message || 'Failed to load activity slots' }));
+      setPortfolioErrorBySection((prev) => ({
+        ...prev,
+        [sectionId]: error.message || 'Failed to load activity slots'
+      }));
     } finally {
       setPortfolioLoadingFor('');
     }
   };
 
-  const handleToggleCourse = async (courseId) => {
-    const willExpand = expandedCourseId !== courseId;
-    setExpandedCourseId(willExpand ? courseId : '');
-    setExpandedSectionId('');
-    if (willExpand) {
-      await loadSections(courseId);
-    }
-  };
-
-  const handleToggleSection = async (sectionId) => {
-    const willExpand = expandedSectionId !== sectionId;
-    setExpandedSectionId(willExpand ? sectionId : '');
-    if (willExpand) {
-      await loadPortfolio(sectionId);
-    }
-  };
-
   const saveSlotMeta = async (sectionId, slotNumber) => {
     const draft = getDraftForSlot(sectionId, { slotNumber });
+
     try {
-      const res = await fetch(`/api/section-portfolios/section/${sectionId}/slot/${slotNumber}`, {
+      const response = await fetch(`/api/section-portfolios/section/${sectionId}/slot/${slotNumber}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          title: draft.title,
-          notes: draft.notes
-        })
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ title: draft.title, notes: draft.notes })
       });
-      const payload = await res.json();
-      if (!res.ok) {
-        throw new Error(payload?.message || 'Failed to save slot details');
-      }
+
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || 'Failed to save activity details');
+
       await loadPortfolio(sectionId);
       Swal.fire({
         icon: 'success',
@@ -178,7 +219,7 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
       Swal.fire({
         icon: 'error',
         title: 'Save Failed',
-        text: error.message || 'Failed to save slot details',
+        text: error.message || 'Failed to save activity details',
         confirmButtonColor: '#e74c3c'
       });
     }
@@ -186,7 +227,7 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
 
   const uploadEvidence = async (sectionId, slotNumber, evidenceType) => {
     const selectedFiles = getSelectionForSlot(sectionId, slotNumber, evidenceType);
-    if (!selectedFiles.length) {
+    if (!selectedFiles || selectedFiles.length === 0) {
       Swal.fire({
         icon: 'warning',
         title: 'No Files Selected',
@@ -201,19 +242,17 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
     selectedFiles.forEach((file) => formData.append('files', file));
 
     try {
-      const res = await fetch(`/api/section-portfolios/section/${sectionId}/slot/${slotNumber}/upload`, {
+      const response = await fetch(`/api/section-portfolios/section/${sectionId}/slot/${slotNumber}/upload`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: formData
       });
-      const payload = await res.json();
-      if (!res.ok) {
-        throw new Error(payload?.message || 'Upload failed');
-      }
+
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || 'Upload failed');
 
       setSelectionForSlot(sectionId, slotNumber, evidenceType, []);
       await loadPortfolio(sectionId);
-
       Swal.fire({
         icon: 'success',
         title: 'Uploaded',
@@ -231,195 +270,296 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
     }
   };
 
-  const renderFileList = (files) => {
-    if (!files || files.length === 0) {
-      return <div className="empty-state" style={{ padding: '0.4rem 0' }}>No files uploaded yet.</div>;
+  const toggleSlotEditor = (sectionId, slotNumber) => {
+    setEditorOpenBySection((prev) => ({
+      ...prev,
+      [sectionId]: {
+        ...(prev[sectionId] || {}),
+        [slotNumber]: !Boolean((prev[sectionId] || {})[slotNumber])
+      }
+    }));
+  };
+
+  const isSlotEditorOpen = (sectionId, slotNumber) => Boolean((editorOpenBySection[sectionId] || {})[slotNumber]);
+
+  const selectSection = async (sectionId) => {
+    const nextSectionId = currentSectionId === sectionId ? '' : sectionId;
+    if (onSelectSection) onSelectSection(nextSectionId);
+    else setExpandedSectionId(nextSectionId);
+
+    if (nextSectionId) {
+      await loadPortfolio(nextSectionId);
     }
+  };
+
+  const currentSections = sectionsByCourse[currentCourseId] || [];
+  const currentSection = currentSections.find((section) => String(section._id) === String(currentSectionId)) || null;
+
+  const renderEvidenceGroup = (label, files) => {
+    if (!files || files.length === 0) return null;
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.45rem' }}>
-        {files.map((file) => (
-          <a
-            key={file._id || file.fileName || file.fileUrl}
-            href={toFileUrl(file)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: '0.9rem' }}
-          >
-            {file.fileName || file.originalName || 'Uploaded file'}
-            {fileLooksLikePreviewable(file) ? ' (preview)' : ' (open)'}
-          </a>
-        ))}
+      <div className="outcome-evidence-group">
+        <p>{label}</p>
+        <div className="outcome-evidence-links">
+          {files.map((file) => (
+            <a
+              key={file._id || file.fileName || file.fileUrl || file.path}
+              href={toFileUrl(file)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {file.fileName || file.originalName || 'Uploaded file'} {fileLooksLikePreviewable(file) ? '(preview)' : '(open)'}
+            </a>
+          ))}
+        </div>
       </div>
     );
   };
 
-  if (!courses.length) {
-    return (
-      <div className="content-card" style={{ marginTop: '1.5rem' }}>
-        <h3>Course Sections and Activities</h3>
-        <p className="empty-state">No assigned courses available for syllabus organization.</p>
-      </div>
-    );
+  if (!currentCourseId) {
+    return <div className="workspace-inline-empty">Select a course to continue.</div>;
   }
 
   return (
-    <div className="content-card" style={{ marginTop: '1.5rem' }}>
-      <h3>Course Sections and Activities</h3>
-      <p style={{ marginBottom: '1rem', color: '#666' }}>
-        Select a section to fill the standard Course Outcome 1 to 4 activity slots.
-      </p>
-
-      {courses.map((course) => {
-        const isCourseOpen = expandedCourseId === course._id;
-        const sections = sectionsByCourse[course._id] || [];
-        const courseError = sectionsErrorByCourse[course._id];
-        const isLoadingSections = sectionsLoadingFor === course._id;
-
-        return (
-          <div key={course._id} className="item-card" style={{ marginBottom: '1rem' }}>
+    <div className="workspace-body">
+      <div className="workspace-sections-row">
+        <p className="workspace-sections-label">Sections:</p>
+        <div className="workspace-sections-chips">
+          {(currentSections || []).map((section) => (
             <button
+              key={section._id}
               type="button"
-              onClick={() => handleToggleCourse(course._id)}
-              style={{ width: '100%', border: 'none', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', cursor: 'pointer' }}
+              onClick={() => selectSection(section._id)}
+              className={`section-chip ${currentSectionId === section._id ? 'active' : ''}`}
             >
-              <span><strong>{course.courseCode}</strong> - {course.courseName}</span>
-              <span>{isCourseOpen ? '[-]' : '[+]'}</span>
+              {section.name}
             </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="syllabus-outline-btn add-section-btn"
+          onClick={() =>
+            setActiveAddSectionCourse(courses.find((course) => String(course._id) === String(currentCourseId)) || null)
+          }
+        >
+          + Add Section
+        </button>
+      </div>
 
-            {isCourseOpen && (
-              <div style={{ marginTop: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
-                  <button className="add-button" type="button" onClick={() => setActiveAddSectionCourse(course)}>
-                    Add Section
-                  </button>
-                </div>
+      {sectionsErrorByCourse[currentCourseId] && (
+        <div className="workspace-inline-error">{sectionsErrorByCourse[currentCourseId]}</div>
+      )}
 
-                {courseError && <div className="empty-state">{courseError}</div>}
-                {isLoadingSections && <div className="empty-state">Loading sections...</div>}
-                {!isLoadingSections && !courseError && sections.length === 0 && (
-                  <div className="empty-state">No sections yet.</div>
-                )}
+      {sectionsLoadingFor === currentCourseId && <div className="workspace-inline-empty">Loading sections...</div>}
 
-                {sections.map((section) => {
-                  const isSectionOpen = expandedSectionId === section._id;
-                  const sectionPortfolio = sectionPortfolios[section._id];
-                  const slots = (sectionPortfolio?.slots || []).slice().sort((a, b) => a.slotNumber - b.slotNumber);
-                  const sectionError = portfolioErrorBySection[section._id];
-                  const isLoadingPortfolio = portfolioLoadingFor === section._id;
+      {!sectionsLoadingFor && currentSections.length === 0 && !sectionsErrorByCourse[currentCourseId] && (
+        <div className="workspace-inline-empty">No sections yet for this course.</div>
+      )}
 
-                  return (
-                    <div key={section._id} style={{ border: '1px solid #e9ecef', borderRadius: '10px', padding: '0.8rem', marginBottom: '0.75rem' }}>
+      {currentSectionId ? (
+        <div className="selected-section-wrapper">
+          <h3>Selected Section: {currentSection?.name || 'Untitled Section'}</h3>
+
+          {portfolioErrorBySection[currentSectionId] && (
+            <div className="workspace-inline-error">{portfolioErrorBySection[currentSectionId]}</div>
+          )}
+
+          {portfolioLoadingFor === currentSectionId && <div className="workspace-inline-empty">Loading outcomes...</div>}
+
+          {!portfolioLoadingFor && !portfolioErrorBySection[currentSectionId] && (
+            <div className="outcomes-list">
+              {(
+                (sectionPortfolios[currentSectionId]?.slots || Array.from({ length: 4 }, (_, index) => ({
+                  slotNumber: index + 1,
+                  courseOutcomeNumber: index + 1,
+                  activityNumber: index + 1,
+                  title: '',
+                  notes: '',
+                  instructions: null,
+                  studentOutputs: [],
+                  ratedRubrics: [],
+                  status: 'not_started'
+                })))
+                  .slice()
+                  .sort((a, b) => a.slotNumber - b.slotNumber)
+              ).map((slot) => {
+                const draft = getDraftForSlot(currentSectionId, slot);
+                const selectedInstructions = getSelectionForSlot(currentSectionId, slot.slotNumber, 'instructions');
+                const selectedOutputs = getSelectionForSlot(currentSectionId, slot.slotNumber, 'studentOutputs');
+                const selectedRubrics = getSelectionForSlot(currentSectionId, slot.slotNumber, 'ratedRubrics');
+                const existingInstructions = slot.instructions ? [slot.instructions] : [];
+                const activityPresent = slotHasActivity(slot);
+                const editorOpen = isSlotEditorOpen(currentSectionId, slot.slotNumber);
+
+                return (
+                  <article key={`outcome-${slot.slotNumber}`} className="outcome-card">
+                    <div className="outcome-card-header">
+                      <h4>Course Outcome {slot.courseOutcomeNumber}</h4>
                       <button
                         type="button"
-                        onClick={() => handleToggleSection(section._id)}
-                        style={{ width: '100%', border: 'none', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', cursor: 'pointer' }}
+                        className="add-activity-btn"
+                        onClick={() => toggleSlotEditor(currentSectionId, slot.slotNumber)}
                       >
-                        <span><strong>{section.name}</strong> <span style={{ color: '#6c757d' }}>({section.semester})</span></span>
-                        <span>{isSectionOpen ? '[-]' : '[+]'}</span>
+                        {editorOpen ? 'Hide Activity Form' : '+ Add Activity'}
                       </button>
+                    </div>
 
-                      {isSectionOpen && (
-                        <div style={{ marginTop: '0.8rem' }}>
-                          <div style={{ marginBottom: '0.65rem', fontSize: '0.9rem', color: '#555' }}>
-                            Completion: {sectionPortfolio?.completionSummary?.completedSlots || 0}/4 slots complete
+                    <div className="outcome-card-body">
+                      {activityPresent ? (
+                        <div className="activity-list">
+                          <div className="activity-item">
+                            <div className="activity-item-header">
+                              <strong>
+                                {hasCustomTitle(slot)
+                                  ? slot.title
+                                  : `Activity ${slot.activityNumber}`}
+                              </strong>
+                              <span className={`activity-status status-${String(slot.status || 'not_started')}`}>
+                                {toStatusLabel(slot.status)}
+                              </span>
+                            </div>
+
+                            {String(slot.notes || '').trim() && <p className="activity-notes">{slot.notes}</p>}
+
+                            <div className="outcome-evidence-grid">
+                              {renderEvidenceGroup('Instructions', existingInstructions)}
+                              {renderEvidenceGroup('Student Outputs', slot.studentOutputs || [])}
+                              {renderEvidenceGroup('Rated Rubrics', slot.ratedRubrics || [])}
+                            </div>
                           </div>
-                          {sectionError && <div className="empty-state">{sectionError}</div>}
-                          {isLoadingPortfolio && <div className="empty-state">Loading structured activity slots...</div>}
+                        </div>
+                      ) : (
+                        <div className="outcome-empty-state">No activity evidence uploaded yet.</div>
+                      )}
 
-                          {!isLoadingPortfolio && slots.map((slot) => {
-                            const draft = getDraftForSlot(section._id, slot);
-                            const selectedInstructions = getSelectionForSlot(section._id, slot.slotNumber, 'instructions');
-                            const selectedOutputs = getSelectionForSlot(section._id, slot.slotNumber, 'studentOutputs');
-                            const selectedRubrics = getSelectionForSlot(section._id, slot.slotNumber, 'ratedRubrics');
-                            const existingInstructions = slot.instructions ? [slot.instructions] : [];
-                            const noEvidenceYet =
-                              existingInstructions.length === 0 &&
-                              (slot.studentOutputs || []).length === 0 &&
-                              (slot.ratedRubrics || []).length === 0;
+                      {editorOpen && (
+                        <div className="activity-editor">
+                          <div className="activity-editor-field">
+                            <label>Activity Title</label>
+                            <input
+                              type="text"
+                              value={draft.title}
+                              onChange={(event) =>
+                                setDraftForSlot(currentSectionId, slot.slotNumber, { title: event.target.value })
+                              }
+                              placeholder={getDefaultSlotTitle(slot.slotNumber)}
+                            />
+                          </div>
 
-                            return (
-                              <div key={`slot-${slot.slotNumber}`} style={{ border: '1px solid #f0f0f0', borderRadius: '10px', padding: '0.9rem', marginBottom: '0.7rem', background: '#fbfcfd' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                                  <strong>Course Outcome {slot.courseOutcomeNumber} / Activity {slot.activityNumber}</strong>
-                                  <span className="section-badge">{slot.status.replace('_', ' ')}</span>
-                                </div>
-                                {noEvidenceYet && (
-                                  <div className="empty-state" style={{ marginBottom: '0.6rem' }}>
-                                    No activities yet
-                                  </div>
-                                )}
+                          <div className="activity-editor-field">
+                            <label>Notes</label>
+                            <textarea
+                              rows="3"
+                              value={draft.notes}
+                              onChange={(event) =>
+                                setDraftForSlot(currentSectionId, slot.slotNumber, { notes: event.target.value })
+                              }
+                              placeholder="Add notes for this activity"
+                            />
+                          </div>
 
-                                <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                                  <label>Slot Title</label>
-                                  <input
-                                    type="text"
-                                    value={draft.title}
-                                    onChange={(e) => setDraftForSlot(section._id, slot.slotNumber, { title: e.target.value })}
-                                    placeholder={`Course Outcome ${slot.slotNumber} / Activity ${slot.slotNumber}`}
-                                  />
-                                </div>
-                                <div className="form-group" style={{ marginBottom: '0.55rem' }}>
-                                  <label>Notes</label>
-                                  <textarea
-                                    rows="2"
-                                    value={draft.notes}
-                                    onChange={(e) => setDraftForSlot(section._id, slot.slotNumber, { notes: e.target.value })}
-                                    placeholder="Add notes or context for this activity slot"
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  className="save-button"
-                                  style={{ marginTop: 0, marginBottom: '0.7rem', padding: '0.6rem 1rem', fontSize: '0.9rem' }}
-                                  onClick={() => saveSlotMeta(section._id, slot.slotNumber)}
-                                >
-                                  Save Slot Details
-                                </button>
+                          <div className="editor-upload-grid">
+                            <div className="editor-upload-item">
+                              <p>Instructions</p>
+                              <input
+                                type="file"
+                                onChange={(event) =>
+                                  setSelectionForSlot(
+                                    currentSectionId,
+                                    slot.slotNumber,
+                                    'instructions',
+                                    event.target.files?.[0] ? [event.target.files[0]] : []
+                                  )
+                                }
+                              />
+                              {selectedInstructions.length > 0 && (
+                                <span className="selected-files-text">Selected: {selectedInstructions[0].name}</span>
+                              )}
+                              <button
+                                type="button"
+                                className="syllabus-outline-btn editor-upload-btn"
+                                onClick={() => uploadEvidence(currentSectionId, slot.slotNumber, 'instructions')}
+                              >
+                                Upload Instructions
+                              </button>
+                            </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.8rem' }}>
-                                  <div style={{ borderTop: '1px dashed #d9e2ec', paddingTop: '0.6rem' }}>
-                                    <strong>1. Instructions</strong>
-                                    <input type="file" onChange={(e) => setSelectionForSlot(section._id, slot.slotNumber, 'instructions', e.target.files?.[0] ? [e.target.files[0]] : [])} />
-                                    {selectedInstructions.length > 0 && <div style={{ fontSize: '0.85rem' }}>Selected: {selectedInstructions[0].name}</div>}
-                                    <button type="button" className="add-button" style={{ marginTop: '0.4rem' }} onClick={() => uploadEvidence(section._id, slot.slotNumber, 'instructions')}>
-                                      Upload Instructions
-                                    </button>
-                                    {renderFileList(existingInstructions)}
-                                  </div>
+                            <div className="editor-upload-item">
+                              <p>Student Outputs</p>
+                              <input
+                                type="file"
+                                multiple
+                                onChange={(event) =>
+                                  setSelectionForSlot(
+                                    currentSectionId,
+                                    slot.slotNumber,
+                                    'studentOutputs',
+                                    Array.from(event.target.files || [])
+                                  )
+                                }
+                              />
+                              {selectedOutputs.length > 0 && (
+                                <span className="selected-files-text">Selected: {selectedOutputs.length} file(s)</span>
+                              )}
+                              <button
+                                type="button"
+                                className="syllabus-outline-btn editor-upload-btn"
+                                onClick={() => uploadEvidence(currentSectionId, slot.slotNumber, 'studentOutputs')}
+                              >
+                                Upload Student Outputs
+                              </button>
+                            </div>
 
-                                  <div style={{ borderTop: '1px dashed #d9e2ec', paddingTop: '0.6rem' }}>
-                                    <strong>2. Student Outputs</strong>
-                                    <input type="file" multiple onChange={(e) => setSelectionForSlot(section._id, slot.slotNumber, 'studentOutputs', Array.from(e.target.files || []))} />
-                                    {selectedOutputs.length > 0 && <div style={{ fontSize: '0.85rem' }}>Selected: {selectedOutputs.length} file(s)</div>}
-                                    <button type="button" className="add-button" style={{ marginTop: '0.4rem' }} onClick={() => uploadEvidence(section._id, slot.slotNumber, 'studentOutputs')}>
-                                      Upload Student Outputs
-                                    </button>
-                                    {renderFileList(slot.studentOutputs || [])}
-                                  </div>
+                            <div className="editor-upload-item">
+                              <p>Rated Rubrics</p>
+                              <input
+                                type="file"
+                                multiple
+                                onChange={(event) =>
+                                  setSelectionForSlot(
+                                    currentSectionId,
+                                    slot.slotNumber,
+                                    'ratedRubrics',
+                                    Array.from(event.target.files || [])
+                                  )
+                                }
+                              />
+                              {selectedRubrics.length > 0 && (
+                                <span className="selected-files-text">Selected: {selectedRubrics.length} file(s)</span>
+                              )}
+                              <button
+                                type="button"
+                                className="syllabus-outline-btn editor-upload-btn"
+                                onClick={() => uploadEvidence(currentSectionId, slot.slotNumber, 'ratedRubrics')}
+                              >
+                                Upload Rated Rubrics
+                              </button>
+                            </div>
+                          </div>
 
-                                  <div style={{ borderTop: '1px dashed #d9e2ec', paddingTop: '0.6rem' }}>
-                                    <strong>3. Rated Rubrics</strong>
-                                    <input type="file" multiple onChange={(e) => setSelectionForSlot(section._id, slot.slotNumber, 'ratedRubrics', Array.from(e.target.files || []))} />
-                                    {selectedRubrics.length > 0 && <div style={{ fontSize: '0.85rem' }}>Selected: {selectedRubrics.length} file(s)</div>}
-                                    <button type="button" className="add-button" style={{ marginTop: '0.4rem' }} onClick={() => uploadEvidence(section._id, slot.slotNumber, 'ratedRubrics')}>
-                                      Upload Rated Rubrics
-                                    </button>
-                                    {renderFileList(slot.ratedRubrics || [])}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
+                          <div className="activity-editor-actions">
+                            <button
+                              type="button"
+                              className="syllabus-primary-btn"
+                              onClick={() => saveSlotMeta(currentSectionId, slot.slotNumber)}
+                            >
+                              Save Activity
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="workspace-inline-empty">Select a section to manage Course Outcome activities.</div>
+      )}
 
       {activeAddSectionCourse && (
         <AddSectionModal
@@ -427,7 +567,9 @@ function SyllabusSections({ courses = [], facultyId, ensureToken }) {
           facultyId={facultyId}
           defaultSemester={activeAddSectionCourse.semester || ''}
           onClose={() => setActiveAddSectionCourse(null)}
-          onSaved={() => loadSections(activeAddSectionCourse._id)}
+          onSaved={async () => {
+            await loadSections(activeAddSectionCourse._id);
+          }}
         />
       )}
     </div>
