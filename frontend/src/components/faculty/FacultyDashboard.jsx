@@ -4,8 +4,10 @@ import { AuthContext } from '../../contexts/AuthContext';
 import './FacultyDashboard.css';
 import TeachingActivities from './TeachingActivities';
 
-const FacultyDashboard = ({ user, courses }) => {
+const FacultyDashboard = () => {
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('overview');
+  const [courses, setCourses] = useState([]);
   const [dashboardStats, setDashboardStats] = useState({
     totalStudents: 0,
     activeCourses: 0,
@@ -14,6 +16,22 @@ const FacultyDashboard = ({ user, courses }) => {
     averageAttendance: 0,
     recentActivity: []
   });
+
+  const fetchCourses = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/courses', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCourses(data);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
 
   const fetchDashboardStats = async () => {
     try {
@@ -32,6 +50,7 @@ const FacultyDashboard = ({ user, courses }) => {
   };
 
   useEffect(() => {
+    fetchCourses();
     fetchDashboardStats();
   }, []);
 

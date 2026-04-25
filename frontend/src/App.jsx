@@ -9,14 +9,6 @@ import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import GoogleAuthCallback from './components/googleAuthCallback';
 import GoogleChoose from './components/googleChoose';
 import Layout from './components/Layout/Layout';
-import TeachingPortfolio from './components/faculty/TeachingPortfolio';
-import FacultyClassLists from './components/faculty/FacultyClassLists';
-import ClassPortfolio from './components/faculty/ClassPortfolio';
-import SeminarsCertificates from './components/faculty/SeminarsCertificates';
-import Research from './components/faculty/Research';
-// Use the new modern syllabus dashboard
-import Syllabus from './components/faculty/SyllabusDashboard';
-import InstructionalMaterials from './components/faculty/InstructionalMaterials';
 import './App.css';
 
 function App() {

@@ -761,48 +761,72 @@ const FacultyPortfolio = () => {
                 {/* Faculty Portfolio Checklist */}
                 <div className="portfolio-section">
                     <h3>Faculty Portfolio</h3>
-                    <div className="upload-grid">
-                        {facultyFileTypes.map((fileType) => (
-                            <div key={fileType.id} className="upload-card">
-                                <div className="upload-card-header">
-                                    <h4>{fileType.name}</h4>
-                                    {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded && (
-                                        <span className="upload-status uploaded">
-                                            <FaCheckCircle /> Uploaded
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="upload-description">{fileType.description}</p>
-                                {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
-                                    <div className="uploaded-file">
-                                        <FaFile />
-                                        <span>{portfolioData.subjects.default.facultyPortfolio[fileType.id].fileName}</span>
-                                        <button
-                                            className="remove-file-btn"
-                                            onClick={() => handleFacultyFileRemove(fileType.id)}
-                                        >
-                                            <FaTimes />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <label className="upload-area">
-                                        <input
-                                            type="file"
-                                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) handleFacultyFileUpload(fileType.id, file);
-                                            }}
-                                            hidden
-                                        />
-                                        <FaUpload />
-                                        <span>Click to upload file</span>
-                                        <small>PDF, DOC, DOCX, JPG, PNG</small>
-                                    </label>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                    <table className="portfolio-table faculty-portfolio-table">
+                        <thead>
+                            <tr>
+                                <th>Item Code</th>
+                                <th>Document Name</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>File</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {facultyFileTypes.map((fileType) => (
+                                <tr key={fileType.id}>
+                                    <td className="item-code">{fileType.id}</td>
+                                    <td className="item-name">{fileType.name}</td>
+                                    <td className="item-description">{fileType.description}</td>
+                                    <td className="item-status">
+                                        {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
+                                            <span className="status-badge uploaded">
+                                                <FaCheckCircle /> Uploaded
+                                            </span>
+                                        ) : (
+                                            <span className="status-badge pending">
+                                                <FaTimesCircle /> Pending
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="item-file">
+                                        {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
+                                            <div className="uploaded-file">
+                                                <FaFile />
+                                                <span>{portfolioData.subjects.default.facultyPortfolio[fileType.id].fileName}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="no-file">No file uploaded</span>
+                                        )}
+                                    </td>
+                                    <td className="item-actions">
+                                        {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
+                                            <button
+                                                className="action-btn remove-btn"
+                                                onClick={() => handleFacultyFileRemove(fileType.id)}
+                                                title="Remove file"
+                                            >
+                                                <FaTimes /> Remove
+                                            </button>
+                                        ) : (
+                                            <label className="action-btn upload-btn">
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) handleFacultyFileUpload(fileType.id, file);
+                                                    }}
+                                                    hidden
+                                                />
+                                                <FaUpload /> Upload
+                                            </label>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
 
                 {/* Tab Content */}
