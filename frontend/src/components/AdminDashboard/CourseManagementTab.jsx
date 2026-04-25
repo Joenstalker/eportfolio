@@ -824,6 +824,27 @@ const CourseManagementTab = ({ user, facultyData }) => {
                 const isLockedByMe = lockInfo.lockedByMe;
                 const isLockedByOther = isLocked && !isLockedByMe;
 
+                // Find faculty assignments for this course
+                const courseAssignmentsForCourse = courseAssignments.filter(
+                  assignment => {
+                    const assignmentCourseId = typeof assignment.courseId === 'object' 
+                      ? assignment.courseId._id 
+                      : assignment.courseId;
+                    return assignmentCourseId === course._id;
+                  }
+                );
+                
+                const assignedFaculty = courseAssignmentsForCourse.map(assignment => {
+                  const faculty = assignment.facultyId;
+                  if (faculty && typeof faculty === 'object') {
+                    const firstName = faculty.firstName || '';
+                    const lastName = faculty.lastName || '';
+                    const name = `${firstName} ${lastName}`.trim();
+                    return name || faculty.email || 'Unknown Faculty';
+                  }
+                  return 'Unknown Faculty';
+                }).join(', ');
+
                 return (
                   <div
                     key={course._id}
@@ -857,6 +878,10 @@ const CourseManagementTab = ({ user, facultyData }) => {
                         <div className="course-detail">
                           <span className="detail-label">Semester:</span>
                           <span className="detail-value">{course.semester}</span>
+                        </div>
+                        <div className="course-detail">
+                          <span className="detail-label">Assigned Faculty:</span>
+                          <span className="detail-value">{assignedFaculty || 'Not assigned'}</span>
                         </div>
                         <div className="course-detail">
                           <span className="detail-label">Total Students:</span>

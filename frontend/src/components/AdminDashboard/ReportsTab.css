@@ -106,3 +106,152 @@
   cursor: not-allowed;
 }
 
+/* Faculty Data Preview Styles */
+.admin-dashboard .faculty-data-preview {
+  background: #ffffff;
+  border: 1px solid var(--admin-border);
+  padding: 20px;
+  border-radius: 12px;
+  grid-column: 1 / -1;
+  margin-top: 20px;
+}
+
+.admin-dashboard .faculty-data-preview h4 {
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.admin-dashboard .data-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.admin-dashboard .data-section {
+  border-radius: 8px;
+  padding: 20px;
+  border: 2px solid;
+}
+
+.admin-dashboard .data-section h5 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Research Section - Blue Theme */
+.admin-dashboard .research-section {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+}
+
+.admin-dashboard .research-section h5 {
+  color: #1e40af;
+}
+
+/* Portfolio Section - Green Theme */
+.admin-dashboard .portfolio-section {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #22c55e;
+}
+
+.admin-dashboard .portfolio-section h5 {
+  color: #166534;
+}
+
+/* Course Section - Purple Theme */
+.admin-dashboard .course-section {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  border-color: #a855f7;
+}
+
+.admin-dashboard .course-section h5 {
+  color: #7e22ce;
+}
+
+.admin-dashboard .preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-dashboard .preview-table thead {
+  background: var(--admin-surface-2);
+}
+
+.admin-dashboard .preview-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--admin-text);
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.admin-dashboard .preview-table td {
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--admin-text);
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-dashboard .preview-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-dashboard .preview-table tbody tr:hover {
+  background: var(--admin-surface-2);
+}
+
+.admin-dashboard .status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.admin-dashboard .status-badge.published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-dashboard .status-badge.submitted {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-dashboard .status-badge.in-progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-dashboard .status-badge.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-dashboard .no-data {
+  text-align: center;
+  padding: 20px;
+  color: var(--admin-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.admin-dashboard .loading-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--admin-muted);
+  font-size: 0.95rem;
+}
+

@@ -16,6 +16,7 @@ import SystemAnalyticsTab from './SystemAnalyticsTab'
 import SystemSettingsTab from './SystemSettingsTab'
 import UserLogsTab from './UserLogsTab'
 import EvidenceReviewTab from './EvidenceReviewTab'
+import FacultyTransactionTrackingTab from './ResearchTrackingTab'
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth()
@@ -284,11 +285,8 @@ const AdminDashboard = () => {
   // Handle section change with validation
   const sectionToPathMap = {
     dashboard: '/admin-dashboard',
-    faculty: '/admin-faculty-management',
-    archive: '/admin-archived-users',
-    courses: '/admin-course-management',
-    'archived-courses': '/admin-archived-courses',
-    assignments: '/admin-class-assignments',
+    researchTracking: '/admin-research-tracking',
+    courseAssignments: '/admin-course-assignments',
     reports: '/admin-reports',
     analytics: '/admin-system-analytics',
     evidenceReview: '/admin-evidence-review',
@@ -451,7 +449,7 @@ const AdminDashboard = () => {
           </div>
 
           <div className="admin-stats">
-            <h3>System Overview</h3>
+            <h3>Faculty Overview</h3>
             <div className="stats-grid">
               <div className="stat-card admin-stat faculty-count">
                 <div className="stat-icon">👥</div>
@@ -461,56 +459,38 @@ const AdminDashboard = () => {
                   <p>Registered members</p>
                 </div>
               </div>
-              <div className="stat-card admin-stat active-faculty">
-                <div className="stat-icon">✅</div>
-                <div className="stat-content">
-                  <h4>Active Faculty</h4>
-                  <div className="stat-number">
-                    {facultyData.filter((f) => f.isActive).length}
-                  </div>
-                  <p>Currently active</p>
-                </div>
-              </div>
-              <div className="stat-card admin-stat departments">
-                <div className="stat-icon">🏢</div>
-                <div className="stat-content">
-                  <h4>Departments</h4>
-                  <div className="stat-number">
-                    {[...new Set(facultyData.map((f) => f.department).filter((d) => d))].length ||
-                      0}
-                  </div>
-                  <p>Different departments</p>
-                </div>
-              </div>
               <div className="stat-card admin-stat courses-count">
-                <div className="stat-icon">📚</div>
+                <div className="stat-icon">📊</div>
                 <div className="stat-content">
-                  <h4>Total Courses</h4>
-                  <div className="stat-number">{courses.length}</div>
-                  <p>Available courses</p>
+                  <h4>Tracking Status</h4>
+                  <div className="stat-number">Active</div>
+                  <p>Real-time monitoring</p>
                 </div>
               </div>
             </div>
           </div>
+
+          <div className="recent-activity">
+            <h3>Recent Faculty Activities</h3>
+            <div className="activity-list">
+              <div className="activity-item">
+                <span className="activity-icon">📋</span>
+                <span className="activity-text">Faculty portfolio updates being tracked</span>
+                <span className="activity-time">Real-time</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-icon">🔬</span>
+                <span className="activity-text">Research submissions monitored</span>
+                <span className="activity-time">Real-time</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-icon">📊</span>
+                <span className="activity-text">Reports generation available</span>
+                <span className="activity-time">On-demand</span>
+              </div>
+            </div>
+          </div>
         </div>
-      )
-    },
-    courses: {
-      title: 'Course Management',
-      content: (
-        <CourseManagementTab
-          user={user}
-          facultyData={facultyData}
-        />
-      )
-    },
-    'archived-courses': {
-      title: 'Archived Courses',
-      content: (
-        <ArchivedCoursesTab
-          archivedCourses={courses.filter(c => c.status === 'archived')}
-          onUnarchiveClick={handleUnarchiveCourse}
-        />
       )
     },
     faculty: {
@@ -527,31 +507,9 @@ const AdminDashboard = () => {
         />
       )
     },
-    archive: {
-      title: 'Archived Users',
-      content: (
-        <ArchivedUsersTab
-          archivedFaculty={archivedFaculty}
-          onUnarchiveClick={handleUnarchiveClick}
-          onDeleteClick={handleDeleteArchivedClick}
-        />
-      )
-    },
-    assignments: {
-      title: 'Class Assignment Control',
-      content: (
-        <ClassAssignmentsTab
-          handleUploadSchedule={handleUploadSchedule}
-          selectedFile={selectedFile}
-          setSelectedFile={setSelectedFile}
-          uploadProgress={uploadProgress}
-          uploadsList={uploadsList}
-        />
-      )
-    },
-    facultyAssignments: {
-      title: 'Faculty Course Assignments',
-      content: <EnhancedCourseAssignment user={user} />
+    researchTracking: {
+      title: 'Faculty Transaction Tracking',
+      content: <FacultyTransactionTrackingTab />
     },
     reports: {
       title: 'Reports and Analytics',
@@ -579,27 +537,18 @@ const AdminDashboard = () => {
     settings: {
       title: 'System Settings',
       content: <SystemSettingsTab onNavigate={handleSectionChange} />
+    },
+    courseAssignments: {
+      title: 'Course Assignments',
+      content: <EnhancedCourseAssignment user={user} />
     }
   };
 
   const adminMenuItems = [
     { id: 'dashboard', label: 'DASHBOARD' },
-    { 
-      id: 'faculty',
-      label: 'FACULTY MANAGEMENT',
-      children: [
-        { id: 'archive', label: 'Archived Users' }
-      ]
-    },
-    { 
-      id: 'courses',
-      label: 'COURSE MANAGEMENT',
-      children: [
-        { id: 'archived-courses', label: 'Archived Courses' }
-      ]
-    },
-    { id: 'assignments', label: 'CLASS ASSIGNMENTS' },
-    { id: 'facultyAssignments', label: 'FACULTY ASSIGNMENTS' },
+    { id: 'faculty', label: 'FACULTY MANAGEMENT' },
+    { id: 'researchTracking', label: 'FACULTY TRANSACTIONS' },
+    { id: 'courseAssignments', label: 'COURSE ASSIGNMENTS' },
     { id: 'reports', label: 'REPORTS' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS' },
     { id: 'evidenceReview', label: 'EVIDENCE REVIEW' },

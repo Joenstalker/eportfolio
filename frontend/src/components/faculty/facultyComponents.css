@@ -2,6 +2,186 @@
     padding: 0;
 }
 
+/* Search Section */
+.search-section {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.search-section h3 {
+    color: white;
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.search-bar {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar input:focus {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.search-button {
+    padding: 0.875rem 1.5rem;
+    background: white;
+    color: #667eea;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+.large-modal {
+    max-width: 1200px;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    border-bottom: 2px solid #eef2f3;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-header h3 {
+    color: white;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.close-modal {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.close-modal:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.subject-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.subject-info .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #1a252f;
+}
+
+.subject-info .form-group input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #eef2f3;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.subject-info .form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .section-header {
     margin-bottom: 2.5rem;
     border-bottom: 2px solid #3498db;
@@ -95,6 +275,13 @@
     border-color: #3498db;
     background: white;
     box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+}
+
+.readonly-input {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+    color: #2c3e50;
+    font-weight: 600;
 }
 
 /* Email Validation Styles */
@@ -423,6 +610,116 @@
 .table-responsive {
     overflow-x: auto;
     margin-top: 1rem;
+}
+
+.portfolio-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 1rem;
+    border: 2px solid #eef2f3;
+}
+
+.portfolio-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.portfolio-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.portfolio-table th:first-child {
+    min-width: 200px;
+}
+
+.portfolio-table tbody tr {
+    border-bottom: 1px solid #eef2f3;
+    transition: background-color 0.2s;
+}
+
+.portfolio-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.portfolio-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.portfolio-table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border: 1px solid #eef2f3;
+}
+
+.portfolio-table .item-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.portfolio-table .item-name small {
+    display: block;
+    font-weight: 400;
+    color: #7f8c8d;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.portfolio-table .upload-cell {
+    min-width: 100px;
+    text-align: center;
+}
+
+.portfolio-table .sub-upload-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.portfolio-table .uploaded-file.small {
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    background: #e3f2fd;
+    border-radius: 6px;
+    border: 1px solid #bbdefb;
+}
+
+.portfolio-table .uploaded-file.small span {
+    font-size: 0.7rem;
+    text-align: center;
+    word-break: break-all;
+    margin: 0.25rem 0;
+}
+
+.portfolio-table .upload-area.small {
+    padding: 0.5rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    border: 2px dashed #bdc3c7;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.portfolio-table .upload-area.small:hover {
+    border-color: #667eea;
+    background: #e3f2fd;
+}
+
+.portfolio-table .upload-area.small span {
+    font-size: 0.75rem;
 }
 
 .classlists-table {

@@ -516,8 +516,72 @@ exports.createCourseAssignment = async (req, res) => {
 exports.deleteCourseAssignment = async (req, res) => {
   try {
     if (!requireAdmin(req, res)) return;
-    res.json({ message: 'Delete course assignment endpoint - not implemented' });
+
+    const { id } = req.params;
+    const CourseAssignment = require('../models/CourseAssignment');
+    
+    const assignment = await CourseAssignment.findByIdAndDelete(id);
+    
+    if (!assignment) {
+      return res.status(404).json({ message: 'Course assignment not found' });
+    }
+
+    console.log('✅ Course assignment deleted:', id);
+
+    res.json({ message: 'Course assignment deleted successfully' });
   } catch (error) {
+    console.error('❌ Delete course assignment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.updateCourseAssignment = async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+
+    const { id } = req.params;
+    const updates = req.body;
+    const CourseAssignment = require('../models/CourseAssignment');
+
+    // Find the assignment first
+    const assignment = await CourseAssignment.findById(id);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Course assignment not found' });
+    }
+
+    // If updating faculty or course, validate they exist
+    if (updates.facultyId) {
+      const User = require('../models/User');
+      const faculty = await User.findById(updates.facultyId);
+      if (!faculty || faculty.role !== 'faculty') {
+        return res.status(400).json({ message: 'Invalid faculty' });
+      }
+    }
+
+    if (updates.courseId) {
+      const Course = require('../models/Course');
+      const course = await Course.findById(updates.courseId);
+      if (!course) {
+        return res.status(400).json({ message: 'Invalid course' });
+      }
+    }
+
+    // Update the assignment
+    const updatedAssignment = await CourseAssignment.findByIdAndUpdate(
+      id,
+      updates,
+      { new: true }
+    ).populate('facultyId', 'firstName lastName email')
+      .populate('courseId', 'courseCode courseName department');
+
+    console.log('✅ Course assignment updated:', id);
+
+    res.json({
+      message: 'Course assignment updated successfully',
+      assignment: updatedAssignment
+    });
+  } catch (error) {
+    console.error('❌ Update course assignment error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

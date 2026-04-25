@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login/Login';
-import Dashboard from './components/faculty/Dashboard';
+import FacultyDashboard from './components/faculty/FacultyDashboard';
+import FacultyPortfolio from './components/faculty/FacultyPortfolio';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import GoogleAuthCallback from './components/googleAuthCallback';
 import GoogleChoose from './components/googleChoose';
@@ -21,11 +22,8 @@ import './App.css';
 function App() {
   const adminPaths = [
     '/admin-dashboard',
-    '/admin-faculty-management',
-    '/admin-archived-users',
-    '/admin-course-management',
-    '/admin-archived-courses',
-    '/admin-class-assignments',
+    '/admin-research-tracking',
+    '/admin-course-assignments',
     '/admin-reports',
     '/admin-system-analytics',
     '/admin-evidence-review',
@@ -51,14 +49,8 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/teaching-portfolio" element={<TeachingPortfolio />} />
-              <Route path="/faculty/:id/class-lists" element={<FacultyClassLists />} />
-              <Route path="/class-portfolio" element={<ClassPortfolio />} />
-              <Route path="/research" element={<Research />} />
-              <Route path="/syllabus" element={<Syllabus />} />
-              <Route path="/instructional-materials" element={<InstructionalMaterials />} />
-              <Route path="/seminars-certificates" element={<SeminarsCertificates />} />
+              <Route path="/dashboard" element={<FacultyDashboard />} />
+              <Route path="/portfolio" element={<FacultyPortfolio />} />
             </Route>
 
             {/* Admin Routes with tab-specific URLs */}

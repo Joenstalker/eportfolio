@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import AdvancedClassManagement from './AdvancedClassManagement';
+import { useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import './FacultyDashboard.css';
 import TeachingActivities from './TeachingActivities';
 
@@ -14,7 +15,6 @@ const FacultyDashboard = ({ user, courses }) => {
     recentActivity: []
   });
 
-  // ==================== DATA FETCHING ====================
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -35,7 +35,6 @@ const FacultyDashboard = ({ user, courses }) => {
     fetchDashboardStats();
   }, []);
 
-  // ==================== RENDER FUNCTIONS ====================
   const renderOverview = () => (
     <div className="faculty-overview">
       <h3>Faculty Dashboard Overview</h3>
@@ -115,7 +114,7 @@ const FacultyDashboard = ({ user, courses }) => {
       <h3>My Courses</h3>
       
       <div className="courses-grid">
-        {courses.filter(course => course.isAssigned).map(course => (
+        {courses && courses.filter(course => course.isAssigned).map(course => (
           <div key={course._id} className="course-card">
             <div className="course-header">
               <h4>{course.courseCode}</h4>
@@ -138,7 +137,6 @@ const FacultyDashboard = ({ user, courses }) => {
               <button 
                 className="btn-primary"
                 onClick={() => {
-                  // Navigate to class management for this course
                   console.log('Manage course:', course._id);
                 }}
               >
@@ -147,7 +145,6 @@ const FacultyDashboard = ({ user, courses }) => {
               <button 
                 className="btn-secondary"
                 onClick={() => {
-                  // Generate report for this course
                   console.log('Generate report:', course._id);
                 }}
               >
@@ -156,144 +153,6 @@ const FacultyDashboard = ({ user, courses }) => {
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-
-  const renderAnalytics = () => (
-    <div className="faculty-analytics">
-      <h3>Class Analytics</h3>
-      
-      <div className="analytics-grid">
-        <div className="analytics-card">
-          <h4>Student Performance</h4>
-          <div className="chart-placeholder">
-            <div className="performance-bars">
-              <div className="performance-item">
-                <span>Excellent (90-100)</span>
-                <div className="bar" style={{ width: '25%', background: '#10b981' }}></div>
-                <span>25%</span>
-              </div>
-              <div className="performance-item">
-                <span>Good (80-89)</span>
-                <div className="bar" style={{ width: '45%', background: '#3b82f6' }}></div>
-                <span>45%</span>
-              </div>
-              <div className="performance-item">
-                <span>Satisfactory (70-79)</span>
-                <div className="bar" style={{ width: '20%', background: '#f59e0b' }}></div>
-                <span>20%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="analytics-card">
-          <h4>Attendance Trends</h4>
-          <div className="chart-placeholder">
-            <div className="attendance-chart">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, index) => (
-                <div key={day} className="attendance-day">
-                  <div className="day-label">{day}</div>
-                  <div className="attendance-bar" style={{ 
-                    height: `${Math.random() * 40 + 60}%` 
-                  }}></div>
-                  <div className="attendance-value">
-                    {Math.round(Math.random() * 20 + 80)}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="analytics-card">
-          <h4>Outcome Achievement</h4>
-          <div className="chart-placeholder">
-            <div className="outcome-radar">
-              {['Knowledge', 'Skills', 'Attitude', 'Communication', 'Teamwork'].map(outcome => (
-                <div key={outcome} className="outcome-item">
-                  <span className="outcome-label">{outcome}</span>
-                  <div className="outcome-score">
-                    {Math.round(Math.random() * 2 + 3)}/5
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="analytics-card">
-          <h4>Grade Distribution</h4>
-          <div className="chart-placeholder">
-            <div className="grade-distribution">
-              <div className="grade-item">
-                <span className="grade-label">A (90-100)</span>
-                <span className="grade-count">15</span>
-              </div>
-              <div className="grade-item">
-                <span className="grade-label">B (80-89)</span>
-                <span className="grade-count">22</span>
-              </div>
-              <div className="grade-item">
-                <span className="grade-label">C (70-79)</span>
-                <span className="grade-count">18</span>
-              </div>
-              <div className="grade-item">
-                <span className="grade-label">D (60-69)</span>
-                <span className="grade-count">8</span>
-              </div>
-              <div className="grade-item">
-                <span className="grade-label">F (60)</span>
-                <span className="grade-count">3</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderReports = () => (
-    <div className="faculty-reports">
-      <h3>Reports & Analytics</h3>
-      
-      <div className="reports-grid">
-        <div className="report-card">
-          <h4>📊 Class Performance Report</h4>
-          <p>Generate comprehensive performance reports for your classes</p>
-          <button className="btn-primary">Generate Report</button>
-        </div>
-
-        <div className="report-card">
-          <h4>📋 Student Grade Summary</h4>
-          <p>View and export grade summaries for all students</p>
-          <button className="btn-primary">View Grades</button>
-        </div>
-
-        <div className="report-card">
-          <h4>📅 Attendance Report</h4>
-          <p>Generate attendance reports for specific time periods</p>
-          <button className="btn-primary">Generate Report</button>
-        </div>
-
-        <div className="report-card">
-          <h4>🎯 Outcome Analysis</h4>
-          <p>Analyze student outcome achievement across different areas</p>
-          <button className="btn-primary">View Analysis</button>
-        </div>
-
-        <div className="report-card">
-          <h4>📄 Portfolio Summary</h4>
-          <p>Generate portfolio summary for faculty evaluation</p>
-          <button className="btn-primary">Generate Summary</button>
-        </div>
-
-        <div className="report-card">
-          <h4>📈 Trend Analysis</h4>
-          <p>View performance trends over time</p>
-          <button className="btn-primary">View Trends</button>
-        </div>
       </div>
     </div>
   );

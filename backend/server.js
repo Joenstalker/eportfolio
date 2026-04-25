@@ -50,6 +50,7 @@ app.use('/api/teaching/class-list', require('./routes/classManagement'));
 app.use('/api/sections', require('./routes/sections'));
 app.use('/api/section-activities', require('./routes/sectionActivities'));
 app.use('/api/section-portfolios', require('./routes/sectionPortfolios'));
+app.use('/api/faculty-portfolio', require('./routes/facultyPortfolio'));
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ 

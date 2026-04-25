@@ -23,6 +23,7 @@ router.delete('/courses/:id/lock', adminController.releaseLock);
 router.get('/assignments', adminController.getCourseAssignments);
 router.get('/faculty', adminController.getFacultyForAssignment);
 router.post('/assignments', adminController.createCourseAssignment);
+router.put('/assignments/:id', adminController.updateCourseAssignment);
 router.delete('/assignments/:id', adminController.deleteCourseAssignment);
 
 // User routes
