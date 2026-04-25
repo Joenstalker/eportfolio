@@ -3,6 +3,8 @@ const User = require('../models/User');
 const Course = require('../models/Course');
 const path = require('path');
 
+const isTextOnly = (value) => /^[A-Za-z\s]+$/.test(String(value || '').trim());
+
 // Helper to ensure the requester is an admin
 const requireAdmin = (req, res) => {
   if (!req.user || req.user.role !== 'admin') {
@@ -184,6 +186,14 @@ exports.createUser = async (req, res) => {
 
     const { firstName, lastName, email, password, role, department } = req.body;
 
+    if (!firstName || !email || !password || !department) {
+      return res.status(400).json({ message: 'Missing required fields (firstName, email, password, department)' });
+    }
+
+    if (!isTextOnly(firstName) || !isTextOnly(department) || (String(lastName || '').trim() && !isTextOnly(lastName))) {
+      return res.status(400).json({ message: 'First name, last name, and department must contain letters and spaces only' });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -218,6 +228,17 @@ exports.updateUser = async (req, res) => {
 
     const { id } = req.params;
     const updates = req.body;
+    const targetUser = await User.findById(id).select('role');
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isUnarchiveRequest = updates.status === 'active' || updates.isActive === true;
+    const isArchiveRequest = updates.status === 'inactive' || updates.isActive === false;
+    if (targetUser.role === 'admin' && (isArchiveRequest || isUnarchiveRequest)) {
+      return res.status(403).json({ message: 'Admin account status cannot be changed.' });
+    }
 
     // Handle status field for compatibility
     if (updates.status) {
@@ -231,9 +252,6 @@ exports.updateUser = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(id, updates, { new: true });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
 
     res.json({ message: 'User updated successfully', user });
   } catch (error) {

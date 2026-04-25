@@ -7,6 +7,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Fail fast instead of buffering DB operations when MongoDB is unavailable.
+mongoose.set('bufferCommands', false);
+
 // Request logging middleware (before routes)
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
@@ -44,6 +47,9 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/activities', require('./routes/activities'));
 app.use('/api/admin/rbac', require('./routes/rbac'));
 app.use('/api/teaching/class-list', require('./routes/classManagement'));
+app.use('/api/sections', require('./routes/sections'));
+app.use('/api/section-activities', require('./routes/sectionActivities'));
+app.use('/api/section-portfolios', require('./routes/sectionPortfolios'));
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ 
@@ -57,17 +63,15 @@ app.get('/api/health', (req, res) => {
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/faculty_portfolio', {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
+            serverSelectionTimeoutMS: 10000
         });
         console.log('✅ MongoDB Connected');
+        return true;
     } catch (err) {
         console.log('❌ MongoDB Error:', err);
-        console.log('⚠️ Server continuing without MongoDB connection...');
+        return false;
     }
 };
-
-connectDB();
 
 // Error handling middleware
 app.use((error, req, res, next) => {
@@ -108,4 +112,15 @@ process.on('unhandledRejection', (err) => {
     process.exit(1);
 });
 
-app.listen(PORT, '127.0.0.1', () => console.log(`🚀 Server running on port ${PORT}`));
+const startServer = async () => {
+    const dbConnected = await connectDB();
+
+    if (!dbConnected) {
+        console.error('⛔ MongoDB is required. Start MongoDB or fix MONGODB_URI, then restart the server.');
+        process.exit(1);
+    }
+
+    app.listen(PORT, '127.0.0.1', () => console.log(`🚀 Server running on port ${PORT}`));
+};
+
+startServer();

@@ -6,6 +6,9 @@ const lockService = require('../services/lockService');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/role');
 
+// Must contain at least one letter and one number (e.g., T77, CS101, IT-202)
+const COURSE_CODE_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9-]{3,15}$/;
+
 // All course management endpoints are ADMIN-only and require a valid JWT
 router.use(auth, requireRole('admin'));
 
@@ -159,8 +162,16 @@ router.post('/', async (req, res) => {
       });
     }
     
+    const normalizedCourseCode = courseCode.trim().toUpperCase();
+
+    if (!COURSE_CODE_PATTERN.test(normalizedCourseCode)) {
+      return res.status(400).json({
+        message: 'Invalid course code format. Use 3-15 characters with at least one letter and one number.'
+      });
+    }
+
     // Check if course code already exists
-    const existingCourse = await Course.findOne({ courseCode: courseCode.trim().toUpperCase() });
+    const existingCourse = await Course.findOne({ courseCode: normalizedCourseCode });
     if (existingCourse) {
       return res.status(400).json({ 
         message: 'Course with this code already exists' 
@@ -169,7 +180,7 @@ router.post('/', async (req, res) => {
     
     // Create new course
     const newCourse = new Course({
-      courseCode: courseCode.trim().toUpperCase(),
+      courseCode: normalizedCourseCode,
       courseName: courseName.trim(),
       description: description?.trim() || '',
       department: department.trim(),
@@ -232,10 +243,48 @@ router.put('/:id', async (req, res) => {
     const actualUpdates = {};
     
     allowedUpdates.forEach(field => {
-      if (updates[field] !== undefined) {
-        actualUpdates[field] = field === 'courseCode' ? updates[field].trim().toUpperCase() : updates[field];
+      if (updates[field] === undefined) {
+        return;
       }
+
+      if (field === 'courseCode') {
+        actualUpdates[field] = String(updates[field]).trim().toUpperCase();
+        return;
+      }
+
+      if (field === 'courseName' || field === 'description' || field === 'department' || field === 'semester') {
+        actualUpdates[field] = typeof updates[field] === 'string' ? updates[field].trim() : updates[field];
+        return;
+      }
+
+      if (field === 'credits' || field === 'maxStudents') {
+        const parsedValue = Number(updates[field]);
+        if (!Number.isFinite(parsedValue)) {
+          throw new Error(`${field} must be a valid number`);
+        }
+        actualUpdates[field] = parsedValue;
+        return;
+      }
+
+      actualUpdates[field] = updates[field];
     });
+
+    if (actualUpdates.courseCode) {
+      if (!COURSE_CODE_PATTERN.test(actualUpdates.courseCode)) {
+        return res.status(400).json({
+          message: 'Invalid course code format. Use 3-15 characters with at least one letter and one number.'
+        });
+      }
+
+      const duplicateCourse = await Course.findOne({
+        courseCode: actualUpdates.courseCode,
+        _id: { $ne: req.params.id }
+      }).select('_id courseCode');
+
+      if (duplicateCourse) {
+        return res.status(400).json({ message: 'Course code already exists' });
+      }
+    }
     
     console.log('📝 Allowed updates:', allowedUpdates);
     console.log('📝 Actual updates to apply:', actualUpdates);
@@ -259,6 +308,28 @@ router.put('/:id', async (req, res) => {
     console.error('❌ Update course error:', error);
     console.error('❌ Error details:', error.message);
     console.error('❌ Error stack:', error.stack);
+
+    if (error.name === 'ValidationError') {
+      const firstValidationMessage = Object.values(error.errors || {})[0]?.message;
+      return res.status(400).json({
+        message: firstValidationMessage || 'Invalid course data'
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: `Invalid value for ${error.path || 'field'}`
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Course code already exists' });
+    }
+
+    if (typeof error.message === 'string' && error.message.includes('must be a valid number')) {
+      return res.status(400).json({ message: error.message });
+    }
+
     res.status(500).json({ 
       message: 'Server error updating course',
       error: error.message 

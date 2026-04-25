@@ -15,6 +15,7 @@ import ReportsTab from './ReportsTab'
 import SystemAnalyticsTab from './SystemAnalyticsTab'
 import SystemSettingsTab from './SystemSettingsTab'
 import UserLogsTab from './UserLogsTab'
+import EvidenceReviewTab from './EvidenceReviewTab'
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth()
@@ -225,16 +226,43 @@ const AdminDashboard = () => {
     return trimmedEmail.endsWith('@gmail.com') || trimmedEmail.endsWith('@student.buksu.edu.ph');
   };
 
+  const isTextOnly = (value) => /^[A-Za-z\s]+$/.test((value || '').trim());
+
+  const sanitizeTextOnlyInput = (value) => value.replace(/[^A-Za-z\s]/g, '');
+
+  const getFacultyFullName = (faculty) => {
+    if (!faculty) return '';
+    const rawName = faculty.name && String(faculty.name).trim()
+      ? String(faculty.name).trim()
+      : `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+
+    const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+    if (!normalizedName) return '';
+
+    const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+    const nameParts = normalizedName.split(' ');
+    const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+
+    if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+      return nameParts.slice(0, -1).join(' ');
+    }
+
+    return normalizedName;
+  };
+
   // ==================== BACKEND API FUNCTIONS ====================
 
   // Check if Add Faculty form has all required fields
   const isAddFacultyFormValid = () => {
     return !showAddModal || (
       newFaculty.firstName.trim() !== '' &&
+      isTextOnly(newFaculty.firstName) &&
       newFaculty.email.trim() !== '' &&
       isValidEmailDomain(newFaculty.email) &&
       newFaculty.password.trim() !== '' &&
-      newFaculty.department.trim() !== ''
+      newFaculty.department.trim() !== '' &&
+      isTextOnly(newFaculty.department) &&
+      (!newFaculty.lastName.trim() || isTextOnly(newFaculty.lastName))
     );
   };
 
@@ -263,6 +291,7 @@ const AdminDashboard = () => {
     assignments: '/admin-class-assignments',
     reports: '/admin-reports',
     analytics: '/admin-system-analytics',
+    evidenceReview: '/admin-evidence-review',
     userLogs: '/admin-user-logs',
     settings: '/admin-system-settings',
   };
@@ -326,7 +355,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/courses/${course._id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -405,7 +434,7 @@ const AdminDashboard = () => {
             <div className="banner-content">
               <h2>System Administration Panel</h2>
               <p>
-                Welcome back, {user?.name || user?.firstName || 'Admin'}. Manage the entire
+                Welcome back, {getFacultyFullName(user) || 'Admin'}. Manage the entire
                 e-portfolio system.
               </p>
             </div>
@@ -416,7 +445,7 @@ const AdminDashboard = () => {
               </div>
               <div className="mini-stat">
                 <span className="mini-label">Current Admin</span>
-                <span className="mini-value">{user?.email || user?.name || 'Admin'}</span>
+                <span className="mini-value">{user?.email || getFacultyFullName(user) || 'Admin'}</span>
               </div>
             </div>
           </div>
@@ -543,6 +572,10 @@ const AdminDashboard = () => {
       title: 'User Logs',
       content: <UserLogsTab user={user} />
     },
+    evidenceReview: {
+      title: 'Evidence Review',
+      content: <EvidenceReviewTab />
+    },
     settings: {
       title: 'System Settings',
       content: <SystemSettingsTab onNavigate={handleSectionChange} />
@@ -569,6 +602,7 @@ const AdminDashboard = () => {
     { id: 'facultyAssignments', label: 'FACULTY ASSIGNMENTS' },
     { id: 'reports', label: 'REPORTS' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS' },
+    { id: 'evidenceReview', label: 'EVIDENCE REVIEW' },
     { id: 'userLogs', label: 'USER LOGS' },
     { id: 'settings', label: 'SYSTEM SETTINGS' }
   ]
@@ -697,6 +731,11 @@ const AdminDashboard = () => {
       return;
     }
 
+    if (!isTextOnly(newFaculty.firstName) || !isTextOnly(newFaculty.department) || (newFaculty.lastName?.trim() && !isTextOnly(newFaculty.lastName))) {
+      showErrorAlert('First name, last name, and department must contain letters and spaces only');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const payload = {
@@ -742,7 +781,10 @@ const AdminDashboard = () => {
     }
     
     setSelectedFaculty(faculty);
-    setEditFaculty({ ...faculty });
+    setEditFaculty({
+      ...faculty,
+      name: getFacultyFullName(faculty)
+    });
     setShowEditModal(true);
   }
 
@@ -860,6 +902,11 @@ const AdminDashboard = () => {
   }
 
   async function handleUnarchiveClick(faculty) {
+    if (faculty?.role === 'admin') {
+      showErrorAlert('Admin account status cannot be changed.');
+      return;
+    }
+
     const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
     const result = await Swal.fire({
       title: 'Unarchive Faculty?',
@@ -996,7 +1043,19 @@ const AdminDashboard = () => {
         />
 
         <main className="content-main">
-          {dashboardContent[activeSection]?.content || (
+          {/* Robust loading, error, and empty state handling */}
+          {loading ? (
+            <div className="admin-loading-state" style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div className="spinner" style={{ margin: '0 auto 18px', width: 48, height: 48, border: '6px solid #e5e7eb', borderTop: '6px solid #2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 500 }}>Loading data...</div>
+            </div>
+          ) : facultyData.length === 0 && archivedFaculty.length === 0 ? (
+            <div className="admin-empty-state" style={{ textAlign: 'center', padding: '60px 0' }}>
+              <img src="/empty-state.svg" alt="No data" style={{ width: 120, opacity: 0.7, marginBottom: 18 }} />
+              <h3 style={{ color: '#64748b', fontWeight: 600, fontSize: '1.3rem', marginBottom: 8 }}>No faculty or archived users found</h3>
+              <p style={{ color: '#94a3b8', fontSize: '1rem' }}>There are currently no users in the system. Add new faculty to get started.</p>
+            </div>
+          ) : dashboardContent[activeSection]?.content || (
             <div className="admin-coming-soon">
               <h2>Administrative Section</h2>
               <p>This administrative section is under development.</p>
@@ -1120,7 +1179,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={newFaculty.firstName}
-                  onChange={(e) => setNewFaculty({...newFaculty, firstName: e.target.value})}
+                  onChange={(e) => setNewFaculty({...newFaculty, firstName: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter first name"
                   style={{
                     width: '100%',
@@ -1158,7 +1217,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={newFaculty.lastName}
-                  onChange={(e) => setNewFaculty({...newFaculty, lastName: e.target.value})}
+                  onChange={(e) => setNewFaculty({...newFaculty, lastName: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter last name"
                   style={{
                     width: '100%',
@@ -1288,7 +1347,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={newFaculty.department}
-                  onChange={(e) => setNewFaculty({...newFaculty, department: e.target.value})}
+                  onChange={(e) => setNewFaculty({...newFaculty, department: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter department"
                   style={{
                     width: '100%',
@@ -1558,7 +1617,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={editFaculty.name || ''}
-                  onChange={(e) => setEditFaculty({...editFaculty, name: e.target.value})}
+                  onChange={(e) => setEditFaculty({...editFaculty, name: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter full name"
                   style={{
                     width: '100%',
@@ -1650,7 +1709,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   value={editFaculty.department || ''}
-                  onChange={(e) => setEditFaculty({...editFaculty, department: e.target.value})}
+                  onChange={(e) => setEditFaculty({...editFaculty, department: sanitizeTextOnlyInput(e.target.value)})}
                   placeholder="Enter department"
                   style={{
                     width: '100%',

@@ -226,6 +226,121 @@
     border-color: #3498db;
 }
 
+.course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.course-card {
+    background: white;
+    border: 1px solid #e6eef6;
+    border-radius: 18px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 24px rgba(15, 63, 112, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.course-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.course-code {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1f3c63;
+}
+
+.course-name {
+    margin-top: 0.35rem;
+    color: #475569;
+    font-size: 0.97rem;
+}
+
+.course-meta {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    color: #4f5d75;
+    font-size: 0.92rem;
+}
+
+.course-meta strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #1f3c63;
+    font-weight: 700;
+}
+
+.course-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    align-items: center;
+}
+
+.course-card-actions .action-btn {
+    white-space: nowrap;
+}
+
+.activity-card {
+    border: 1px solid #e9f1f9;
+    border-radius: 16px;
+    padding: 1.1rem;
+    background: white;
+    box-shadow: 0 10px 25px rgba(18, 52, 77, 0.05);
+}
+
+.activity-card + .activity-card {
+    margin-top: 1rem;
+}
+
+.upload-group {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid #e7eef6;
+}
+
+.upload-group h5 {
+    margin: 0 0 0.55rem 0;
+    font-size: 0.96rem;
+    color: #2f4a63;
+    font-weight: 700;
+}
+
+.upload-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    margin-top: 0.6rem;
+}
+
+.file-preview-list {
+    margin-top: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.file-preview-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #eef4f7;
+    color: #33475b;
+    font-size: 0.95rem;
+}
+
 .item-header {
     display: flex;
     justify-content: space-between;

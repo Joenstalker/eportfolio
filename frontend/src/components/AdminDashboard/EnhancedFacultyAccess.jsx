@@ -381,7 +381,20 @@ const EnhancedFacultyAccess = ({ user }) => {
                         {faculty.firstName.charAt(0)}{faculty.lastName.charAt(0)}
                       </div>
                       <div className="faculty-details">
-                        <h4>{faculty.firstName} {faculty.lastName}</h4>
+                        <h4>{(() => {
+                          const rawName = faculty.name && String(faculty.name).trim()
+                            ? String(faculty.name).trim()
+                            : `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+                          const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+                          if (!normalizedName) return '';
+                          const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+                          const nameParts = normalizedName.split(' ');
+                          const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+                          if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+                            return nameParts.slice(0, -1).join(' ');
+                          }
+                          return normalizedName;
+                        })()}</h4>
                         <p>{faculty.email}</p>
                         <span className={`status-badge ${faculty.status}`}>
                           {faculty.status}

@@ -1,23 +1,93 @@
 import React, { useState, useContext, useEffect } from 'react';
-import  AuthContext  from '../../contexts/AuthContext';
+import AuthContext from '../../contexts/AuthContext';
 import './facultyComponents.css';
-import { FaTrash, FaDownload } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import SyllabusSections from './SyllabusSections';
+
+const VALID_SEMESTERS = ['First Semester', 'Second Semester'];
+
+const normalizeText = (value) => (value || '').trim().toLowerCase();
 
 const Syllabus = () => {
     const { user, ensureToken } = useContext(AuthContext);
     const [syllabi, setSyllabi] = useState([]);
-    const [newSyllabus, setNewSyllabus] = useState({
-        subjectCode: '',
-        subjectName: '',
-        academicYear: '',
-        semester: '',
-        file: null
-    });
+    const [assignedCourses, setAssignedCourses] = useState([]);
+    const [selectedCourseId, setSelectedCourseId] = useState('');
+    const [selectedSectionId, setSelectedSectionId] = useState('');
+    const [storageStatus, setStorageStatus] = useState({ isFull: null, message: 'Checking storage status...' });
 
     useEffect(() => {
+        loadAssignedCourses();
         loadSyllabi();
+        loadStorageStatus();
     }, []);
+
+    const loadStorageStatus = async () => {
+        try {
+            const token = ensureToken();
+            if (!token) {
+                setStorageStatus({ isFull: null, message: 'Storage status unavailable' });
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/syllabus/storage-status', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            setStorageStatus({
+                isFull: typeof result.isFull === 'boolean' ? result.isFull : null,
+                message: result.message || 'Storage status unavailable'
+            });
+        } catch (error) {
+            console.error('Error fetching storage status:', error);
+            setStorageStatus({ isFull: null, message: 'Storage status unavailable' });
+        }
+    };
+
+    const loadAssignedCourses = async () => {
+        try {
+            const token = ensureToken();
+            if (!token) {
+                return;
+            }
+
+            const response = await fetch('/api/teaching/courses', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const courseList = Array.isArray(data?.courses) ? data.courses : [];
+            const uniqueCourses = [];
+            const seen = new Set();
+
+            courseList.forEach((course) => {
+                const key = String(course?._id || '');
+                if (!key || seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                uniqueCourses.push(course);
+            });
+
+            setAssignedCourses(uniqueCourses);
+        } catch (error) {
+            console.error('Error loading assigned courses for syllabus view:', error);
+            setAssignedCourses([]);
+        }
+    };
 
     const loadSyllabi = async () => {
         try {
@@ -26,17 +96,17 @@ const Syllabus = () => {
                 console.error('No token available');
                 return;
             }
-            
+
             const response = await fetch('http://localhost:5000/api/syllabus', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
             setSyllabi(Array.isArray(data) ? data : (data.syllabi || []));
         } catch (error) {
@@ -59,212 +129,195 @@ const Syllabus = () => {
         }
     };
 
-    const addSyllabus = async () => {
-        if (!newSyllabus.subjectCode || !newSyllabus.subjectName || !newSyllabus.file) {
-            Swal.fire({
-                title: 'Missing Fields!',
-                text: 'Please fill in all required fields and upload a file',
-                icon: 'warning',
-                confirmButtonColor: '#e74c3c'
-            });
-            return;
-        }
+    const getSyllabusForCourse = (course) => {
+        if (!course) return null;
+        const normalizedCode = String(course.courseCode || '').trim().toLowerCase();
+        return syllabi.find((syllabus) => String(syllabus.subjectCode || '').trim().toLowerCase() === normalizedCode) || null;
+    };
 
+    const isPdfFile = (file) => {
+        if (!file) return false;
+        const hasPdfMime = file.type === 'application/pdf';
+        const hasPdfExtension = (file.name || '').toLowerCase().endsWith('.pdf');
+        return hasPdfMime || hasPdfExtension;
+    };
+
+    const uploadSyllabus = async (course, file, semester, academicYear) => {
         try {
             const token = ensureToken();
-            if (!token) {
-                Swal.fire({
-                    title: 'Authentication Required!',
-                    text: 'Please log in again.',
-                    icon: 'warning',
-                    confirmButtonColor: '#e74c3c'
-                });
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('subjectCode', newSyllabus.subjectCode);
-            formData.append('subjectName', newSyllabus.subjectName);
-            formData.append('academicYear', newSyllabus.academicYear);
-            formData.append('semester', newSyllabus.semester);
-            formData.append('syllabusFile', newSyllabus.file);
+            if (!token) throw new Error('Authentication required');
+
+            const fd = new FormData();
+            fd.append('subjectCode', course.courseCode);
+            fd.append('subjectName', course.courseName || '');
+            fd.append('academicYear', academicYear);
+            fd.append('semester', semester);
+            fd.append('syllabusFile', file);
 
             const response = await fetch('http://localhost:5000/api/syllabus', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
-                body: formData
+                body: fd
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
+
             const result = await response.json();
-            setSyllabi([...syllabi, result.syllabus]);
-            setNewSyllabus({
-                subjectCode: '', subjectName: '', academicYear: '', semester: '', file: null
-            });
-            document.getElementById('syllabus-file').value = '';
-            Swal.fire({
-                title: 'Success!',
-                text: 'Syllabus uploaded successfully!',
-                icon: 'success',
-                confirmButtonColor: '#3498db',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        } catch (error) {
-            console.error('Error uploading syllabus:', error);
-            if (error.message.includes('Failed to fetch')) {
-                Swal.fire({
-                    title: 'Connection Error!',
-                    text: 'Unable to connect to server. Please make sure the backend is running.',
-                    icon: 'error',
-                    confirmButtonColor: '#e74c3c'
-                });
-            } else {
-                Swal.fire({
-                    title: 'Error!',
-                    text: `Error uploading syllabus: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonColor: '#e74c3c'
-                });
-            }
+            if (!response.ok) throw new Error(result.message || 'Upload failed');
+
+            setSyllabi((prev) => [
+                ...prev.filter((s) => String(s.subjectCode || '').trim().toLowerCase() !== String(course.courseCode || '').trim().toLowerCase()),
+                result.syllabus
+            ]);
+
+            Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Syllabus saved to course reference.', timer: 1400, showConfirmButton: false });
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Upload failed', text: err.message || 'Upload failed', confirmButtonColor: '#e74c3c' });
         }
     };
 
-    const deleteSyllabus = async (id) => {
-        const confirm = await Swal.fire({
-            title: 'Are you sure?',
-            text: 'This action cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#e74c3c',
-            cancelButtonColor: '#95a5a6',
-            confirmButtonText: 'Delete'
+    const handleCourseFileChange = async (course, event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!isPdfFile(file)) {
+            Swal.fire({ icon: 'error', title: 'Invalid format', text: 'Please upload a PDF file.' });
+            event.target.value = '';
+            return;
+        }
+
+        const { value: semester } = await Swal.fire({
+            title: 'Semester',
+            input: 'select',
+            inputOptions: {
+                'First Semester': 'First Semester',
+                'Second Semester': 'Second Semester'
+            },
+            inputPlaceholder: 'Select semester',
+            showCancelButton: true
         });
 
-        if (confirm.isConfirmed) {
-            try {
-                const token = ensureToken();
-                const response = await fetch(`http://localhost:5000/api/syllabus/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                setSyllabi(syllabi.filter(syllabus => syllabus._id !== id));
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: 'Syllabus has been deleted.',
-                    icon: 'success',
-                    confirmButtonColor: '#3498db',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } catch (error) {
-                console.error('Error deleting syllabus:', error);
-                Swal.fire({
-                    title: 'Error!',
-                    text: `Error deleting syllabus: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonColor: '#e74c3c'
-                });
-            }
+        if (!semester) {
+            event.target.value = '';
+            return;
         }
+
+        const { value: academicYear } = await Swal.fire({
+            title: 'Academic Year',
+            input: 'text',
+            inputPlaceholder: 'e.g., 2024-2025',
+            showCancelButton: true
+        });
+
+        if (!academicYear) {
+            event.target.value = '';
+            return;
+        }
+
+        await uploadSyllabus(course, file, semester, academicYear);
+        event.target.value = '';
+    };
+
+    const selectCourse = (courseId) => {
+        setSelectedCourseId(courseId);
+        setSelectedSectionId('');
     };
 
     return (
         <div className="faculty-section">
             <div className="section-header">
-                <h2>Course Syllabus</h2>
-                <p>Manage your course syllabi</p>
+                <div>
+                    <h2>Syllabus</h2>
+                    <p>Organize teaching evidence by course, section, and activity.</p>
+                </div>
             </div>
 
             <div className="content-card">
-                <h3>Upload Syllabus</h3>
-                
-                <div className="form-grid">
-                    <div className="form-group">
-                        <label>Subject Code *</label>
-                        <input
-                            type="text"
-                            value={newSyllabus.subjectCode}
-                            onChange={(e) => setNewSyllabus({...newSyllabus, subjectCode: e.target.value})}
-                            placeholder="e.g., CS101"
-                        />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div>
+                        <h3 style={{ margin: 0 }}>Assigned Courses</h3>
+                        <p style={{ color: '#666', marginTop: '0.35rem' }}>Start with a course, then choose a section and upload activity evidence.</p>
                     </div>
-                    <div className="form-group">
-                        <label>Subject Name *</label>
-                        <input
-                            type="text"
-                            value={newSyllabus.subjectName}
-                            onChange={(e) => setNewSyllabus({...newSyllabus, subjectName: e.target.value})}
-                            placeholder="e.g., Introduction to Programming"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Academic Year</label>
-                        <input
-                            type="text"
-                            value={newSyllabus.academicYear}
-                            onChange={(e) => setNewSyllabus({...newSyllabus, academicYear: e.target.value})}
-                            placeholder="e.g., 2024-2025"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Semester</label>
-                        <select 
-                            value={newSyllabus.semester}
-                            onChange={(e) => setNewSyllabus({...newSyllabus, semester: e.target.value})}
-                        >
-                            <option value="First Semester">First Semester</option>
-                            <option value="Second Semester">Second Semester</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Syllabus File *</label>
-                        <input
-                            id="syllabus-file"
-                            type="file"
-                            accept=".pdf,.doc,.docx"
-                            onChange={(e) => setNewSyllabus({...newSyllabus, file: e.target.files[0]})}
-                        />
+                    <div style={{ minWidth: '240px', color: '#475569' }}>
+                        {storageStatus.isFull === true ? <span style={{ color: '#d14343' }}>{storageStatus.message}</span> : <span>{storageStatus.message}</span>}
                     </div>
                 </div>
 
-                <button className="save-button" onClick={addSyllabus}>
-                    Upload Syllabus
-                </button>
+                {assignedCourses.length === 0 ? (
+                    <div className="empty-state" style={{ marginTop: '1.5rem' }}>
+                        No assigned courses yet. Please upload a syllabus for an assigned subject or contact your administrator to get assigned.
+                    </div>
+                ) : (
+                    <div className="course-grid">
+                        {assignedCourses.map((course) => {
+                            const matched = getSyllabusForCourse(course);
+                            return (
+                                <div key={course._id} className="course-card">
+                                    <div className="course-card-header">
+                                        <div>
+                                            <div className="course-code">{course.courseCode}</div>
+                                            <div className="course-name">{course.courseName}</div>
+                                        </div>
+                                        <div className="section-badge" style={{ background: matched ? '#ebf8ff' : '#fff4e5', color: matched ? '#2563eb' : '#ad5500' }}>
+                                            {matched ? 'Syllabus available' : 'No syllabus yet'}
+                                        </div>
+                                    </div>
 
-                <div className="items-list" style={{ marginTop: '2rem' }}>
-                    <h3>Your Syllabi</h3>
-                    {syllabi.map(syllabus => (
-                        <div key={syllabus._id} className="item-card" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
-                            <div className="item-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h4>{syllabus.subjectCode} - {syllabus.subjectName}</h4>
-                                <span className="section-badge" style={{ fontSize: '0.9rem', color: '#888' }}>{syllabus.academicYear}</span>
-                            </div>
-                            <p style={{ fontSize: '0.85rem', color: '#666' }}><strong>Semester:</strong> {syllabus.semester}</p>
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                                <a href={`http://localhost:5000${syllabus.syllabusFile?.fileUrl || syllabus.fileUrl || ''}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#3498db', textDecoration: 'none' }}>
-                                    <FaDownload style={{ marginRight: '0.5rem' }} /> Download Syllabus
-                                </a>
-                                <button onClick={() => deleteSyllabus(syllabus._id)} style={{ display: 'flex', alignItems: 'center', backgroundColor: '#e74c3c', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                                    <FaTrash style={{ marginRight: '0.5rem' }} /> Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                                    <div className="course-meta">
+                                        <div>
+                                            <strong>Academic Year</strong>
+                                            <div>{matched?.academicYear || 'TBD'}</div>
+                                        </div>
+                                        <div>
+                                            <strong>Semester</strong>
+                                            <div>{matched?.semester || course.semester || 'TBD'}</div>
+                                        </div>
+                                        <div>
+                                            <strong>Section</strong>
+                                            <div>{course.section || 'Not assigned'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="course-card-actions">
+                                        {matched && (
+                                            <a href={`http://localhost:5000${matched.syllabusFile?.fileUrl || matched.fileUrl || ''}`} target="_blank" rel="noopener noreferrer" className="action-btn view">
+                                                View Syllabus
+                                            </a>
+                                        )}
+                                        <label className="action-btn edit" style={{ cursor: 'pointer' }}>
+                                            {matched ? 'Replace Syllabus' : 'Upload Syllabus'}
+                                            <input
+                                                type="file"
+                                                accept=".pdf"
+                                                style={{ display: 'none' }}
+                                                onChange={(e) => handleCourseFileChange(course, e)}
+                                            />
+                                        </label>
+                                        <button className="save-button" onClick={() => selectCourse(course._id)} style={{ minWidth: '150px' }}>
+                                            Manage Course
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
+
+            {selectedCourseId ? (
+                <SyllabusSections
+                    courses={assignedCourses}
+                    facultyId={user?._id || user?.id}
+                    ensureToken={ensureToken}
+                    selectedCourseId={selectedCourseId}
+                    selectedSectionId={selectedSectionId}
+                    onSelectCourse={(id) => selectCourse(id)}
+                    onSelectSection={(id) => setSelectedSectionId(id)}
+                />
+            ) : assignedCourses.length > 0 ? (
+                <div className="content-card" style={{ marginTop: '1rem' }}>
+                    <div className="empty-state">Select a course card above to open section activity evidence.</div>
+                </div>
+            ) : null}
         </div>
     );
 };

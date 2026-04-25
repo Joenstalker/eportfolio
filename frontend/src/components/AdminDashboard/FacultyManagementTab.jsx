@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import './FacultyManagementTab.css';
 
 const FacultyManagementTab = ({
@@ -37,6 +38,12 @@ const FacultyManagementTab = ({
 
   const hasFacultyMembers = Object.keys(categorizedFaculty).length > 0;
 
+  // Only one department expanded at a time
+  const [expandedDept, setExpandedDept] = useState(null);
+  const toggleDepartment = (dept) => {
+    setExpandedDept((prev) => (prev === dept ? null : dept));
+  };
+
   return (
     <div className="faculty-management">
       <div className="section-header">
@@ -61,60 +68,78 @@ const FacultyManagementTab = ({
       ) : (
         <div className="faculty-table-container">
           {hasFacultyMembers ? (
-            Object.entries(categorizedFaculty).map(([department, facultyList]) => (
-              <div key={department} className="faculty-category">
-                <div className="faculty-category-header">
-                  <h4>{department}</h4>
-                  <div className="category-stats">
-                    <span className="count-badge">
-                      {facultyList.length} active faculty
-                    </span>
+            Object.entries(categorizedFaculty).map(([department, facultyList]) => {
+              const isExpanded = expandedDept === department;
+              return (
+                <div key={department} className={`faculty-card${isExpanded ? ' expanded' : ''}`}>
+                  <button className={`faculty-card-header${isExpanded ? ' active' : ''}`} onClick={() => toggleDepartment(department)}>
+                    <span className="faculty-card-title">{department}</span>
+                    <span className="faculty-card-badge">{facultyList.length} active faculty</span>
+                    <span className="faculty-card-chevron">{isExpanded ? <FiChevronUp /> : <FiChevronDown />}</span>
+                  </button>
+                  <div className={`faculty-card-body${isExpanded ? ' expanded' : ''}`} style={{ maxHeight: isExpanded ? 600 : 0, transition: 'max-height 0.4s cubic-bezier(.4,2,.6,1)', overflow: 'hidden' }}>
+                    {isExpanded && (
+                      facultyList.length > 0 ? (
+                        <table className="faculty-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Email</th>
+                              <th>Role</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {facultyList.map((faculty) => {
+                              const getFacultyFullName = (faculty) => {
+                                if (!faculty) return '';
+                                const rawName = faculty.name && String(faculty.name).trim()
+                                  ? String(faculty.name).trim()
+                                  : `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
+                                const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+                                if (!normalizedName) return '';
+                                const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+                                const nameParts = normalizedName.split(' ');
+                                const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+                                if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+                                  return nameParts.slice(0, -1).join(' ');
+                                }
+                                return normalizedName;
+                              };
+                              return (
+                                <tr key={faculty._id}>
+                                  <td>{getFacultyFullName(faculty)}</td>
+                                  <td>{faculty.email}</td>
+                                  <td>{faculty.role}</td>
+                                  <td>
+                                    <div className="action-buttons">
+                                      <button
+                                        className="edit-btn"
+                                        onClick={() => onEditClick(faculty)}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        className="archive-btn"
+                                        onClick={() => onArchiveClick(faculty)}
+                                      >
+                                        Archive
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="empty-state">No faculty available</div>
+                      )
+                    )}
                   </div>
                 </div>
-
-                {/* Active Faculty Table */}
-                <div className="faculty-subsection">
-                  <table className="faculty-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {facultyList.map((faculty) => {
-                        const fullName = `${faculty.firstName || ''} ${faculty.lastName || ''}`.trim();
-                        return (
-                          <tr key={faculty._id}>
-                            <td>{fullName}</td>
-                            <td>{faculty.email}</td>
-                            <td>{faculty.role}</td>
-                            <td>
-                              <div className="action-buttons">
-                                <button
-                                  className="edit-btn"
-                                  onClick={() => onEditClick(faculty)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="archive-btn"
-                                  onClick={() => onArchiveClick(faculty)}
-                                >
-                                  Archive
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="empty-state">No faculty members found.</div>
           )}

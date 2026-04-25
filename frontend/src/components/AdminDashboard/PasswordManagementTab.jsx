@@ -320,7 +320,20 @@ const PasswordManagementTab = () => {
                             {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                           </div>
                           <div>
-                            <div className="user-name">{user.firstName} {user.lastName}</div>
+                            <div className="user-name">{(() => {
+                              const rawName = user.name && String(user.name).trim()
+                                ? String(user.name).trim()
+                                : `${user.firstName || ''} ${user.lastName || ''}`.trim();
+                              const normalizedName = rawName.replace(/\s+/g, ' ').trim();
+                              if (!normalizedName) return '';
+                              const roleLikeSuffixes = new Set(['user', 'admin', 'faculty', 'staff', 'hod']);
+                              const nameParts = normalizedName.split(' ');
+                              const lastPart = nameParts[nameParts.length - 1]?.toLowerCase();
+                              if (nameParts.length > 1 && roleLikeSuffixes.has(lastPart)) {
+                                return nameParts.slice(0, -1).join(' ');
+                              }
+                              return normalizedName;
+                            })()}</div>
                             <div className="user-email">{user.email}</div>
                           </div>
                         </div>

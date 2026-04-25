@@ -4,8 +4,11 @@ const TeachingPortfolio = require('../models/TeachingPortfolio');
 const Course = require('../models/Course');
 const CourseAssignment = require('../models/CourseAssignment');
 const ClassPortfolio = require('../models/ClassPortfolio');
+const Syllabus = require('../models/Syllabus');
 const UserActivity = require('../models/UserActivity');
 const auth = require('../middleware/auth');
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeCode = (value = '') => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 // Get faculty dashboard stats
 router.get('/dashboard-stats', auth, async (req, res) => {
@@ -91,19 +94,138 @@ router.get('/courses', auth, async (req, res) => {
         const assignments = await CourseAssignment.find({ facultyId: req.user.id })
             .populate('courseId')
             .populate('facultyId');
-        
-        const courses = assignments.map(assignment => ({
-            _id: assignment.courseId._id,
-            courseCode: assignment.courseId.courseCode,
-            courseName: assignment.courseId.courseName,
-            description: assignment.courseId.description,
-            credits: assignment.courseId.credits,
-            department: assignment.courseId.department,
-            semester: assignment.semester,
-            section: assignment.section,
-            maxStudents: assignment.courseId.maxStudents,
-            isActive: assignment.courseId.isActive
-        }));
+
+        const assignmentCourses = assignments
+            .filter((assignment) => assignment.courseId)
+            .map((assignment) => ({
+                _id: assignment.courseId._id,
+                courseCode: assignment.courseId.courseCode,
+                courseName: assignment.courseId.courseName,
+                description: assignment.courseId.description,
+                credits: assignment.courseId.credits,
+                department: assignment.courseId.department,
+                semester: assignment.semester,
+                section: assignment.section,
+                maxStudents: assignment.courseId.maxStudents,
+                isActive: assignment.courseId.isActive,
+                source: 'assignment'
+            }));
+
+        const assignedCourseIds = new Set(
+            assignmentCourses.map((course) => String(course._id))
+        );
+
+        const [classPortfolios, teachingPortfolio, syllabi] = await Promise.all([
+            ClassPortfolio.find({ facultyId: req.user.id }).select('subjectCode subjectName'),
+            TeachingPortfolio.findOne({ facultyId: req.user.id }).select('subjects.subjectCode subjects.subjectName subjects.semester subjects.section'),
+            Syllabus.find({ facultyId: req.user.id }).select('subjectCode subjectName semester')
+        ]);
+
+        const courseCodeCandidates = new Set();
+        const courseNameCandidates = new Set();
+        const subjectMeta = new Map();
+
+        classPortfolios.forEach((entry) => {
+            const subjectCode = String(entry.subjectCode || '').trim();
+            const subjectName = String(entry.subjectName || '').trim();
+            if (subjectCode) {
+                courseCodeCandidates.add(subjectCode.toUpperCase());
+                subjectMeta.set(subjectCode.toUpperCase(), {
+                    section: '',
+                    semester: '',
+                    source: 'class-portfolio'
+                });
+            }
+            if (subjectName) {
+                courseNameCandidates.add(subjectName);
+            }
+        });
+
+        (teachingPortfolio?.subjects || []).forEach((subject) => {
+            const subjectCode = String(subject.subjectCode || '').trim();
+            const subjectName = String(subject.subjectName || '').trim();
+            if (subjectCode) {
+                const normalizedCode = subjectCode.toUpperCase();
+                courseCodeCandidates.add(normalizedCode);
+                subjectMeta.set(normalizedCode, {
+                    section: subject.section || '',
+                    semester: subject.semester || '',
+                    source: 'teaching-portfolio'
+                });
+            }
+            if (subjectName) {
+                courseNameCandidates.add(subjectName);
+            }
+        });
+
+        (syllabi || []).forEach((entry) => {
+            const subjectCode = String(entry.subjectCode || '').trim();
+            const subjectName = String(entry.subjectName || '').trim();
+            if (subjectCode) {
+                const normalizedCode = subjectCode.toUpperCase();
+                courseCodeCandidates.add(normalizedCode);
+                subjectMeta.set(normalizedCode, {
+                    section: '',
+                    semester: entry.semester || '',
+                    source: 'syllabus'
+                });
+            }
+            if (subjectName) {
+                courseNameCandidates.add(subjectName);
+            }
+        });
+
+        let inferredCourses = [];
+        if (courseCodeCandidates.size > 0 || courseNameCandidates.size > 0) {
+            // Normalize candidate codes (strip non-alphanumerics and uppercase)
+            const normalizedCandidates = new Set(
+                Array.from(courseCodeCandidates)
+                    .map((c) => normalizeCode(c))
+                    .filter(Boolean)
+            );
+
+            const courseNameRegex = Array.from(courseNameCandidates)
+                .filter(Boolean)
+                .map((name) => new RegExp(`^${escapeRegex(name)}$`, 'i'));
+
+            // Fetch potential courses and perform normalized matching in JS to handle
+            // minor formatting differences (spaces, dashes, leading zeros, case).
+            const potentialCourses = await Course.find({}).select('_id courseCode courseName description credits department semester maxStudents isActive');
+
+            inferredCourses = potentialCourses.filter((course) => {
+                const normalizedCourseCode = normalizeCode(course.courseCode || '');
+                if (normalizedCourseCode && normalizedCandidates.has(normalizedCourseCode)) {
+                    return true;
+                }
+
+                if (courseNameRegex.length > 0 && course.courseName) {
+                    return courseNameRegex.some((rx) => rx.test(course.courseName));
+                }
+
+                return false;
+            });
+        }
+
+        const inferredMapped = inferredCourses
+            .filter((course) => !assignedCourseIds.has(String(course._id)))
+            .map((course) => {
+                const meta = subjectMeta.get(String(course.courseCode || '').toUpperCase()) || {};
+                return {
+                    _id: course._id,
+                    courseCode: course.courseCode,
+                    courseName: course.courseName,
+                    description: course.description,
+                    credits: course.credits,
+                    department: course.department,
+                    semester: meta.semester || course.semester || '',
+                    section: meta.section || '',
+                    maxStudents: course.maxStudents,
+                    isActive: course.isActive,
+                    source: meta.source || 'inferred'
+                };
+            });
+
+        const courses = [...assignmentCourses, ...inferredMapped];
 
         res.json({ courses });
     } catch (error) {

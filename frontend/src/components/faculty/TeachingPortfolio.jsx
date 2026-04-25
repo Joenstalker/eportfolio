@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 import AuthContext  from '../../contexts/AuthContext';
 import './facultyComponents.css';
+import TeachingActivities from './TeachingActivities';
 
 const TeachingPortfolio = () => {
     const { user, ensureToken, logout } = useContext(AuthContext);
@@ -82,42 +83,7 @@ const TeachingPortfolio = () => {
                     View Class Lists
                 </button>
             </div>
-
-            <div className="content-card">
-                <h3>Your Assigned Courses ({assignedCourses.length})</h3>
-                
-                {/* Assigned Courses List */}
-                <div className="items-list">
-                    {assignedCourses.length === 0 ? (
-                        <div className="empty-state">
-                            <p>No courses assigned to you yet. Courses will appear here once assigned by administrators.</p>
-                        </div>
-                    ) : (
-                        assignedCourses.map(course => (
-                            <div key={course._id} className="item-card">
-                                <div className="item-header">
-                                    <h4>{course.courseCode} - {course.courseName}</h4>
-                                    <span className="section-badge">{course.section}</span>
-                                </div>
-                                <p><strong>Department:</strong> {course.department}</p>
-                                <p><strong>Semester:</strong> {course.semester}</p>
-                                <p><strong>Credits:</strong> {course.credits}</p>
-                                <p><strong>Max Students:</strong> {course.maxStudents}</p>
-                                {course.description && (
-                                    <p><strong>Description:</strong> {course.description}</p>
-                                )}
-                                <div className="item-actions">
-                                    <button className="action-btn view">View Details</button>
-                                    <button className="action-btn classlists" onClick={() => navigate(`/faculty/${user?._id || user?.id}/class-lists`)}>
-                                        View Class List
-                                    </button>
-                                    <button className="action-btn edit">Manage</button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
+            <TeachingActivities facultyId={user?._id || user?.id} />
         </div>
     );
 };

@@ -30,6 +30,7 @@ const Research = () => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
     const doiUrlPattern = /^https:\/\/doi\.org\/10\.\d{4,9}\/[\w.()\-;/:]+$/i;
+    const doiValuePattern = /^10\.\d{4,9}\/[\w.()\-;/:]+$/i;
 
     const validateResearchForm = (paper) => {
         const errors = [];
@@ -76,12 +77,8 @@ const Research = () => {
             errors.push('Journal/Conference is required.');
         }
 
-        if (!normalizedAbstract) {
-            errors.push('Abstract field is required.');
-        }
-
-        if (normalizedDoi && !doiUrlPattern.test(normalizedDoi)) {
-            errors.push('DOI must be a valid DOI link (e.g., https://doi.org/10.1080/10509585.2015.1092083).');
+        if (normalizedDoi && !doiUrlPattern.test(normalizedDoi) && !doiValuePattern.test(normalizedDoi)) {
+            errors.push('DOI must be a valid DOI value or DOI link (e.g., 10.1080/10509585.2015.1092083 or https://doi.org/10.1080/10509585.2015.1092083).');
         }
 
         if (paper.publicationDate) {
@@ -105,10 +102,6 @@ const Research = () => {
             if (!isAllowedExtension || !isAllowedMime) {
                 errors.push('Only PDF, DOC, and DOCX files are allowed.');
             }
-        }
-
-        if (['submitted', 'published'].includes((paper.status || '').toLowerCase()) && !paper.file) {
-            errors.push('Please upload the research paper file before submitting.');
         }
 
         return errors;

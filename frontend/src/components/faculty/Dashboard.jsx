@@ -7,7 +7,8 @@ import TeachingPortfolio from './TeachingPortfolio';
 import ClassPortfolio from './ClassPortfolio';
 import SeminarsCertificates from './SeminarsCertificates';
 import Research from './Research';
-import Syllabus from './Syllabus';
+// Use updated modern syllabus dashboard
+import Syllabus from './SyllabusDashboard';
 import InstructionalMaterials from './InstructionalMaterials';
 import './Dashboard.css';
 
