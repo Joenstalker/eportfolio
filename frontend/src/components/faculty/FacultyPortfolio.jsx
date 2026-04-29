@@ -718,10 +718,6 @@ const FacultyPortfolio = () => {
                         <button
                             className="btn-submit-review"
                             onClick={async () => {
-                                if (progressPercentage < 30) {
-                                    Swal.fire({ icon: 'warning', title: 'Portfolio Incomplete', text: 'Your portfolio progress is low. Please upload more documents before submitting.', confirmButtonColor: '#f59e0b' });
-                                    return;
-                                }
                                 const result = await Swal.fire({
                                     icon: 'question',
                                     title: 'Submit Portfolio?',
@@ -2559,10 +2555,6 @@ const FacultyPortfolio = () => {
                                 <button
                                     className="btn-submit-review btn-submit-review-large"
                                     onClick={async () => {
-                                        if (progressPercentage < 30) {
-                                            Swal.fire({ icon: 'warning', title: 'Portfolio Incomplete', text: 'Your portfolio progress is low. Please upload more documents before submitting.', confirmButtonColor: '#f59e0b' });
-                                            return;
-                                        }
                                         const result = await Swal.fire({
                                             icon: 'question',
                                             title: 'Submit Portfolio?',
