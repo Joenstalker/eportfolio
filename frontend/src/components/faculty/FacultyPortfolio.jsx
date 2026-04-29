@@ -432,10 +432,10 @@ const FacultyPortfolio = () => {
 
     const loadPortfolioData = async () => {
         try {
-            const token = ensureToken();
+            const token = await ensureToken();
             if (!token) return;
 
-            const response = await fetch('http://localhost:5000/api/faculty/portfolio', {
+            const response = await fetch(`/api/faculty-portfolio/${user.id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

@@ -40,9 +40,17 @@ const upload = multer({
 // Get faculty portfolio by faculty ID
 router.get('/:facultyId', auth, async (req, res) => {
     try {
-        const portfolio = await FacultyPortfolio.findOne({ facultyId: req.params.facultyId });
+        let portfolio = await FacultyPortfolio.findOne({ facultyId: req.params.facultyId });
         if (!portfolio) {
-            return res.status(404).json({ message: 'Portfolio not found' });
+            // Auto-create portfolio if it doesn't exist
+            portfolio = new FacultyPortfolio({
+                facultyId: req.params.facultyId,
+                submittedForReview: false,
+                adminReviewStatus: 'not_submitted',
+                adminReviewMessage: '',
+                missingDocuments: []
+            });
+            await portfolio.save();
         }
         res.json(portfolio);
     } catch (error) {
@@ -178,14 +186,24 @@ router.post('/:facultyId/submit', auth, async (req, res) => {
     try {
         const { facultyId } = req.params;
 
-        // Only allow the faculty themselves to submit
+        // Allow faculty to submit their own portfolio, or admin to submit on behalf
         if (req.user.id !== facultyId && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
 
         let portfolio = await FacultyPortfolio.findOne({ facultyId });
         if (!portfolio) {
-            return res.status(404).json({ message: 'Portfolio not found' });
+            // Auto-create portfolio if it doesn't exist
+            portfolio = new FacultyPortfolio({
+                facultyId,
+                submittedForReview: true,
+                submittedAt: new Date(),
+                adminReviewStatus: 'pending',
+                adminReviewMessage: '',
+                missingDocuments: []
+            });
+            await portfolio.save();
+            return res.json({ message: 'Portfolio created and submitted for review successfully', portfolio });
         }
 
         portfolio.submittedForReview = true;
