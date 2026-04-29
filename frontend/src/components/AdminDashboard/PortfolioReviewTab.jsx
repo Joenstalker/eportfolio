@@ -175,7 +175,8 @@ const PortfolioReviewTab = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/faculty-portfolio/admin/${selectedPortfolio.facultyId._id}/review`, {
+      const facultyId = typeof selectedPortfolio.facultyId === 'object' ? selectedPortfolio.facultyId._id : selectedPortfolio.facultyId;
+      const res = await fetch(`/api/faculty-portfolio/admin/${facultyId}/review`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -228,7 +229,8 @@ const PortfolioReviewTab = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/faculty-portfolio/admin/${selectedPortfolio.facultyId._id}/review`, {
+      const facultyId = typeof selectedPortfolio.facultyId === 'object' ? selectedPortfolio.facultyId._id : selectedPortfolio.facultyId;
+      const res = await fetch(`/api/faculty-portfolio/admin/${facultyId}/review`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

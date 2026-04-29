@@ -3,7 +3,7 @@ import { AuthContext } from '../../contexts/AuthContext';
 import Swal from 'sweetalert2';
 import { FaSave, FaDownload, FaUpload, FaCheckCircle, FaTimesCircle, FaFile, FaTimes, FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import './facultyComponents.css';
-import { getPortfolio, savePortfolio } from '../../services/facultyPortfolioService';
+import { getPortfolio, savePortfolio, uploadPortfolioFile, removePortfolioFile } from '../../services/facultyPortfolioService';
 
 const FacultyPortfolio = () => {
     const { user, ensureToken } = useContext(AuthContext);
@@ -87,6 +87,16 @@ const FacultyPortfolio = () => {
     const [missingDocs, setMissingDocs] = useState([]);
     const [submittedForReview, setSubmittedForReview] = useState(false);
 
+    // Sync review states from portfolioData whenever it changes
+    useEffect(() => {
+        if (portfolioData) {
+            setReviewStatus(portfolioData.adminReviewStatus || 'not_submitted');
+            setReviewMessage(portfolioData.adminReviewMessage || '');
+            setMissingDocs(portfolioData.missingDocuments || []);
+            setSubmittedForReview(portfolioData.submittedForReview || false);
+        }
+    }, [portfolioData]);
+
     // Load portfolio data from backend
     useEffect(() => {
         const loadPortfolioFromBackend = async () => {
@@ -95,11 +105,55 @@ const FacultyPortfolio = () => {
                     const token = await ensureToken();
                     const data = await getPortfolio(user.id, token);
                     if (data) {
-                        setPortfolioData(data);
-                        setReviewStatus(data.adminReviewStatus || 'not_submitted');
-                        setReviewMessage(data.adminReviewMessage || '');
-                        setMissingDocs(data.missingDocuments || []);
-                        setSubmittedForReview(data.submittedForReview || false);
+                        // Merge backend data with default structure to ensure all fields exist
+                        const mergedData = {
+                            subjects: {
+                                default: {
+                                    subjectCode: data.subjects?.default?.subjectCode || '',
+                                    sectionCode: data.subjects?.default?.sectionCode || '',
+                                    facultyPortfolio: {
+                                        'A.1.0': data.subjects?.default?.facultyPortfolio?.['A.1.0'] || { uploaded: false, fileName: '' },
+                                        'B.1.0': data.subjects?.default?.facultyPortfolio?.['B.1.0'] || { uploaded: false, fileName: '' },
+                                        'C.1.0': data.subjects?.default?.facultyPortfolio?.['C.1.0'] || { uploaded: false, fileName: '' },
+                                        'D.1.0': data.subjects?.default?.facultyPortfolio?.['D.1.0'] || { uploaded: false, fileName: '' },
+                                        'E.1.0': data.subjects?.default?.facultyPortfolio?.['E.1.0'] || { uploaded: false, fileName: '' },
+                                        'F.1.0': data.subjects?.default?.facultyPortfolio?.['F.1.0'] || { uploaded: false, fileName: '' },
+                                        'G.1.0': data.subjects?.default?.facultyPortfolio?.['G.1.0'] || { uploaded: false, fileName: '' },
+                                        'H.1.0': data.subjects?.default?.facultyPortfolio?.['H.1.0'] || { uploaded: false, fileName: '' },
+                                        'I.1.0': data.subjects?.default?.facultyPortfolio?.['I.1.0'] || { uploaded: false, fileName: '' },
+                                        'J.1.0': data.subjects?.default?.facultyPortfolio?.['J.1.0'] || { uploaded: false, fileName: '' },
+                                        'L.1.0': data.subjects?.default?.facultyPortfolio?.['L.1.0'] || { uploaded: false, fileName: '' }
+                                    },
+                                    classPortfolio: {
+                                        'A.1.0': data.subjects?.default?.classPortfolio?.['A.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'B.1.0': data.subjects?.default?.classPortfolio?.['B.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'C.1.0': data.subjects?.default?.classPortfolio?.['C.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'D.1.0': data.subjects?.default?.classPortfolio?.['D.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'E.1.0': data.subjects?.default?.classPortfolio?.['E.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'F.1.0': data.subjects?.default?.classPortfolio?.['F.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'G.1.0': data.subjects?.default?.classPortfolio?.['G.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'H.1.0': data.subjects?.default?.classPortfolio?.['H.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'I.1.0': data.subjects?.default?.classPortfolio?.['I.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'J.1.0': data.subjects?.default?.classPortfolio?.['J.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'K.1.0': data.subjects?.default?.classPortfolio?.['K.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' })),
+                                        'L.1.0': data.subjects?.default?.classPortfolio?.['L.1.0'] || Array(8).fill(null).map(() => ({ uploaded: false, fileName: '' }))
+                                    },
+                                    ClassPortfolio: data.subjects?.default?.ClassPortfolio || {},
+                                    L1: data.subjects?.default?.L1 || {},
+                                    M1: data.subjects?.default?.M1 || {},
+                                    N1: data.subjects?.default?.N1 || {}
+                                }
+                            },
+                            _id: data._id,
+                            facultyId: data.facultyId,
+                            submittedForReview: data.submittedForReview || false,
+                            adminReviewStatus: data.adminReviewStatus || 'not_submitted',
+                            adminReviewMessage: data.adminReviewMessage || '',
+                            adminReviewDate: data.adminReviewDate || null,
+                            adminReviewedBy: data.adminReviewedBy || null,
+                            missingDocuments: data.missingDocuments || []
+                        };
+                        setPortfolioData(mergedData);
                     }
                 } catch (error) {
                     console.error('Error loading portfolio:', error);
@@ -143,9 +197,6 @@ const FacultyPortfolio = () => {
         { id: 'P.1.0', name: 'Return Output Receipt', description: 'Student output receipts' }
     ];
 
-    useEffect(() => {
-        loadPortfolioData();
-    }, []);
 
     // Search and modal handlers
     const handleSearchSubject = () => {
@@ -430,28 +481,6 @@ const FacultyPortfolio = () => {
         }));
     };
 
-    const loadPortfolioData = async () => {
-        try {
-            const token = await ensureToken();
-            if (!token) return;
-
-            const response = await fetch(`/api/faculty-portfolio/${user.id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data) {
-                    setPortfolioData(data);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading portfolio data:', error);
-        }
-    };
-
     const savePortfolioData = async () => {
         setLoading(true);
         try {
@@ -529,90 +558,136 @@ const FacultyPortfolio = () => {
         }));
     };
 
-    const handleFacultyFileUpload = (item, file) => {
-        setPortfolioData(prev => ({
-            ...prev,
-            subjects: {
-                ...prev.subjects,
-                default: {
-                    ...prev.subjects.default,
-                    facultyPortfolio: {
-                        ...prev.subjects.default.facultyPortfolio,
-                        [item]: { uploaded: true, fileName: file.name }
+    const handleFacultyFileUpload = async (item, file) => {
+        try {
+            const token = await ensureToken();
+            if (!token) return;
+
+            const itemPath = `subjects.default.facultyPortfolio.${item}`;
+            await uploadPortfolioFile(user.id, file, itemPath, token);
+
+            setPortfolioData(prev => ({
+                ...prev,
+                subjects: {
+                    ...prev.subjects,
+                    default: {
+                        ...prev.subjects.default,
+                        facultyPortfolio: {
+                            ...prev.subjects.default.facultyPortfolio,
+                            [item]: { uploaded: true, fileName: file.name }
+                        }
                     }
                 }
-            }
-        }));
+            }));
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to upload file' });
+        }
     };
 
-    const handleFacultyFileRemove = (item) => {
-        setPortfolioData(prev => ({
-            ...prev,
-            subjects: {
-                ...prev.subjects,
-                default: {
-                    ...prev.subjects.default,
-                    facultyPortfolio: {
-                        ...prev.subjects.default.facultyPortfolio,
-                        [item]: { uploaded: false, fileName: '' }
+    const handleFacultyFileRemove = async (item) => {
+        try {
+            const token = await ensureToken();
+            if (!token) return;
+
+            const itemPath = `subjects.default.facultyPortfolio.${item}`;
+            await removePortfolioFile(user.id, itemPath, token);
+
+            setPortfolioData(prev => ({
+                ...prev,
+                subjects: {
+                    ...prev.subjects,
+                    default: {
+                        ...prev.subjects.default,
+                        facultyPortfolio: {
+                            ...prev.subjects.default.facultyPortfolio,
+                            [item]: { uploaded: false, fileName: '' }
+                        }
                     }
                 }
-            }
-        }));
+            }));
+        } catch (error) {
+            console.error('Error removing file:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to remove file' });
+        }
     };
 
-    const handleClassFileUpload = (item, index, file) => {
-        setPortfolioData(prev => ({
-            ...prev,
-            subjects: {
-                ...prev.subjects,
-                default: {
-                    ...prev.subjects.default,
-                    classPortfolio: {
-                        ...prev.subjects.default.classPortfolio,
-                        items: {
-                            ...prev.subjects.default.classPortfolio.items,
-                            [item]: prev.subjects.default.classPortfolio.items[item].map((data, i) =>
+    const handleClassFileUpload = async (item, index, file) => {
+        try {
+            const token = await ensureToken();
+            if (!token) return;
+
+            const itemPath = `subjects.default.classPortfolio.${item}.${index}`;
+            await uploadPortfolioFile(user.id, file, itemPath, token);
+
+            setPortfolioData(prev => ({
+                ...prev,
+                subjects: {
+                    ...prev.subjects,
+                    default: {
+                        ...prev.subjects.default,
+                        classPortfolio: {
+                            ...prev.subjects.default.classPortfolio,
+                            [item]: prev.subjects.default.classPortfolio[item].map((data, i) =>
                                 i === index ? { uploaded: true, fileName: file.name } : data
                             )
                         }
                     }
                 }
-            }
-        }));
+            }));
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to upload file' });
+        }
     };
 
-    const handleClassFileRemove = (item, index) => {
-        setPortfolioData(prev => ({
-            ...prev,
-            subjects: {
-                ...prev.subjects,
-                default: {
-                    ...prev.subjects.default,
-                    classPortfolio: {
-                        ...prev.subjects.default.classPortfolio,
-                        items: {
-                            ...prev.subjects.default.classPortfolio.items,
-                            [item]: prev.subjects.default.classPortfolio.items[item].map((data, i) =>
+    const handleClassFileRemove = async (item, index) => {
+        try {
+            const token = await ensureToken();
+            if (!token) return;
+
+            const itemPath = `subjects.default.classPortfolio.${item}.${index}`;
+            await removePortfolioFile(user.id, itemPath, token);
+
+            setPortfolioData(prev => ({
+                ...prev,
+                subjects: {
+                    ...prev.subjects,
+                    default: {
+                        ...prev.subjects.default,
+                        classPortfolio: {
+                            ...prev.subjects.default.classPortfolio,
+                            [item]: prev.subjects.default.classPortfolio[item].map((data, i) =>
                                 i === index ? { uploaded: false, fileName: '' } : data
                             )
                         }
                     }
                 }
-            }
-        }));
+            }));
+        } catch (error) {
+            console.error('Error removing file:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to remove file' });
+        }
     };
 
     const calculateProgress = () => {
-        const facultyItems = Object.values(portfolioData.subjects.default.facultyPortfolio);
-        const facultyCompleted = facultyItems.filter(item => item.uploaded).length;
+        if (!portfolioData?.subjects?.default) return 0;
+
+        const facultyItems = portfolioData.subjects.default.facultyPortfolio
+            ? Object.values(portfolioData.subjects.default.facultyPortfolio)
+            : [];
+        const facultyCompleted = facultyItems.filter(item => item && item.uploaded).length;
         const facultyTotal = facultyItems.length;
 
-        const classItems = Object.values(portfolioData.subjects.default.classPortfolio);
+        const classItems = portfolioData.subjects.default.classPortfolio
+            ? Object.values(portfolioData.subjects.default.classPortfolio)
+            : [];
         const classCompleted = classItems.reduce((total, itemArray) =>
-            total + itemArray.filter(item => item.uploaded).length, 0
+            total + (Array.isArray(itemArray) ? itemArray.filter(item => item && item.uploaded).length : 0), 0
         );
-        const classTotal = classItems.reduce((total, itemArray) => total + itemArray.length, 0);
+        const classTotal = classItems.reduce((total, itemArray) =>
+            total + (Array.isArray(itemArray) ? itemArray.length : 0), 0
+        );
 
         const totalCompleted = facultyCompleted + classCompleted;
         const totalItems = facultyTotal + classTotal;
@@ -736,6 +811,7 @@ const FacultyPortfolio = () => {
                                     });
                                     if (res.ok) {
                                         const data = await res.json();
+                                        if (data.portfolio) setPortfolioData(prev => ({ ...prev, ...data.portfolio }));
                                         setSubmittedForReview(true);
                                         setReviewStatus('pending');
                                         setReviewMessage('');
@@ -772,6 +848,8 @@ const FacultyPortfolio = () => {
                                         headers: { Authorization: `Bearer ${token}` }
                                     });
                                     if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.portfolio) setPortfolioData(prev => ({ ...prev, ...data.portfolio }));
                                         setReviewStatus('pending');
                                         setReviewMessage('');
                                         setMissingDocs([]);
@@ -887,13 +965,15 @@ const FacultyPortfolio = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {facultyFileTypes.map((fileType) => (
+                            {facultyFileTypes.map((fileType) => {
+                                const fileData = portfolioData?.subjects?.default?.facultyPortfolio?.[fileType.id] || { uploaded: false, fileName: '' };
+                                return (
                                 <tr key={fileType.id}>
                                     <td className="item-code">{fileType.id}</td>
                                     <td className="item-name">{fileType.name}</td>
                                     <td className="item-description">{fileType.description}</td>
                                     <td className="item-status">
-                                        {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
+                                        {fileData.uploaded ? (
                                             <span className="status-badge uploaded">
                                                 <FaCheckCircle /> Uploaded
                                             </span>
@@ -904,17 +984,17 @@ const FacultyPortfolio = () => {
                                         )}
                                     </td>
                                     <td className="item-file">
-                                        {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
+                                        {fileData.uploaded ? (
                                             <div className="uploaded-file">
                                                 <FaFile />
-                                                <span>{portfolioData.subjects.default.facultyPortfolio[fileType.id].fileName}</span>
+                                                <span>{fileData.fileName}</span>
                                             </div>
                                         ) : (
                                             <span className="no-file">No file uploaded</span>
                                         )}
                                     </td>
                                     <td className="item-actions">
-                                        {portfolioData.subjects.default.facultyPortfolio[fileType.id].uploaded ? (
+                                        {fileData.uploaded ? (
                                             <button
                                                 className="action-btn remove-btn"
                                                 onClick={() => handleFacultyFileRemove(fileType.id)}
@@ -938,7 +1018,8 @@ const FacultyPortfolio = () => {
                                         )}
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -950,7 +1031,7 @@ const FacultyPortfolio = () => {
                             <label>Subject Code:</label>
                             <input
                                 type="text"
-                                value={portfolioData.subjects.default.subjectCode}
+                                value={portfolioData?.subjects?.default?.subjectCode || ''}
                                 onChange={(e) => setPortfolioData(prev => ({
                                     ...prev,
                                     subjects: {
@@ -968,7 +1049,7 @@ const FacultyPortfolio = () => {
                             <label>Section Code:</label>
                             <input
                                 type="text"
-                                value={portfolioData.subjects.default.sectionCode}
+                                value={portfolioData?.subjects?.default?.sectionCode || ''}
                                 onChange={(e) => setPortfolioData(prev => ({
                                     ...prev,
                                     subjects: {
@@ -2573,6 +2654,7 @@ const FacultyPortfolio = () => {
                                             });
                                             if (res.ok) {
                                                 const data = await res.json();
+                                                if (data.portfolio) setPortfolioData(prev => ({ ...prev, ...data.portfolio }));
                                                 setSubmittedForReview(true);
                                                 setReviewStatus('pending');
                                                 setReviewMessage('');
@@ -2610,6 +2692,8 @@ const FacultyPortfolio = () => {
                                                 headers: { Authorization: `Bearer ${token}` }
                                             });
                                             if (res.ok) {
+                                                const data = await res.json();
+                                                if (data.portfolio) setPortfolioData(prev => ({ ...prev, ...data.portfolio }));
                                                 setReviewStatus('pending');
                                                 setReviewMessage('');
                                                 setMissingDocs([]);

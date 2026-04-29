@@ -42,13 +42,24 @@ router.get('/:facultyId', auth, async (req, res) => {
     try {
         let portfolio = await FacultyPortfolio.findOne({ facultyId: req.params.facultyId });
         if (!portfolio) {
-            // Auto-create portfolio if it doesn't exist
+            // Auto-create portfolio if it doesn't exist with default structure
+            const defaultSubject = {
+                subjectCode: '',
+                sectionCode: '',
+                facultyPortfolio: new Map(),
+                classPortfolio: new Map(),
+                L1: {},
+                M1: {},
+                N1: {},
+                ClassPortfolio: {}
+            };
             portfolio = new FacultyPortfolio({
                 facultyId: req.params.facultyId,
                 submittedForReview: false,
                 adminReviewStatus: 'not_submitted',
                 adminReviewMessage: '',
-                missingDocuments: []
+                missingDocuments: [],
+                subjects: new Map([['default', defaultSubject]])
             });
             await portfolio.save();
         }
@@ -63,25 +74,28 @@ router.get('/:facultyId', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
     try {
         const { facultyId, portfolioData } = req.body;
-        
+
         let portfolio = await FacultyPortfolio.findOne({ facultyId });
-        
+
         if (portfolio) {
-            // Update existing portfolio
+            // Only update subjects data — preserve review status fields
+            const updateData = {};
+            if (portfolioData.subjects) updateData.subjects = portfolioData.subjects;
+
             portfolio = await FacultyPortfolio.findOneAndUpdate(
                 { facultyId },
-                { $set: portfolioData },
+                { $set: updateData },
                 { new: true, runValidators: true }
             );
         } else {
             // Create new portfolio
             portfolio = new FacultyPortfolio({
                 facultyId,
-                ...portfolioData
+                subjects: portfolioData.subjects || new Map()
             });
             await portfolio.save();
         }
-        
+
         res.json(portfolio);
     } catch (error) {
         console.error('Error saving portfolio:', error);
@@ -95,40 +109,69 @@ router.post('/upload/:facultyId', auth, upload.single('file'), async (req, res) 
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
-        
-        const { itemPath } = req.body; // Path to the item in the portfolio structure (e.g., "subjects.default.L1.instruction.1.CO1File")
+
+        const { itemPath } = req.body; // Path to the item in the portfolio structure (e.g., "subjects.default.facultyPortfolio.A.1.0")
         const fileUrl = `/uploads/faculty-portfolio/${req.file.filename}`;
-        
+
         // Find and update the portfolio
         let portfolio = await FacultyPortfolio.findOne({ facultyId: req.params.facultyId });
-        
+
         if (!portfolio) {
             return res.status(404).json({ message: 'Portfolio not found' });
         }
-        
+
         // Parse the itemPath and update the nested structure
         const pathParts = itemPath.split('.');
+
+        // Navigate through the structure using Map.get() for Maps
         let current = portfolio;
-        
         for (let i = 0; i < pathParts.length - 1; i++) {
-            current = current[pathParts[i]];
+            const part = pathParts[i];
+            if (current instanceof Map) {
+                current = current.get(part);
+            } else if (current && current[part] !== undefined) {
+                current = current[part];
+            } else {
+                return res.status(400).json({ message: `Invalid path: ${part} not found` });
+            }
         }
-        
+
         const lastPart = pathParts[pathParts.length - 1];
-        if (current && current[lastPart] !== undefined) {
+
+        // Handle array index for classPortfolio items
+        if (Array.isArray(current) && !isNaN(lastPart)) {
+            const index = parseInt(lastPart);
+            if (current[index] !== undefined) {
+                current[index].uploaded = true;
+                current[index].fileName = req.file.originalname;
+                current[index].fileUrl = fileUrl;
+            }
+        }
+        // Handle Map or object
+        else if (current instanceof Map) {
+            const existing = current.get(lastPart);
+            if (existing) {
+                existing.uploaded = true;
+                existing.fileName = req.file.originalname;
+                existing.fileUrl = fileUrl;
+                current.set(lastPart, existing);
+            } else {
+                current.set(lastPart, { uploaded: true, fileName: req.file.originalname, fileUrl });
+            }
+        } else if (current && current[lastPart] !== undefined) {
             if (typeof current[lastPart] === 'object' && !Array.isArray(current[lastPart])) {
                 current[lastPart].uploaded = true;
                 current[lastPart].fileName = req.file.originalname;
                 current[lastPart].fileUrl = fileUrl;
             }
         }
-        
+
         await portfolio.save();
-        
-        res.json({ 
-            message: 'File uploaded successfully', 
+
+        res.json({
+            message: 'File uploaded successfully',
             fileUrl,
-            fileName: req.file.originalname 
+            fileName: req.file.originalname
         });
     } catch (error) {
         console.error('Error uploading file:', error);
@@ -140,23 +183,64 @@ router.post('/upload/:facultyId', auth, upload.single('file'), async (req, res) 
 router.delete('/file/:facultyId', auth, async (req, res) => {
     try {
         const { itemPath } = req.body;
-        
+
         let portfolio = await FacultyPortfolio.findOne({ facultyId: req.params.facultyId });
-        
+
         if (!portfolio) {
             return res.status(404).json({ message: 'Portfolio not found' });
         }
-        
+
         // Parse the itemPath and update the nested structure
         const pathParts = itemPath.split('.');
+
+        // Navigate through the structure using Map.get() for Maps
         let current = portfolio;
-        
         for (let i = 0; i < pathParts.length - 1; i++) {
-            current = current[pathParts[i]];
+            const part = pathParts[i];
+            if (current instanceof Map) {
+                current = current.get(part);
+            } else if (current && current[part] !== undefined) {
+                current = current[part];
+            } else {
+                return res.status(400).json({ message: `Invalid path: ${part} not found` });
+            }
         }
-        
+
         const lastPart = pathParts[pathParts.length - 1];
-        if (current && current[lastPart] !== undefined) {
+
+        // Handle array index for classPortfolio items
+        if (Array.isArray(current) && !isNaN(lastPart)) {
+            const index = parseInt(lastPart);
+            if (current[index] !== undefined) {
+                // Delete the file from filesystem if it exists
+                if (current[index].fileUrl) {
+                    const filePath = path.join(__dirname, '..', current[index].fileUrl);
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                }
+                current[index].uploaded = false;
+                current[index].fileName = '';
+                current[index].fileUrl = '';
+            }
+        }
+        // Handle Map or object
+        else if (current instanceof Map) {
+            const existing = current.get(lastPart);
+            if (existing) {
+                // Delete the file from filesystem if it exists
+                if (existing.fileUrl) {
+                    const filePath = path.join(__dirname, '..', existing.fileUrl);
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                }
+                existing.uploaded = false;
+                existing.fileName = '';
+                existing.fileUrl = '';
+                current.set(lastPart, existing);
+            }
+        } else if (current && current[lastPart] !== undefined) {
             if (typeof current[lastPart] === 'object' && !Array.isArray(current[lastPart])) {
                 // Delete the file from filesystem if it exists
                 if (current[lastPart].fileUrl) {
@@ -165,15 +249,14 @@ router.delete('/file/:facultyId', auth, async (req, res) => {
                         fs.unlinkSync(filePath);
                     }
                 }
-                
                 current[lastPart].uploaded = false;
                 current[lastPart].fileName = '';
                 current[lastPart].fileUrl = '';
             }
         }
-        
+
         await portfolio.save();
-        
+
         res.json({ message: 'File removed successfully' });
     } catch (error) {
         console.error('Error removing file:', error);
