@@ -1064,3 +1064,87 @@ strong {
     padding: 4px 8px;
     border-radius: 4px;
 }
+
+/* Review status banners */
+.review-banner {
+    padding: 0.85rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    margin: 0.75rem 0;
+    line-height: 1.45;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.review-banner.approved {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.review-banner.rejected {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    flex-direction: column;
+}
+
+.review-banner.pending {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.review-banner.not-submitted {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.missing-docs-list {
+    margin: 0.5rem 0 0 1.5rem;
+    padding-left: 1rem;
+    font-size: 0.85rem;
+}
+
+.missing-docs-list li {
+    margin-bottom: 0.25rem;
+}
+
+/* Review actions */
+.review-actions {
+    margin-top: 0.75rem;
+}
+
+.btn-submit-review {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.btn-submit-review:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+}
+
+.review-locked {
+    display: inline-block;
+    padding: 0.5rem 0.9rem;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+}

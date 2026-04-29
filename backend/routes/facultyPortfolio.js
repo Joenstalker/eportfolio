@@ -173,6 +173,94 @@ router.delete('/file/:facultyId', auth, async (req, res) => {
     }
 });
 
+// Faculty submits portfolio for admin review
+router.post('/:facultyId/submit', auth, async (req, res) => {
+    try {
+        const { facultyId } = req.params;
+
+        // Only allow the faculty themselves to submit
+        if (req.user.id !== facultyId && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        let portfolio = await FacultyPortfolio.findOne({ facultyId });
+        if (!portfolio) {
+            return res.status(404).json({ message: 'Portfolio not found' });
+        }
+
+        portfolio.submittedForReview = true;
+        portfolio.submittedAt = new Date();
+        portfolio.adminReviewStatus = 'pending';
+        portfolio.adminReviewMessage = '';
+        portfolio.missingDocuments = [];
+
+        await portfolio.save();
+
+        res.json({ message: 'Portfolio submitted for review successfully', portfolio });
+    } catch (error) {
+        console.error('Error submitting portfolio:', error);
+        res.status(500).json({ message: 'Error submitting portfolio', error: error.message });
+    }
+});
+
+// ==================== ADMIN REVIEW ENDPOINTS ====================
+
+// Get all portfolios for admin review (with populated faculty info)
+router.get('/admin/all', auth, async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const portfolios = await FacultyPortfolio.find()
+            .populate('facultyId', 'firstName lastName email department name')
+            .populate('adminReviewedBy', 'firstName lastName email')
+            .sort({ submittedAt: -1, updatedAt: -1 });
+
+        res.json(portfolios);
+    } catch (error) {
+        console.error('Error fetching all portfolios:', error);
+        res.status(500).json({ message: 'Error fetching portfolios', error: error.message });
+    }
+});
+
+// Admin reviews/approves/rejects a portfolio
+router.put('/admin/:facultyId/review', auth, async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        const { facultyId } = req.params;
+        const { status, message, missingDocuments } = req.body;
+
+        if (!['approved', 'rejected', 'pending'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status. Must be approved, rejected, or pending.' });
+        }
+
+        let portfolio = await FacultyPortfolio.findOne({ facultyId });
+        if (!portfolio) {
+            return res.status(404).json({ message: 'Portfolio not found' });
+        }
+
+        portfolio.adminReviewStatus = status;
+        portfolio.adminReviewMessage = message || '';
+        portfolio.adminReviewDate = new Date();
+        portfolio.adminReviewedBy = req.user.id;
+        portfolio.missingDocuments = Array.isArray(missingDocuments) ? missingDocuments : [];
+
+        await portfolio.save();
+
+        res.json({
+            message: `Portfolio ${status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'updated'} successfully`,
+            portfolio
+        });
+    } catch (error) {
+        console.error('Error reviewing portfolio:', error);
+        res.status(500).json({ message: 'Error reviewing portfolio', error: error.message });
+    }
+});
+
 // Delete faculty portfolio
 router.delete('/:facultyId', auth, async (req, res) => {
     try {

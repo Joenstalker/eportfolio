@@ -15,7 +15,7 @@ function App() {
   const adminPaths = [
     '/admin-dashboard',
     '/admin-research-tracking',
-    '/admin-course-assignments',
+    '/admin-portfolio-review',
     '/admin-reports',
     '/admin-system-analytics',
     '/admin-evidence-review',

@@ -5,12 +5,10 @@ import Swal from 'sweetalert2'
 import './AdminDashboard.css'
 import AdminSidebar from './AdminSidebar'
 import AdminTopbar from './AdminTopbar'
-import CourseManagementTab from './CourseManagementTab'
 import FacultyManagementTab from './FacultyManagementTab'
 import ArchivedUsersTab from './ArchivedUsersTab'
 import ArchivedCoursesTab from './ArchivedCoursesTab'
-import ClassAssignmentsTab from './ClassAssignmentsTab'
-import EnhancedCourseAssignment from './EnhancedCourseAssignment'
+import PortfolioReviewTab from './PortfolioReviewTab'
 import ReportsTab from './ReportsTab'
 import SystemAnalyticsTab from './SystemAnalyticsTab'
 import SystemSettingsTab from './SystemSettingsTab'
@@ -286,7 +284,7 @@ const AdminDashboard = () => {
   const sectionToPathMap = {
     dashboard: '/admin-dashboard',
     researchTracking: '/admin-research-tracking',
-    courseAssignments: '/admin-course-assignments',
+    portfolioReview: '/admin-portfolio-review',
     reports: '/admin-reports',
     analytics: '/admin-system-analytics',
     evidenceReview: '/admin-evidence-review',
@@ -538,9 +536,9 @@ const AdminDashboard = () => {
       title: 'System Settings',
       content: <SystemSettingsTab onNavigate={handleSectionChange} />
     },
-    courseAssignments: {
-      title: 'Course Assignments',
-      content: <EnhancedCourseAssignment user={user} />
+    portfolioReview: {
+      title: 'Portfolio Review',
+      content: <PortfolioReviewTab />
     }
   };
 
@@ -548,7 +546,7 @@ const AdminDashboard = () => {
     { id: 'dashboard', label: 'DASHBOARD' },
     { id: 'faculty', label: 'FACULTY MANAGEMENT' },
     { id: 'researchTracking', label: 'FACULTY TRANSACTIONS' },
-    { id: 'courseAssignments', label: 'COURSE ASSIGNMENTS' },
+    { id: 'portfolioReview', label: 'PORTFOLIO REVIEW' },
     { id: 'reports', label: 'REPORTS' },
     { id: 'analytics', label: 'SYSTEM ANALYTICS' },
     { id: 'evidenceReview', label: 'EVIDENCE REVIEW' },

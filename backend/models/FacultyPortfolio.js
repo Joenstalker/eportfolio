@@ -220,6 +220,35 @@ const facultyPortfolioSchema = new mongoose.Schema({
             default: ''
         }
     },
+    submittedForReview: {
+        type: Boolean,
+        default: false
+    },
+    submittedAt: {
+        type: Date,
+        default: null
+    },
+    adminReviewStatus: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected', 'not_submitted'],
+        default: 'not_submitted'
+    },
+    adminReviewMessage: {
+        type: String,
+        default: ''
+    },
+    adminReviewDate: {
+        type: Date,
+        default: null
+    },
+    adminReviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    missingDocuments: [{
+        type: String
+    }],
     subjects: {
         type: Map,
         of: {

@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import Swal from 'sweetalert2';
-import { FaSave, FaDownload, FaUpload, FaCheckCircle, FaTimesCircle, FaFile, FaTimes, FaSearch } from 'react-icons/fa';
+import { FaSave, FaDownload, FaUpload, FaCheckCircle, FaTimesCircle, FaFile, FaTimes, FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import './facultyComponents.css';
 import { getPortfolio, savePortfolio } from '../../services/facultyPortfolioService';
 
@@ -82,6 +82,10 @@ const FacultyPortfolio = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
+    const [reviewStatus, setReviewStatus] = useState('not_submitted');
+    const [reviewMessage, setReviewMessage] = useState('');
+    const [missingDocs, setMissingDocs] = useState([]);
+    const [submittedForReview, setSubmittedForReview] = useState(false);
 
     // Load portfolio data from backend
     useEffect(() => {
@@ -92,6 +96,10 @@ const FacultyPortfolio = () => {
                     const data = await getPortfolio(user.id, token);
                     if (data) {
                         setPortfolioData(data);
+                        setReviewStatus(data.adminReviewStatus || 'not_submitted');
+                        setReviewMessage(data.adminReviewMessage || '');
+                        setMissingDocs(data.missingDocuments || []);
+                        setSubmittedForReview(data.submittedForReview || false);
                     }
                 } catch (error) {
                     console.error('Error loading portfolio:', error);
@@ -670,11 +678,121 @@ const FacultyPortfolio = () => {
                         </span>
                     </div>
                     <div className="progress-track">
-                        <div 
-                            className="progress-fill" 
+                        <div
+                            className="progress-fill"
                             style={{ width: `${progressPercentage}%` }}
                         ></div>
                     </div>
+                </div>
+
+                {/* Review Status Banner */}
+                {reviewStatus === 'approved' && (
+                    <div className="review-banner approved">
+                        <FaCheckCircle /> <strong>Portfolio Approved</strong> — Your portfolio has been reviewed and approved by the administrator.
+                    </div>
+                )}
+                {reviewStatus === 'rejected' && (
+                    <div className="review-banner rejected">
+                        <FaTimesCircle /> <strong>Action Required</strong> — {reviewMessage || 'Your portfolio was rejected. Please check the missing documents below and resubmit.'}
+                        {missingDocs.length > 0 && (
+                            <ul className="missing-docs-list">
+                                {missingDocs.map((doc, i) => <li key={i}>{doc}</li>)}
+                            </ul>
+                        )}
+                    </div>
+                )}
+                {reviewStatus === 'pending' && (
+                    <div className="review-banner pending">
+                        <FaExclamationTriangle /> <strong>Under Review</strong> — Your portfolio has been submitted and is currently being reviewed by the administrator.
+                    </div>
+                )}
+                {!submittedForReview && (
+                    <div className="review-banner not-submitted">
+                        <FaExclamationTriangle /> <strong>Not Submitted</strong> — Complete your portfolio and submit it for admin review when ready.
+                    </div>
+                )}
+
+                {/* Submit for Review Button */}
+                <div className="review-actions">
+                    {!submittedForReview ? (
+                        <button
+                            className="btn-submit-review"
+                            onClick={async () => {
+                                if (progressPercentage < 30) {
+                                    Swal.fire({ icon: 'warning', title: 'Portfolio Incomplete', text: 'Your portfolio progress is low. Please upload more documents before submitting.', confirmButtonColor: '#f59e0b' });
+                                    return;
+                                }
+                                const result = await Swal.fire({
+                                    icon: 'question',
+                                    title: 'Submit Portfolio?',
+                                    text: 'Once submitted, your portfolio will be sent to the administrator for review. You will not be able to make changes until it is reviewed.',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Yes, Submit',
+                                    cancelButtonText: 'Cancel',
+                                    confirmButtonColor: '#667eea'
+                                });
+                                if (!result.isConfirmed) return;
+                                try {
+                                    const token = await ensureToken();
+                                    const res = await fetch(`/api/faculty-portfolio/${user.id}/submit`, {
+                                        method: 'POST',
+                                        headers: { Authorization: `Bearer ${token}` }
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        setSubmittedForReview(true);
+                                        setReviewStatus('pending');
+                                        setReviewMessage('');
+                                        setMissingDocs([]);
+                                        Swal.fire({ icon: 'success', title: 'Submitted!', text: 'Your portfolio has been submitted for review.', timer: 2000, showConfirmButton: false });
+                                    } else {
+                                        throw new Error('Failed to submit');
+                                    }
+                                } catch (err) {
+                                    Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+                                }
+                            }}
+                        >
+                            <FaCheckCircle /> Submit for Review
+                        </button>
+                    ) : reviewStatus === 'rejected' ? (
+                        <button
+                            className="btn-submit-review"
+                            onClick={async () => {
+                                const result = await Swal.fire({
+                                    icon: 'question',
+                                    title: 'Resubmit Portfolio?',
+                                    text: 'Have you uploaded all the missing documents? Resubmitting will send your portfolio back for review.',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Yes, Resubmit',
+                                    cancelButtonText: 'Cancel',
+                                    confirmButtonColor: '#667eea'
+                                });
+                                if (!result.isConfirmed) return;
+                                try {
+                                    const token = await ensureToken();
+                                    const res = await fetch(`/api/faculty-portfolio/${user.id}/submit`, {
+                                        method: 'POST',
+                                        headers: { Authorization: `Bearer ${token}` }
+                                    });
+                                    if (res.ok) {
+                                        setReviewStatus('pending');
+                                        setReviewMessage('');
+                                        setMissingDocs([]);
+                                        Swal.fire({ icon: 'success', title: 'Resubmitted!', text: 'Your portfolio has been resubmitted for review.', timer: 2000, showConfirmButton: false });
+                                    } else {
+                                        throw new Error('Failed to resubmit');
+                                    }
+                                } catch (err) {
+                                    Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+                                }
+                            }}
+                        >
+                            <FaCheckCircle /> Resubmit for Review
+                        </button>
+                    ) : (
+                        <span className="review-locked">Portfolio submitted — awaiting administrator review.</span>
+                    )}
                 </div>
             </div>
 
